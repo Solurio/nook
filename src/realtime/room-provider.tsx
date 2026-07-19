@@ -1,0 +1,595 @@
+"use client";
+
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import type { RealtimeChannel } from "@supabase/supabase-js";
+import { supabaseBrowser } from "@/lib/supabase/client";
+import {
+  loadLocalIdentity,
+  randomName,
+  randomTint,
+  rememberRoom,
+  saveLocalIdentity,
+} from "@/lib/identity";
+import { newId } from "@/lib/slug";
+import { useThrottled } from "@/lib/use-throttled";
+import type { ItemDraft } from "@/lib/items";
+import { useRoomStore } from "@/state/room-store";
+import type {
+  AnyItem,
+  Background,
+  DoodleStroke,
+  Identity,
+  ItemDataMap,
+  ItemKind,
+  Message,
+  Peer,
+  Room,
+  TransformPatch,
+} from "@/lib/types";
+
+export interface Ping {
+  id: string;
+  x: number;
+  y: number;
+  glyph: string;
+  tint: string;
+}
+
+interface RoomApi {
+  status: "loading" | "ready" | "error";
+  error: string | null;
+  canEdit: boolean;
+  isOwner: boolean;
+
+  createItem: (draft: ItemDraft) => Promise<AnyItem | null>;
+  duplicateItem: (id: string) => Promise<void>;
+  deleteItem: (id: string) => Promise<void>;
+  commitTransform: (patch: TransformPatch) => Promise<void>;
+  broadcastTransform: (patch: TransformPatch) => void;
+  updateData: <K extends ItemKind>(id: string, data: ItemDataMap[K]) => Promise<void>;
+  bringToFront: (id: string) => Promise<void>;
+
+  updateBackground: (background: Background) => Promise<void>;
+  renameRoom: (name: string) => Promise<void>;
+  setLocked: (locked: boolean) => Promise<void>;
+
+  sendMessage: (body: string) => Promise<void>;
+  uploadFile: (file: File) => Promise<string | null>;
+
+  moveCursor: (x: number, y: number) => void;
+  sendPing: (x: number, y: number, glyph: string) => void;
+  pings: Ping[];
+
+  broadcastStroke: (itemId: string, stroke: DoodleStroke) => void;
+  liveStrokes: Record<string, DoodleStroke[]>;
+
+  updateIdentity: (patch: Partial<Pick<Identity, "name" | "tint">>) => void;
+}
+
+const RoomContext = createContext<RoomApi | null>(null);
+
+export function useRoom(): RoomApi {
+  const ctx = useContext(RoomContext);
+  if (!ctx) throw new Error("useRoom must be used inside <RoomProvider>");
+  return ctx;
+}
+
+const CURSOR_INTERVAL_MS = 45;
+const TRANSFORM_INTERVAL_MS = 33;
+const PING_LIFETIME_MS = 1800;
+
+export function RoomProvider({
+  slug,
+  initialRoom,
+  children,
+}: {
+  slug: string;
+  initialRoom: Room | null;
+  children: React.ReactNode;
+}) {
+  const supabase = useMemo(() => supabaseBrowser(), []);
+  const store = useRoomStore;
+
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [error, setError] = useState<string | null>(null);
+  const [pings, setPings] = useState<Ping[]>([]);
+  const [liveStrokes, setLiveStrokes] = useState<Record<string, DoodleStroke[]>>({});
+
+  const channelRef = useRef<RealtimeChannel | null>(null);
+  const identityRef = useRef<Identity | null>(null);
+  const roomIdRef = useRef<string | null>(initialRoom?.id ?? null);
+
+  const room = useRoomStore((s) => s.room);
+  const me = useRoomStore((s) => s.me);
+
+  const isOwner = Boolean(room && me && room.owner_id === me.userId);
+  const canEdit = Boolean(room && (!room.locked || isOwner));
+
+  const pushPing = useCallback((ping: Ping) => {
+    setPings((current) => [...current, ping]);
+    setTimeout(() => {
+      setPings((current) => current.filter((p) => p.id !== ping.id));
+    }, PING_LIFETIME_MS);
+  }, []);
+
+  const broadcast = useCallback((event: string, payload: unknown) => {
+    const channel = channelRef.current;
+    if (!channel) return;
+    channel.send({ type: "broadcast", event, payload });
+  }, []);
+
+  // -------------------------------------------------------------------------
+  // Boot: sign in anonymously, load the room, wire realtime.
+  // -------------------------------------------------------------------------
+  useEffect(() => {
+    let cancelled = false;
+
+    async function boot() {
+      try {
+        store.getState().setConnection("connecting");
+
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        let userId = session?.user?.id ?? null;
+        if (!userId) {
+          const { data, error: authError } = await supabase.auth.signInAnonymously();
+          if (authError) throw authError;
+          userId = data.user?.id ?? null;
+        }
+        if (!userId) throw new Error("Could not start a session.");
+        if (cancelled) return;
+
+        const saved = loadLocalIdentity();
+        const identity: Identity = {
+          userId,
+          name: saved?.name ?? randomName(),
+          tint: saved?.tint ?? randomTint(),
+        };
+        if (!saved) saveLocalIdentity({ name: identity.name, tint: identity.tint });
+        identityRef.current = identity;
+        store.getState().setMe(identity);
+
+        const { data: roomRow, error: roomError } = await supabase
+          .from("rooms")
+          .select("*")
+          .eq("slug", slug)
+          .maybeSingle();
+
+        if (roomError) throw roomError;
+        if (!roomRow) throw new Error("That nook does not exist (or was taken down).");
+        if (cancelled) return;
+
+        const loadedRoom = roomRow as Room;
+        roomIdRef.current = loadedRoom.id;
+        store.getState().setRoom(loadedRoom);
+        rememberRoom(loadedRoom.slug, loadedRoom.name);
+
+        const [itemsResult, messagesResult] = await Promise.all([
+          supabase.from("items").select("*").eq("room_id", loadedRoom.id),
+          supabase
+            .from("messages")
+            .select("*")
+            .eq("room_id", loadedRoom.id)
+            .order("created_at", { ascending: false })
+            .limit(80),
+        ]);
+
+        if (itemsResult.error) throw itemsResult.error;
+        if (cancelled) return;
+
+        store.getState().hydrateItems((itemsResult.data ?? []) as AnyItem[]);
+        store
+          .getState()
+          .hydrateMessages(((messagesResult.data ?? []) as Message[]).slice().reverse());
+
+        // Realtime needs the fresh access token before it will honour RLS.
+        const {
+          data: { session: liveSession },
+        } = await supabase.auth.getSession();
+        if (liveSession?.access_token) {
+          await supabase.realtime.setAuth(liveSession.access_token);
+        }
+
+        const channel = supabase.channel(`room:${loadedRoom.id}`, {
+          config: {
+            presence: { key: userId },
+            broadcast: { self: false },
+          },
+        });
+
+        channel
+          .on("presence", { event: "sync" }, () => {
+            const raw = channel.presenceState<Peer>();
+            const peers: Peer[] = [];
+            for (const entries of Object.values(raw)) {
+              const entry = entries[entries.length - 1];
+              if (entry && entry.userId) peers.push(entry);
+            }
+            store.getState().syncPeers(peers);
+          })
+          .on("broadcast", { event: "cursor" }, ({ payload }) => {
+            const { userId: from, x, y } = payload as { userId: string; x: number; y: number };
+            store.getState().setPeerCursor(from, { x, y });
+          })
+          .on("broadcast", { event: "transform" }, ({ payload }) => {
+            store.getState().applyTransform(payload as TransformPatch);
+          })
+          .on("broadcast", { event: "ping" }, ({ payload }) => {
+            const p = payload as Omit<Ping, "id">;
+            pushPing({ ...p, id: newId() });
+          })
+          .on("broadcast", { event: "stroke" }, ({ payload }) => {
+            const { itemId, stroke } = payload as { itemId: string; stroke: DoodleStroke };
+            setLiveStrokes((current) => {
+              const existing = current[itemId] ?? [];
+              const index = existing.findIndex((s) => s.id === stroke.id);
+              const next = index >= 0 ? existing.slice() : [...existing, stroke];
+              if (index >= 0) next[index] = stroke;
+              return { ...current, [itemId]: next };
+            });
+          })
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "items", filter: `room_id=eq.${loadedRoom.id}` },
+            (payload) => {
+              if (payload.eventType === "DELETE") {
+                const old = payload.old as { id?: string };
+                if (old?.id) {
+                  store.getState().removeItem(old.id);
+                  setLiveStrokes((current) => {
+                    if (!(old.id! in current)) return current;
+                    const next = { ...current };
+                    delete next[old.id!];
+                    return next;
+                  });
+                }
+                return;
+              }
+              const item = payload.new as AnyItem;
+              store.getState().upsertItem(item);
+              // The committed row now contains these strokes; drop the local echo.
+              if (item.kind === "game") {
+                setLiveStrokes((current) =>
+                  item.id in current ? { ...current, [item.id]: [] } : current,
+                );
+              }
+            },
+          )
+          .on(
+            "postgres_changes",
+            { event: "UPDATE", schema: "public", table: "rooms", filter: `id=eq.${loadedRoom.id}` },
+            (payload) => {
+              store.getState().patchRoom(payload.new as Room);
+            },
+          )
+          .on(
+            "postgres_changes",
+            {
+              event: "INSERT",
+              schema: "public",
+              table: "messages",
+              filter: `room_id=eq.${loadedRoom.id}`,
+            },
+            (payload) => {
+              store.getState().appendMessage(payload.new as Message);
+            },
+          )
+          .subscribe(async (state) => {
+            if (state === "SUBSCRIBED") {
+              store.getState().setConnection("live");
+              const current = identityRef.current;
+              if (current) {
+                await channel.track({ ...current, joinedAt: Date.now() } satisfies Peer);
+              }
+            } else if (state === "CHANNEL_ERROR" || state === "TIMED_OUT") {
+              store.getState().setConnection("offline");
+            }
+          });
+
+        channelRef.current = channel;
+        if (!cancelled) setStatus("ready");
+      } catch (err) {
+        if (cancelled) return;
+        setError(err instanceof Error ? err.message : "Something went wrong loading this nook.");
+        setStatus("error");
+        store.getState().setConnection("offline");
+      }
+    }
+
+    boot();
+
+    return () => {
+      cancelled = true;
+      const channel = channelRef.current;
+      channelRef.current = null;
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, [slug, supabase, store, pushPing]);
+
+  // -------------------------------------------------------------------------
+  // Ephemeral effects
+  // -------------------------------------------------------------------------
+
+  const emitCursor = useCallback(
+    (x: number, y: number) => {
+      const identity = identityRef.current;
+      if (!identity) return;
+      broadcast("cursor", { userId: identity.userId, x, y });
+    },
+    [broadcast],
+  );
+
+  const emitTransform = useCallback(
+    (patch: TransformPatch) => {
+      broadcast("transform", patch);
+    },
+    [broadcast],
+  );
+
+  const moveCursor = useThrottled(emitCursor, CURSOR_INTERVAL_MS);
+  const broadcastTransform = useThrottled(emitTransform, TRANSFORM_INTERVAL_MS);
+
+  const sendPing = useCallback(
+    (x: number, y: number, glyph: string) => {
+      const identity = identityRef.current;
+      if (!identity) return;
+      broadcast("ping", { x, y, glyph, tint: identity.tint });
+      pushPing({ id: newId(), x, y, glyph, tint: identity.tint });
+    },
+    [broadcast, pushPing],
+  );
+
+  const broadcastStroke = useCallback(
+    (itemId: string, stroke: DoodleStroke) => {
+      broadcast("stroke", { itemId, stroke });
+    },
+    [broadcast],
+  );
+
+  // -------------------------------------------------------------------------
+  // Durable mutations. Everything here writes to Postgres and lets
+  // postgres_changes do the fan-out, so late joiners never miss anything.
+  // -------------------------------------------------------------------------
+
+  const createItem = useCallback(
+    async (draft: ItemDraft): Promise<AnyItem | null> => {
+      const roomId = roomIdRef.current;
+      const identity = identityRef.current;
+      if (!roomId || !identity) return null;
+
+      const { data, error: insertError } = await supabase
+        .from("items")
+        .insert({ ...draft, room_id: roomId, created_by: identity.userId })
+        .select()
+        .single();
+
+      if (insertError) {
+        setError(insertError.message);
+        return null;
+      }
+
+      const item = data as AnyItem;
+      store.getState().upsertItem(item);
+      store.getState().select(item.id);
+      return item;
+    },
+    [supabase, store],
+  );
+
+  const duplicateItem = useCallback(
+    async (id: string) => {
+      const source = store.getState().items[id];
+      if (!source) return;
+      const items = Object.values(store.getState().items);
+      const z = items.reduce((max, item) => Math.max(max, item.z), 0) + 1;
+
+      await createItem({
+        kind: source.kind,
+        x: source.x + 28,
+        y: source.y + 28,
+        width: source.width,
+        height: source.height,
+        rotation: source.rotation,
+        z,
+        data: source.data,
+      });
+    },
+    [createItem, store],
+  );
+
+  const deleteItem = useCallback(
+    async (id: string) => {
+      store.getState().removeItem(id);
+      const { error: deleteError } = await supabase.from("items").delete().eq("id", id);
+      if (deleteError) setError(deleteError.message);
+    },
+    [supabase, store],
+  );
+
+  const commitTransform = useCallback(
+    async (patch: TransformPatch) => {
+      const { error: updateError } = await supabase
+        .from("items")
+        .update({
+          x: patch.x,
+          y: patch.y,
+          width: patch.width,
+          height: patch.height,
+          rotation: patch.rotation,
+        })
+        .eq("id", patch.id);
+      if (updateError) setError(updateError.message);
+    },
+    [supabase],
+  );
+
+  const updateData = useCallback(
+    async <K extends ItemKind>(id: string, data: ItemDataMap[K]) => {
+      store.getState().patchItemData(id, data as Record<string, unknown>);
+      const { error: updateError } = await supabase.from("items").update({ data }).eq("id", id);
+      if (updateError) setError(updateError.message);
+    },
+    [supabase, store],
+  );
+
+  const bringToFront = useCallback(
+    async (id: string) => {
+      const items = Object.values(store.getState().items);
+      const target = items.find((item) => item.id === id);
+      if (!target) return;
+      const top = items.reduce((max, item) => Math.max(max, item.z), 0);
+      if (target.z === top && items.length > 1) return;
+
+      const z = top + 1;
+      store.getState().upsertItem({ ...target, z });
+      const { error: updateError } = await supabase.from("items").update({ z }).eq("id", id);
+      if (updateError) setError(updateError.message);
+    },
+    [supabase, store],
+  );
+
+  const updateBackground = useCallback(
+    async (background: Background) => {
+      const roomId = roomIdRef.current;
+      if (!roomId) return;
+      store.getState().setBackground(background);
+      const { error: updateError } = await supabase
+        .from("rooms")
+        .update({ background })
+        .eq("id", roomId);
+      if (updateError) setError(updateError.message);
+    },
+    [supabase, store],
+  );
+
+  const renameRoom = useCallback(
+    async (name: string) => {
+      const roomId = roomIdRef.current;
+      if (!roomId) return;
+      const trimmed = name.trim().slice(0, 80) || "untitled nook";
+      store.getState().patchRoom({ name: trimmed });
+      const { error: updateError } = await supabase
+        .from("rooms")
+        .update({ name: trimmed })
+        .eq("id", roomId);
+      if (updateError) setError(updateError.message);
+    },
+    [supabase, store],
+  );
+
+  const setLocked = useCallback(
+    async (locked: boolean) => {
+      const roomId = roomIdRef.current;
+      if (!roomId) return;
+      store.getState().patchRoom({ locked });
+      const { error: updateError } = await supabase
+        .from("rooms")
+        .update({ locked })
+        .eq("id", roomId);
+      if (updateError) setError(updateError.message);
+    },
+    [supabase, store],
+  );
+
+  const sendMessage = useCallback(
+    async (body: string) => {
+      const roomId = roomIdRef.current;
+      const identity = identityRef.current;
+      const trimmed = body.trim();
+      if (!roomId || !identity || !trimmed) return;
+
+      const { data, error: insertError } = await supabase
+        .from("messages")
+        .insert({
+          room_id: roomId,
+          author_id: identity.userId,
+          author_name: identity.name,
+          author_tint: identity.tint,
+          body: trimmed.slice(0, 2000),
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        setError(insertError.message);
+        return;
+      }
+      store.getState().appendMessage(data as Message);
+    },
+    [supabase, store],
+  );
+
+  const uploadFile = useCallback(
+    async (file: File): Promise<string | null> => {
+      const roomId = roomIdRef.current;
+      if (!roomId) return null;
+
+      const extension = file.name.includes(".") ? file.name.split(".").pop() : "bin";
+      const path = `${roomId}/${newId()}.${extension}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("decorations")
+        .upload(path, file, { cacheControl: "31536000", upsert: false });
+
+      if (uploadError) {
+        setError(uploadError.message);
+        return null;
+      }
+
+      const { data } = supabase.storage.from("decorations").getPublicUrl(path);
+      return data.publicUrl;
+    },
+    [supabase],
+  );
+
+  const updateIdentity = useCallback(
+    (patch: Partial<Pick<Identity, "name" | "tint">>) => {
+      const current = identityRef.current;
+      if (!current) return;
+
+      const next: Identity = { ...current, ...patch };
+      identityRef.current = next;
+      store.getState().setMe(next);
+      saveLocalIdentity({ name: next.name, tint: next.tint });
+      void channelRef.current?.track({ ...next, joinedAt: Date.now() } satisfies Peer);
+    },
+    [store],
+  );
+
+  const value: RoomApi = {
+    status,
+    error,
+    canEdit,
+    isOwner,
+    createItem,
+    duplicateItem,
+    deleteItem,
+    commitTransform,
+    broadcastTransform,
+    updateData,
+    bringToFront,
+    updateBackground,
+    renameRoom,
+    setLocked,
+    sendMessage,
+    uploadFile,
+    moveCursor,
+    sendPing,
+    pings,
+    broadcastStroke,
+    liveStrokes,
+    updateIdentity,
+  };
+
+  return <RoomContext.Provider value={value}>{children}</RoomContext.Provider>;
+}

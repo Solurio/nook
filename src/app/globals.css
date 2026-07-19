@@ -1,0 +1,155 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink-950: #100d16;
+  --color-ink-900: #171320;
+  --color-ink-800: #1f1a2b;
+  --color-ink-700: #2a2338;
+  --color-ink-600: #3a3149;
+  --color-ink-500: #514667;
+  --color-chalk: #f4efe6;
+  --color-muted: #a598bb;
+  --color-glow: #c4a7f0;
+  --color-warm: #f6c177;
+
+  --font-sans: var(--font-outfit), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-hand: var(--font-caveat), "Bradley Hand", "Segoe Print", cursive;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-ink-950);
+  color: var(--color-chalk);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+/* The whole app is a fixed-viewport canvas; page scroll would fight the pan. */
+body.is-room {
+  overflow: hidden;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--color-glow) 45%, transparent);
+}
+
+@layer utilities {
+  .surface {
+    background: color-mix(in oklab, var(--color-ink-800) 88%, transparent);
+    backdrop-filter: blur(18px) saturate(1.3);
+    border: 1px solid color-mix(in oklab, white 9%, transparent);
+    box-shadow:
+      0 1px 0 0 color-mix(in oklab, white 6%, transparent) inset,
+      0 18px 44px -22px rgb(0 0 0 / 0.85);
+  }
+
+  .surface-raised {
+    background: color-mix(in oklab, var(--color-ink-700) 92%, transparent);
+    border: 1px solid color-mix(in oklab, white 11%, transparent);
+  }
+
+  /* A faint film of noise keeps the flat panels from looking like plastic. */
+  .grain::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.035;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+}
+
+/* Slim scrollbars everywhere else. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-ink-500) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--color-ink-600);
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@keyframes ping-pop {
+  0% {
+    transform: scale(0.4) translateY(0);
+    opacity: 0;
+  }
+  25% {
+    transform: scale(1.15) translateY(-6px);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) translateY(-46px);
+    opacity: 0;
+  }
+}
+
+@keyframes drift-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-glow) 55%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 12px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.animate-ping-pop {
+  animation: ping-pop 1.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.animate-drift-in {
+  animation: drift-in 0.22s ease-out both;
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 2s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-ping-pop,
+  .animate-drift-in,
+  .animate-pulse-ring {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+  }
+}

@@ -1,0 +1,19 @@
+"use client";
+
+import type { Item } from "@/lib/types";
+import TicTacToe from "@/components/games/tic-tac-toe";
+import ConnectFour from "@/components/games/connect-four";
+import Doodle from "@/components/games/doodle";
+
+export default function GameItem({ item }: { item: Item<"game"> }) {
+  switch (item.data.game) {
+    case "tictactoe":
+      return <TicTacToe item={item} state={item.data.state} />;
+    case "connectfour":
+      return <ConnectFour item={item} state={item.data.state} />;
+    case "doodle":
+      return <Doodle item={item} state={item.data.state} />;
+    default:
+      return null;
+  }
+}

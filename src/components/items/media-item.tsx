@@ -1,0 +1,592 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import clsx from "clsx";
+import {
+  ListMusic,
+  Music4,
+  Pause,
+  Play,
+  Plus,
+  SkipBack,
+  SkipForward,
+  Trash2,
+  Video,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
+import { useRoom } from "@/realtime/room-provider";
+import { useRoomStore } from "@/state/room-store";
+import { anchor, currentTrack, formatClock, parseYouTubeId, projectedPosition } from "@/lib/media";
+import { loadYouTubeApi, YT_STATE, type YTPlayer } from "@/lib/youtube-api";
+import type { Item, MediaData, MediaTrack } from "@/lib/types";
+
+/** How far the local playhead may wander before we snap it back. */
+const DRIFT_TOLERANCE_SEC = 1.4;
+const SYNC_INTERVAL_MS = 1500;
+const VOLUME_KEY = "nook.volume";
+
+export default function MediaItem({ item }: { item: Item<"media"> }) {
+  const { updateData, canEdit } = useRoom();
+  const me = useRoomStore((s) => s.me);
+  const media = item.data;
+  const track = currentTrack(media);
+
+  const hostRef = useRef<HTMLDivElement>(null);
+  const playerRef = useRef<YTPlayer | null>(null);
+  const suppress = useRef(false);
+  const loadedVideo = useRef<string | null>(null);
+  const mediaRef = useRef(media);
+
+  // Interval and player callbacks outlive the render they were created in, so
+  // they read shared state through this ref rather than a stale closure.
+  useEffect(() => {
+    mediaRef.current = media;
+  });
+
+  const [ready, setReady] = useState(false);
+  const [blocked, setBlocked] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [showQueue, setShowQueue] = useState(false);
+  const [adding, setAdding] = useState("");
+  const [volume, setVolume] = useState(() => {
+    if (typeof window === "undefined") return 60;
+    const stored = Number(window.localStorage.getItem(VOLUME_KEY));
+    return Number.isFinite(stored) && stored >= 0 && stored <= 100 ? stored : 60;
+  });
+  const [muted, setMuted] = useState(false);
+
+  const write = useCallback(
+    (next: MediaData) => {
+      void updateData(item.id, next);
+    },
+    [item.id, updateData],
+  );
+
+  /** Runs a player call without letting the resulting event echo back out. */
+  const quietly = useCallback((fn: () => void) => {
+    suppress.current = true;
+    try {
+      fn();
+    } finally {
+      window.setTimeout(() => {
+        suppress.current = false;
+      }, 220);
+    }
+  }, []);
+
+  const advance = useCallback(
+    (state: MediaData, delta: number) => {
+      if (state.queue.length === 0) return;
+      const next = state.index + delta;
+
+      if (next >= state.queue.length) {
+        write({ ...state, index: 0, positionSec: 0, playing: false, anchoredAt: Date.now() });
+        return;
+      }
+      const index = Math.max(0, next);
+      write({ ...state, index, positionSec: 0, playing: true, anchoredAt: Date.now() });
+    },
+    [write],
+  );
+
+  // ---------------------------------------------------------------------------
+  // Player lifecycle
+  // ---------------------------------------------------------------------------
+
+  useEffect(() => {
+    let disposed = false;
+
+    loadYouTubeApi()
+      .then((YT) => {
+        if (disposed || !hostRef.current) return;
+
+        const player = new YT.Player(hostRef.current, {
+          playerVars: {
+            controls: 0,
+            disablekb: 1,
+            modestbranding: 1,
+            rel: 0,
+            playsinline: 1,
+            fs: 0,
+          },
+          events: {
+            onReady: ({ target }) => {
+              if (disposed) return;
+              playerRef.current = target;
+              target.setVolume(volume);
+              setReady(true);
+            },
+            onStateChange: ({ data, target }) => {
+              if (disposed) return;
+              setDuration(target.getDuration() || 0);
+
+              if (suppress.current) return;
+              const state = mediaRef.current;
+
+              // Someone used the player's own controls: mirror that choice
+              // into shared state so the room follows along.
+              if (data === YT_STATE.PLAYING && !state.playing) {
+                write(anchor(state, target.getCurrentTime(), true));
+              } else if (data === YT_STATE.PAUSED && state.playing) {
+                write(anchor(state, target.getCurrentTime(), false));
+              } else if (data === YT_STATE.ENDED) {
+                advance(state, 1);
+              }
+            },
+          },
+        });
+
+        playerRef.current = player;
+      })
+      .catch(() => setBlocked(true));
+
+    return () => {
+      disposed = true;
+      const player = playerRef.current;
+      playerRef.current = null;
+      try {
+        player?.destroy();
+      } catch {
+        // The iframe may already be gone if the item was deleted mid-teardown.
+      }
+    };
+    // The player is created once; track and volume changes are pushed in below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Load whichever track the room is on.
+  useEffect(() => {
+    const player = playerRef.current;
+    if (!ready || !player) return;
+
+    if (!track) {
+      loadedVideo.current = null;
+      return;
+    }
+    if (loadedVideo.current === track.videoId) return;
+
+    loadedVideo.current = track.videoId;
+    const start = projectedPosition(media);
+
+    quietly(() => {
+      if (media.playing) player.loadVideoById(track.videoId, start);
+      else player.cueVideoById(track.videoId, start);
+    });
+  }, [ready, track, media, quietly]);
+
+  // Follow shared play/pause.
+  useEffect(() => {
+    const player = playerRef.current;
+    if (!ready || !player || !track) return;
+
+    const state = player.getPlayerState();
+    if (media.playing && state !== YT_STATE.PLAYING && state !== YT_STATE.BUFFERING) {
+      quietly(() => player.playVideo());
+    } else if (!media.playing && state === YT_STATE.PLAYING) {
+      quietly(() => player.pauseVideo());
+    }
+  }, [ready, media.playing, media.anchoredAt, track, quietly]);
+
+  // Drift correction plus the local progress readout.
+  useEffect(() => {
+    if (!ready) return;
+
+    const tick = () => {
+      const player = playerRef.current;
+      if (!player) return;
+
+      const now = player.getCurrentTime();
+      setElapsed(now);
+      setDuration(player.getDuration() || 0);
+
+      const state = mediaRef.current;
+      if (!state.playing || !currentTrack(state)) return;
+
+      const expected = projectedPosition(state);
+      if (Math.abs(expected - now) > DRIFT_TOLERANCE_SEC) {
+        quietly(() => player.seekTo(expected, true));
+      }
+
+      // Autoplay was refused; offer a manual way in rather than sitting silent.
+      if (player.getPlayerState() === YT_STATE.UNSTARTED) setBlocked(true);
+      else setBlocked(false);
+    };
+
+    const fast = window.setInterval(() => {
+      const player = playerRef.current;
+      if (player) setElapsed(player.getCurrentTime());
+    }, 250);
+    const slow = window.setInterval(tick, SYNC_INTERVAL_MS);
+    tick();
+
+    return () => {
+      window.clearInterval(fast);
+      window.clearInterval(slow);
+    };
+  }, [ready, quietly]);
+
+  useEffect(() => {
+    const player = playerRef.current;
+    if (!ready || !player) return;
+    player.setVolume(muted ? 0 : volume);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(VOLUME_KEY, String(volume));
+    }
+  }, [ready, volume, muted]);
+
+  // ---------------------------------------------------------------------------
+  // Controls
+  // ---------------------------------------------------------------------------
+
+  const toggle = useCallback(() => {
+    if (!canEdit) return;
+    const player = playerRef.current;
+    const at = player ? player.getCurrentTime() : media.positionSec;
+    write(anchor(media, at, !media.playing));
+  }, [canEdit, media, write]);
+
+  const scrub = useCallback(
+    (seconds: number) => {
+      if (!canEdit) return;
+      const player = playerRef.current;
+      quietly(() => player?.seekTo(seconds, true));
+      write(anchor(media, seconds, media.playing));
+    },
+    [canEdit, media, quietly, write],
+  );
+
+  const addTrack = useCallback(
+    (raw: string) => {
+      const videoId = parseYouTubeId(raw);
+      if (!videoId) return false;
+
+      const entry: MediaTrack = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        provider: "youtube",
+        videoId,
+        title: "queued track",
+        addedBy: me?.name ?? "someone",
+      };
+
+      const wasEmpty = media.queue.length === 0;
+      write({
+        ...media,
+        queue: [...media.queue, entry],
+        ...(wasEmpty ? { index: 0, positionSec: 0, playing: true, anchoredAt: Date.now() } : {}),
+      });
+      return true;
+    },
+    [me, media, write],
+  );
+
+  const removeTrack = useCallback(
+    (id: string) => {
+      const index = media.queue.findIndex((t) => t.id === id);
+      if (index < 0) return;
+
+      const queue = media.queue.filter((t) => t.id !== id);
+      let nextIndex = media.index;
+      if (index < media.index) nextIndex -= 1;
+      else if (index === media.index) nextIndex = Math.min(media.index, queue.length - 1);
+
+      write({
+        ...media,
+        queue,
+        index: Math.max(0, nextIndex),
+        ...(index === media.index ? { positionSec: 0, anchoredAt: Date.now() } : {}),
+      });
+    },
+    [media, write],
+  );
+
+  const compact = media.audioOnly || item.height < 260;
+
+  return (
+    <div className="surface grain relative flex size-full flex-col overflow-hidden rounded-2xl">
+      <div
+        className={clsx(
+          "relative bg-black transition-all",
+          compact ? "h-0" : "flex-1",
+        )}
+      >
+        <div ref={hostRef} className="size-full" />
+
+        {!track && (
+          <div className="absolute inset-0 grid place-items-center bg-ink-900 px-6 text-center">
+            <div className="text-muted">
+              <Music4 className="mx-auto mb-2 size-6" strokeWidth={1.7} />
+              <p className="text-sm">nothing queued yet</p>
+              <p className="mt-1 text-xs opacity-70">paste a youtube link below</p>
+            </div>
+          </div>
+        )}
+
+        {blocked && track && (
+          <button
+            type="button"
+            onClick={() => {
+              const player = playerRef.current;
+              player?.unMute();
+              setMuted(false);
+              quietly(() => {
+                player?.seekTo(projectedPosition(mediaRef.current), true);
+                player?.playVideo();
+              });
+              setBlocked(false);
+            }}
+            className="absolute inset-0 grid place-items-center bg-ink-950/80 backdrop-blur-sm"
+          >
+            <span className="rounded-2xl bg-chalk px-4 py-2.5 text-sm font-semibold text-ink-950">
+              tap to join playback
+            </span>
+          </button>
+        )}
+      </div>
+
+      {compact && track && (
+        <div className="flex items-center gap-3 border-b border-white/8 px-3 py-2.5">
+          <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-glow/20 ring-1 ring-glow/30">
+            <Music4
+              className={clsx("size-4 text-glow", media.playing && "animate-pulse")}
+              strokeWidth={2.2}
+            />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-medium">{track.title}</p>
+            <p className="truncate text-[11px] text-muted">added by {track.addedBy}</p>
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-2 px-3 py-2.5">
+        <Scrubber
+          elapsed={elapsed}
+          duration={duration}
+          disabled={!canEdit || !track}
+          onSeek={scrub}
+        />
+
+        <div className="flex items-center gap-1.5">
+          <IconButton
+            label="previous"
+            disabled={!canEdit || media.index === 0}
+            onClick={() => advance(media, -1)}
+          >
+            <SkipBack className="size-4" strokeWidth={2.2} />
+          </IconButton>
+
+          <button
+            type="button"
+            onClick={toggle}
+            disabled={!canEdit || !track}
+            aria-label={media.playing ? "pause" : "play"}
+            className="grid size-9 place-items-center rounded-full bg-chalk text-ink-950 transition hover:bg-white disabled:opacity-40"
+          >
+            {media.playing ? (
+              <Pause className="size-4 fill-current" strokeWidth={0} />
+            ) : (
+              <Play className="size-4 translate-x-px fill-current" strokeWidth={0} />
+            )}
+          </button>
+
+          <IconButton
+            label="next"
+            disabled={!canEdit || media.index >= media.queue.length - 1}
+            onClick={() => advance(media, 1)}
+          >
+            <SkipForward className="size-4" strokeWidth={2.2} />
+          </IconButton>
+
+          <div className="mx-1 flex flex-1 items-center gap-1.5">
+            <IconButton label={muted ? "unmute" : "mute"} onClick={() => setMuted((m) => !m)}>
+              {muted ? (
+                <VolumeX className="size-4" strokeWidth={2.2} />
+              ) : (
+                <Volume2 className="size-4" strokeWidth={2.2} />
+              )}
+            </IconButton>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={muted ? 0 : volume}
+              onChange={(event) => {
+                setMuted(false);
+                setVolume(Number(event.target.value));
+              }}
+              aria-label="volume"
+              className="h-1 w-full max-w-20 cursor-pointer appearance-none rounded-full bg-white/15 accent-glow"
+            />
+          </div>
+
+          <IconButton
+            label="audio only"
+            active={media.audioOnly}
+            disabled={!canEdit}
+            onClick={() => write({ ...media, audioOnly: !media.audioOnly })}
+          >
+            {media.audioOnly ? (
+              <Video className="size-4" strokeWidth={2.2} />
+            ) : (
+              <Music4 className="size-4" strokeWidth={2.2} />
+            )}
+          </IconButton>
+
+          <IconButton
+            label="queue"
+            active={showQueue}
+            onClick={() => setShowQueue((v) => !v)}
+          >
+            <ListMusic className="size-4" strokeWidth={2.2} />
+          </IconButton>
+        </div>
+
+        {showQueue && (
+          <div className="animate-drift-in space-y-1.5 pt-1">
+            {canEdit && (
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  if (addTrack(adding)) setAdding("");
+                }}
+                className="flex gap-1.5"
+              >
+                <input
+                  value={adding}
+                  onChange={(event) => setAdding(event.target.value)}
+                  onKeyDown={(event) => event.stopPropagation()}
+                  placeholder="youtube link"
+                  spellCheck={false}
+                  className="min-w-0 flex-1 rounded-lg bg-white/8 px-2.5 py-1.5 text-xs ring-1 ring-white/10 outline-none placeholder:text-muted/60 focus:ring-glow/50"
+                />
+                <button
+                  type="submit"
+                  aria-label="add to queue"
+                  className="grid size-7 shrink-0 place-items-center rounded-lg bg-glow/25 text-glow transition hover:bg-glow/35"
+                >
+                  <Plus className="size-3.5" strokeWidth={2.6} />
+                </button>
+              </form>
+            )}
+
+            <ul className="max-h-28 space-y-0.5 overflow-y-auto">
+              {media.queue.map((entry, index) => (
+                <li
+                  key={entry.id}
+                  className={clsx(
+                    "group flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs",
+                    index === media.index ? "bg-glow/18 text-chalk" : "text-muted hover:bg-white/5",
+                  )}
+                >
+                  <button
+                    type="button"
+                    disabled={!canEdit}
+                    onClick={() =>
+                      write({ ...media, index, positionSec: 0, playing: true, anchoredAt: Date.now() })
+                    }
+                    className="min-w-0 flex-1 truncate text-left"
+                  >
+                    {entry.title}
+                    <span className="ml-1.5 opacity-60">{entry.addedBy}</span>
+                  </button>
+                  {canEdit && (
+                    <button
+                      type="button"
+                      onClick={() => removeTrack(entry.id)}
+                      aria-label="remove"
+                      className="opacity-0 transition group-hover:opacity-100 hover:text-red-300"
+                    >
+                      <Trash2 className="size-3.5" strokeWidth={2.2} />
+                    </button>
+                  )}
+                </li>
+              ))}
+              {media.queue.length === 0 && (
+                <li className="px-2 py-1.5 text-xs text-muted/60">the queue is empty</li>
+              )}
+            </ul>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Scrubber({
+  elapsed,
+  duration,
+  disabled,
+  onSeek,
+}: {
+  elapsed: number;
+  duration: number;
+  disabled: boolean;
+  onSeek: (seconds: number) => void;
+}) {
+  const pct = duration > 0 ? Math.min(100, (elapsed / duration) * 100) : 0;
+
+  return (
+    <div className="flex items-center gap-2 text-[10px] tabular-nums text-muted">
+      <span className="w-8 shrink-0 text-right">{formatClock(elapsed)}</span>
+      <div
+        role="slider"
+        aria-label="seek"
+        aria-valuemin={0}
+        aria-valuemax={Math.round(duration)}
+        aria-valuenow={Math.round(elapsed)}
+        tabIndex={disabled ? -1 : 0}
+        onPointerDown={(event) => {
+          if (disabled || duration <= 0) return;
+          const rect = event.currentTarget.getBoundingClientRect();
+          const ratio = (event.clientX - rect.left) / rect.width;
+          onSeek(Math.max(0, Math.min(duration, ratio * duration)));
+        }}
+        className={clsx(
+          "group relative h-3 flex-1",
+          disabled ? "cursor-default" : "cursor-pointer",
+        )}
+      >
+        <div className="absolute top-1/2 h-1 w-full -translate-y-1/2 overflow-hidden rounded-full bg-white/12">
+          <div className="h-full rounded-full bg-glow" style={{ width: `${pct}%` }} />
+        </div>
+        <div
+          className="absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-chalk opacity-0 transition group-hover:opacity-100"
+          style={{ left: `${pct}%` }}
+        />
+      </div>
+      <span className="w-8 shrink-0">{formatClock(duration)}</span>
+    </div>
+  );
+}
+
+function IconButton({
+  children,
+  label,
+  onClick,
+  disabled,
+  active,
+}: {
+  children: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  active?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      title={label}
+      className={clsx(
+        "grid size-7 shrink-0 place-items-center rounded-lg transition disabled:opacity-35",
+        active ? "bg-glow/25 text-glow" : "text-muted hover:bg-white/8 hover:text-chalk",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
