@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRoom } from "@/realtime/room-provider";
 import {
+  orderItems,
   screenToWorld,
-  selectOrderedItems,
   useRoomStore,
   type Viewport,
 } from "@/state/room-store";
@@ -22,7 +22,10 @@ export default function Canvas() {
   const rootRef = useRef<HTMLDivElement>(null);
   const room = useRoomStore((s) => s.room);
   const viewport = useRoomStore((s) => s.viewport);
-  const items = useRoomStore(selectOrderedItems);
+  // Subscribe to the stable items map; the ordered array is derived here so the
+  // store hook never returns a fresh reference on an unrelated update.
+  const itemMap = useRoomStore((s) => s.items);
+  const items = useMemo(() => orderItems(itemMap), [itemMap]);
   const select = useRoomStore((s) => s.select);
   const setEditing = useRoomStore((s) => s.setEditing);
   const selectedId = useRoomStore((s) => s.selectedId);

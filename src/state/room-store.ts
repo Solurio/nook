@@ -234,9 +234,16 @@ export const useRoomStore = create<RoomState>((set, get) => ({
   setConnection: (connection) => set({ connection }),
 }));
 
-/** Items in paint order. */
-export function selectOrderedItems(state: RoomState): AnyItem[] {
-  return Object.values(state.items).sort((a, b) => a.z - b.z || a.created_at.localeCompare(b.created_at));
+/**
+ * Items in paint order. This allocates a new array every call, so it must be
+ * memoized against the items map rather than handed straight to the store hook
+ * as a selector, or useSyncExternalStore would see an ever-changing snapshot
+ * and spin. See Canvas.
+ */
+export function orderItems(items: Record<string, AnyItem>): AnyItem[] {
+  return Object.values(items).sort(
+    (a, b) => a.z - b.z || a.created_at.localeCompare(b.created_at),
+  );
 }
 
 export function screenToWorld(viewport: Viewport, screenX: number, screenY: number) {
