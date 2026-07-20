@@ -81,8 +81,15 @@ interface RoomApi {
   eraseStroke: (id: string) => Promise<void>;
   broadcastInk: (draft: InkDraft | null) => void;
 
+  startCobrowse: (url: string) => Promise<CobrowseResult>;
+  stopCobrowse: (sessionId: string) => Promise<void>;
+
   updateIdentity: (patch: Partial<Pick<Identity, "name" | "tint">>) => void;
 }
+
+export type CobrowseResult =
+  | { ok: true; embedUrl: string; sessionId: string }
+  | { ok: false; error: "not_configured" | "unauthorized" | "failed" };
 
 const RoomContext = createContext<RoomApi | null>(null);
 
@@ -688,6 +695,52 @@ export function RoomProvider({
     [broadcast, store],
   );
 
+  // -------------------------------------------------------------------------
+  // Co-browse: ask the serverless function to spin up a shared cloud browser.
+  // The Hyperbeam key lives only in that function, never here.
+  // -------------------------------------------------------------------------
+
+  const startCobrowse = useCallback(
+    async (url: string): Promise<CobrowseResult> => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      try {
+        const res = await fetch("/api/cobrowse", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ url, token: session?.access_token }),
+        });
+        const data = (await res.json().catch(() => ({}))) as {
+          embedUrl?: string;
+          sessionId?: string;
+          error?: string;
+        };
+
+        if (res.ok && data.embedUrl && data.sessionId) {
+          return { ok: true, embedUrl: data.embedUrl, sessionId: data.sessionId };
+        }
+        if (data.error === "not_configured") return { ok: false, error: "not_configured" };
+        if (res.status === 401) return { ok: false, error: "unauthorized" };
+        return { ok: false, error: "failed" };
+      } catch {
+        return { ok: false, error: "failed" };
+      }
+    },
+    [supabase],
+  );
+
+  const stopCobrowse = useCallback(async (sessionId: string) => {
+    try {
+      await fetch(`/api/cobrowse?session_id=${encodeURIComponent(sessionId)}`, {
+        method: "DELETE",
+      });
+    } catch {
+      // The offline timeout will reap the session even if this never lands.
+    }
+  }, []);
+
   const value: RoomApi = {
     status,
     error,
@@ -715,6 +768,8 @@ export function RoomProvider({
     createStroke,
     eraseStroke,
     broadcastInk,
+    startCobrowse,
+    stopCobrowse,
     updateIdentity,
   };
 

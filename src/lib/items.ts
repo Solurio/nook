@@ -28,6 +28,7 @@ const DEFAULT_SIZE: Record<ItemKind, { width: number; height: number }> = {
   media: { width: 480, height: 340 },
   embed: { width: 520, height: 380 },
   game: { width: 340, height: 400 },
+  cobrowse: { width: 640, height: 440 },
 };
 
 const GAME_SIZE: Record<GameKind, { width: number; height: number }> = {
@@ -100,9 +101,14 @@ export function draftItem(
     case "game":
       data = emptyGameData(options.game ?? "tictactoe");
       break;
+    case "cobrowse":
+      data = { url: "", status: "idle" };
+      break;
   }
 
   if (options.data) data = { ...data, ...options.data } as ItemDataMap[ItemKind];
+
+  const upright = kind === "text" || kind === "media" || kind === "cobrowse";
 
   return {
     kind,
@@ -110,7 +116,7 @@ export function draftItem(
     y: Math.round(at.y - size.height / 2),
     width: size.width,
     height: size.height,
-    rotation: kind === "text" || kind === "media" ? 0 : casualTilt(),
+    rotation: upright ? 0 : casualTilt(),
     z,
     data,
   };
@@ -128,6 +134,7 @@ export const MIN_ITEM_SIZE: Record<ItemKind, { width: number; height: number }> 
   media: { width: 300, height: 210 },
   embed: { width: 240, height: 180 },
   game: { width: 260, height: 300 },
+  cobrowse: { width: 380, height: 280 },
 };
 
 export function clampSize(kind: ItemKind, width: number, height: number) {

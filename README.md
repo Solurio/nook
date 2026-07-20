@@ -181,9 +181,12 @@ terceiros). Isso é uma trava de segurança do navegador: a página não consegu
 ler nem controlar o que acontece dentro de um iframe de outro domínio.
 
 Apps que fazem isso (o próprio Here.fm) rodam um navegador **num servidor** e
-transmitem os pixels por streaming (Hyperbeam e parecidos) — precisa de backend
-e custa dinheiro. Se um dia isso valer a pena, dá pra plugar o Hyperbeam num
-item novo sem mexer no resto.
+transmitem os pixels por streaming.
+
+Isso já está implementado como um item opcional ("shared browser" na dock),
+usando o [Hyperbeam](https://hyperbeam.com) — é a única parte paga, e vem
+desligada até você colar a sua chave. O passo a passo (com os freios de custo)
+está em [COBROWSE.md](COBROWSE.md). Sem a chave, o resto do app funciona normal.
 
 ## Coisas que ficaram de fora
 

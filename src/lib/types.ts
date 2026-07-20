@@ -1,4 +1,11 @@
-export type ItemKind = "image" | "note" | "text" | "media" | "embed" | "game";
+export type ItemKind =
+  | "image"
+  | "note"
+  | "text"
+  | "media"
+  | "embed"
+  | "game"
+  | "cobrowse";
 
 export type Background =
   | { kind: "solid"; color: string }
@@ -24,6 +31,20 @@ export interface ItemDataMap {
   media: MediaData;
   embed: { url: string; title?: string };
   game: GameData;
+  cobrowse: CobrowseData;
+}
+
+/**
+ * A live, shared cloud browser (Hyperbeam). Everyone in the room loads the same
+ * embedUrl and controls the same machine. Unlike other items this is a live
+ * session, not permanent state -- it ends when everyone leaves or on close.
+ */
+export interface CobrowseData {
+  url: string;
+  embedUrl?: string;
+  sessionId?: string;
+  status: "idle" | "live" | "ended";
+  startedBy?: string;
 }
 
 export type FrameStyle = "none" | "polaroid" | "shadow" | "sticker";

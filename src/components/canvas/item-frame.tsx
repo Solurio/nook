@@ -141,7 +141,11 @@ function ItemFrame({
     [commitTransform, current, item.id, release],
   );
 
-  const interactive = item.kind === "media" || item.kind === "embed" || item.kind === "game";
+  const interactive =
+    item.kind === "media" ||
+    item.kind === "embed" ||
+    item.kind === "game" ||
+    item.kind === "cobrowse";
 
   return (
     <div

@@ -11,6 +11,7 @@ import {
   Grid3x3,
   ImagePlus,
   Minus,
+  MonitorPlay,
   MousePointer2,
   Music4,
   Pencil,
@@ -153,6 +154,13 @@ export default function Dock() {
           </DockButton>
           <DockButton label="a window to somewhere" disabled={!canEdit} onClick={() => add("embed")}>
             <Globe className="size-4.5" strokeWidth={2} />
+          </DockButton>
+          <DockButton
+            label="shared browser (live, together)"
+            disabled={!canEdit}
+            onClick={() => add("cobrowse")}
+          >
+            <MonitorPlay className="size-4.5" strokeWidth={2} />
           </DockButton>
 
           <DockButton
