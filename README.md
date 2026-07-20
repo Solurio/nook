@@ -21,8 +21,14 @@ que colocar nela, e tudo fica salvo onde você largou.
   de um traço pra apagar). Todo traço é compartilhado ao vivo e fica salvo.
 - **Música e vídeo em sincronia** — cola um link do YouTube e todo mundo assiste
   junto. Quem der play, pausar ou arrastar a barra move o vídeo pra todo mundo.
-  Tem fila, e um modo só-áudio pra quando é pra ser rádio de fundo.
-- **Janelas** — um iframe pra qualquer site que aceite ser embedado.
+  Como o navegador não deixa dar autoplay com som sem um clique, quem chega
+  entra com o vídeo tocando **mudo** e em sincronia, e clica pra ativar o som.
+  Tem fila e um modo só-áudio.
+- **Stickers/GIFs** — uma janela de busca de GIFs (Giphy) que solta o GIF na
+  parede como objeto, igual o Here.fm. Precisa de uma chave gratuita do Giphy
+  (veja abaixo); sem ela o resto do app funciona normal.
+- **Janelas** — um iframe pra sites que aceitam ser embedados. Links de Twitch,
+  Vimeo, SoundCloud e Spotify são convertidos automaticamente pro player certo.
 - **Jogos** — velha, lig-4 e uma lousa de rabisco compartilhada (com pincel e
   borracha). Nos dois primeiros dá pra "sentar" numa cadeira pra marcar de quem
   é a vez, ou deixar solto e qualquer um joga.
@@ -157,10 +163,32 @@ jogos, o parser de links do YouTube, a projeção do playhead e a normalização
 slug. O resto (arrastar, o player, a sincronia de verdade entre duas abas) é
 teste na mão, com duas janelas abertas lado a lado.
 
+### Chave do Giphy (opcional, pros stickers)
+
+A busca de GIFs usa a API do Giphy. Pega uma chave gratuita em
+[developers.giphy.com](https://developers.giphy.com) (API key, 2 min) e coloca
+como `NEXT_PUBLIC_GIPHY_KEY` — no `.env.local` pra rodar local, ou nas variáveis
+de ambiente da Cloudflare/Vercel pro deploy. Sem a chave, o painel de stickers
+só mostra um aviso e o resto do app funciona normal.
+
+## Sobre "compartilhar um site" em tempo real
+
+Dá pra colar um link e todo mundo ver a mesma janela, e dá pra **assistir junto**
+com sincronia de verdade (YouTube, Twitch, Vimeo — play/pause/seek batem pra
+todos). O que **não** dá pra fazer de graça é duas pessoas *controlarem o mesmo
+site qualquer ao mesmo tempo* (rolar, clicar, digitar juntas num site de
+terceiros). Isso é uma trava de segurança do navegador: a página não consegue
+ler nem controlar o que acontece dentro de um iframe de outro domínio.
+
+Apps que fazem isso (o próprio Here.fm) rodam um navegador **num servidor** e
+transmitem os pixels por streaming (Hyperbeam e parecidos) — precisa de backend
+e custa dinheiro. Se um dia isso valer a pena, dá pra plugar o Hyperbeam num
+item novo sem mexer no resto.
+
 ## Coisas que ficaram de fora
 
-- Dois traços desenhados no mesmo instante na lousa: o último a salvar ganha, e
-  o outro se perde. Com três pessoas é raro e barato de aceitar.
+- Dois traços desenhados no mesmo instante (lousa ou parede): o último a salvar
+  ganha. Com três pessoas é raro e barato de aceitar.
 - Não tem histórico nem desfazer que atravesse sessões. Apagou, foi.
 - Sites que mandam `X-Frame-Options: DENY` não abrem na janela de iframe. Não
   tem jeito pelo lado do cliente; por isso todo embed tem um botão de abrir

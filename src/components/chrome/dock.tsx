@@ -205,7 +205,7 @@ export default function Dock() {
           </DockButton>
 
           {reactionsOpen && (
-            <div className="surface-raised animate-drift-in absolute bottom-full right-0 mb-2 flex gap-0.5 rounded-2xl p-1.5 shadow-2xl">
+            <div className="surface-raised animate-drift-in absolute right-0 bottom-full mb-2 grid grid-cols-8 gap-0.5 rounded-2xl p-1.5 shadow-2xl">
               {REACTIONS.map((key) => (
                 <button
                   key={key}

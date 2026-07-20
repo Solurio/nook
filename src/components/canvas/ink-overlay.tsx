@@ -133,7 +133,10 @@ export default function InkOverlay() {
   return (
     <div
       ref={ref}
-      className="absolute inset-0 z-[6000]"
+      // Above the canvas items (so a scribble lands on top of them) but below
+      // the dock and top bar (z-50), so the tool buttons stay clickable -- the
+      // whole point being you can switch back to the cursor without a reload.
+      className="absolute inset-0 z-30"
       style={{ cursor: tool === "erase" ? "cell" : "crosshair", touchAction: "none" }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}

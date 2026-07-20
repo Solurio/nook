@@ -10,6 +10,7 @@ import {
   Lock,
   MessageCircle,
   Palette,
+  Sticker,
   Unlock,
   Users,
 } from "lucide-react";
@@ -114,6 +115,21 @@ export default function TopBar() {
               {unread > 9 ? "9+" : unread}
             </span>
           )}
+        </button>
+
+        <button
+          type="button"
+          disabled={!canEdit}
+          onClick={() => setPanel(panel === "stickers" ? null : "stickers")}
+          title="gifs and stickers"
+          className={clsx(
+            "grid size-8 place-items-center rounded-xl transition disabled:opacity-40",
+            panel === "stickers"
+              ? "bg-glow/22 text-glow"
+              : "text-muted hover:bg-white/8 hover:text-chalk",
+          )}
+        >
+          <Sticker className="size-4" strokeWidth={2.2} />
         </button>
 
         <button

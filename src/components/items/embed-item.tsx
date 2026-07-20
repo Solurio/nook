@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ExternalLink, Globe } from "lucide-react";
 import { useRoom } from "@/realtime/room-provider";
+import { resolveLink, withParent } from "@/lib/embeds";
 import type { Item } from "@/lib/types";
 
 /**
@@ -30,8 +31,19 @@ export default function EmbedItem({
               event.preventDefault();
               const trimmed = value.trim();
               if (!trimmed) return;
-              const normalized = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
-              void updateData(item.id, { ...item.data, url: normalized });
+              // Turn a normal twitch/vimeo/etc. link into its embeddable form.
+              const resolved = resolveLink(trimmed);
+              const next =
+                resolved?.kind === "embed"
+                  ? resolved.url
+                  : /^https?:\/\//i.test(trimmed)
+                    ? trimmed
+                    : `https://${trimmed}`;
+              void updateData(item.id, {
+                ...item.data,
+                url: next,
+                title: resolved?.kind === "embed" ? resolved.title : item.data.title,
+              });
             }}
           >
             <p className="mb-2 text-xs text-muted">what should live in this window?</p>
@@ -73,7 +85,7 @@ export default function EmbedItem({
       </div>
 
       <iframe
-        src={url}
+        src={withParent(url)}
         title={title ?? safeHost(url)}
         className="min-h-0 flex-1 bg-white"
         sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-presentation"

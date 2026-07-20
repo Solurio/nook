@@ -39,7 +39,7 @@ export interface Viewport {
 export const MIN_SCALE = 0.25;
 export const MAX_SCALE = 2.5;
 
-export type PanelId = "chat" | "background" | "peers" | null;
+export type PanelId = "chat" | "background" | "peers" | "stickers" | null;
 
 interface RoomState {
   room: Room | null;

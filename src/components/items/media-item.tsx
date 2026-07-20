@@ -26,7 +26,13 @@ const DRIFT_TOLERANCE_SEC = 1.4;
 const SYNC_INTERVAL_MS = 1500;
 const VOLUME_KEY = "nook.volume";
 
-export default function MediaItem({ item }: { item: Item<"media"> }) {
+export default function MediaItem({
+  item,
+  selected,
+}: {
+  item: Item<"media">;
+  selected: boolean;
+}) {
   const { updateData, canEdit } = useRoom();
   const me = useRoomStore((s) => s.me);
   const media = item.data;
@@ -45,7 +51,10 @@ export default function MediaItem({ item }: { item: Item<"media"> }) {
   });
 
   const [ready, setReady] = useState(false);
-  const [blocked, setBlocked] = useState(false);
+  // We muted the player only to satisfy the browser's autoplay policy, so the
+  // video can play in sync for everyone without a click; the user unmutes when
+  // they want sound.
+  const [autoMuted, setAutoMuted] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [duration, setDuration] = useState(0);
   const [showQueue, setShowQueue] = useState(false);
@@ -140,7 +149,9 @@ export default function MediaItem({ item }: { item: Item<"media"> }) {
 
         playerRef.current = player;
       })
-      .catch(() => setBlocked(true));
+      .catch(() => {
+        // The IFrame API could not load (offline, blocked). Nothing to play.
+      });
 
     return () => {
       disposed = true;
@@ -176,7 +187,10 @@ export default function MediaItem({ item }: { item: Item<"media"> }) {
     });
   }, [ready, track, media, quietly]);
 
-  // Follow shared play/pause.
+  // Follow shared play/pause. When someone else hits play, the browser will
+  // refuse to autoplay with sound on a client that has not interacted, which is
+  // exactly why "it only worked locally". Muted autoplay is always allowed, so
+  // we fall back to that and let the person unmute -- everyone stays in sync.
   useEffect(() => {
     const player = playerRef.current;
     if (!ready || !player || !track) return;
@@ -184,6 +198,19 @@ export default function MediaItem({ item }: { item: Item<"media"> }) {
     const state = player.getPlayerState();
     if (media.playing && state !== YT_STATE.PLAYING && state !== YT_STATE.BUFFERING) {
       quietly(() => player.playVideo());
+      window.setTimeout(() => {
+        const p = playerRef.current;
+        if (!p || !mediaRef.current.playing) return;
+        const s = p.getPlayerState();
+        if (s === YT_STATE.UNSTARTED || s === YT_STATE.CUED || s === YT_STATE.PAUSED) {
+          p.mute();
+          setAutoMuted(true);
+          quietly(() => {
+            p.seekTo(projectedPosition(mediaRef.current), true);
+            p.playVideo();
+          });
+        }
+      }, 400);
     } else if (!media.playing && state === YT_STATE.PLAYING) {
       quietly(() => player.pauseVideo());
     }
@@ -209,9 +236,13 @@ export default function MediaItem({ item }: { item: Item<"media"> }) {
         quietly(() => player.seekTo(expected, true));
       }
 
-      // Autoplay was refused; offer a manual way in rather than sitting silent.
-      if (player.getPlayerState() === YT_STATE.UNSTARTED) setBlocked(true);
-      else setBlocked(false);
+      // Still stuck at the gate a beat later: force muted playback so the room
+      // stays together, and surface an unmute prompt.
+      if (player.getPlayerState() === YT_STATE.UNSTARTED) {
+        player.mute();
+        setAutoMuted(true);
+        quietly(() => player.playVideo());
+      }
     };
 
     const fast = window.setInterval(() => {
@@ -230,11 +261,16 @@ export default function MediaItem({ item }: { item: Item<"media"> }) {
   useEffect(() => {
     const player = playerRef.current;
     if (!ready || !player) return;
-    player.setVolume(muted ? 0 : volume);
+    if (muted || autoMuted) {
+      player.mute();
+    } else {
+      player.unMute();
+      player.setVolume(volume);
+    }
     if (typeof window !== "undefined") {
       window.localStorage.setItem(VOLUME_KEY, String(volume));
     }
-  }, [ready, volume, muted]);
+  }, [ready, volume, muted, autoMuted]);
 
   // ---------------------------------------------------------------------------
   // Controls
@@ -323,24 +359,25 @@ export default function MediaItem({ item }: { item: Item<"media"> }) {
           </div>
         )}
 
-        {blocked && track && (
+        {/* While unselected, a transparent shield lets the canvas pan and zoom
+            over the video instead of the wheel falling through to the iframe
+            (which would zoom the browser). Clicking it selects the item. */}
+        {!selected && <div className="absolute inset-0" />}
+
+        {autoMuted && track && (
           <button
             type="button"
             onClick={() => {
+              setAutoMuted(false);
+              setMuted(false);
               const player = playerRef.current;
               player?.unMute();
-              setMuted(false);
-              quietly(() => {
-                player?.seekTo(projectedPosition(mediaRef.current), true);
-                player?.playVideo();
-              });
-              setBlocked(false);
+              player?.setVolume(volume);
             }}
-            className="absolute inset-0 grid place-items-center bg-ink-950/80 backdrop-blur-sm"
+            className="absolute bottom-2.5 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-chalk/95 px-3 py-1.5 text-xs font-semibold text-ink-950 shadow-lg transition hover:bg-white"
           >
-            <span className="rounded-2xl bg-chalk px-4 py-2.5 text-sm font-semibold text-ink-950">
-              tap to join playback
-            </span>
+            <VolumeX className="size-3.5" strokeWidth={2.4} />
+            playing muted &mdash; tap for sound
           </button>
         )}
       </div>

@@ -192,22 +192,27 @@ function ItemFrame({
               onPointerDown={(event) => beginGesture(event, "move", null)}
               onPointerMove={onPointerMove}
               onPointerUp={endGesture}
-              className="absolute -top-8 left-1/2 flex h-6 w-16 -translate-x-1/2 cursor-grab items-center justify-center gap-0.5 rounded-full bg-glow/85 active:cursor-grabbing"
+              className="absolute -top-9 left-0 flex h-7 w-full cursor-grab items-center justify-center gap-1 rounded-lg bg-glow/85 active:cursor-grabbing"
               title="Drag to move"
             >
-              <span className="h-2.5 w-0.5 rounded-full bg-ink-950/55" />
-              <span className="h-3.5 w-0.5 rounded-full bg-ink-950/55" />
-              <span className="h-2.5 w-0.5 rounded-full bg-ink-950/55" />
+              <span className="h-1 w-1 rounded-full bg-ink-950/55" />
+              <span className="h-1 w-1 rounded-full bg-ink-950/55" />
+              <span className="h-1 w-1 rounded-full bg-ink-950/55" />
+              <span className="ml-1 text-[10px] font-semibold text-ink-950/70">move</span>
             </div>
           )}
 
+          {/* A generous invisible pad around each handle makes them easy to grab
+              without visually bulking up the frame. */}
           <div
             onPointerDown={(event) => beginGesture(event, "rotate", "rotate")}
             onPointerMove={onPointerMove}
             onPointerUp={endGesture}
-            className="absolute -right-9 -bottom-9 size-6 cursor-alias rounded-full bg-warm ring-2 ring-ink-950/45"
+            className="absolute -right-10 -bottom-10 grid size-8 cursor-alias place-items-center"
             title="Drag to rotate"
-          />
+          >
+            <span className="size-5 rounded-full bg-warm ring-2 ring-ink-950/45" />
+          </div>
 
           {(["nw", "ne", "se", "sw"] as const).map((handle) => (
             <div
@@ -216,13 +221,15 @@ function ItemFrame({
               onPointerMove={onPointerMove}
               onPointerUp={endGesture}
               className={clsx(
-                "absolute size-3.5 rounded-full bg-chalk ring-2 ring-glow/80",
-                handle === "nw" && "-top-2 -left-2 cursor-nwse-resize",
-                handle === "ne" && "-top-2 -right-2 cursor-nesw-resize",
-                handle === "se" && "-right-2 -bottom-2 cursor-nwse-resize",
-                handle === "sw" && "-bottom-2 -left-2 cursor-nesw-resize",
+                "absolute grid size-6 place-items-center",
+                handle === "nw" && "-top-3 -left-3 cursor-nwse-resize",
+                handle === "ne" && "-top-3 -right-3 cursor-nesw-resize",
+                handle === "se" && "-right-3 -bottom-3 cursor-nwse-resize",
+                handle === "sw" && "-bottom-3 -left-3 cursor-nesw-resize",
               )}
-            />
+            >
+              <span className="size-3.5 rounded-full bg-chalk ring-2 ring-glow/80" />
+            </div>
           ))}
         </>
       )}

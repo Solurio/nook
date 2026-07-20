@@ -1,21 +1,25 @@
 "use client";
 
+import { memo, useMemo } from "react";
 import { useRoomStore } from "@/state/room-store";
 import { inkPath, orderStrokes } from "@/lib/ink";
+import type { InkDraft, Stroke } from "@/lib/types";
 
 /**
  * Paints all room ink inside the world-transformed container: committed strokes
  * plus whatever anyone is drawing right now. Purely visual and click-through so
  * it never gets in the way of the items underneath.
+ *
+ * Committed and in-flight ink are split into separate memoized layers, so a
+ * live stroke arriving ~20 times a second does not repaint the (potentially
+ * hundreds of) strokes already on the wall.
  */
-export default function RoomInkLayer() {
+function RoomInkLayer() {
   const strokes = useRoomStore((s) => s.strokes);
   const liveInk = useRoomStore((s) => s.liveInk);
 
-  const committed = orderStrokes(strokes);
-  const live = Object.values(liveInk);
-
-  if (committed.length === 0 && live.length === 0) return null;
+  const hasAny = Object.keys(strokes).length > 0 || Object.keys(liveInk).length > 0;
+  if (!hasAny) return null;
 
   return (
     <svg
@@ -25,7 +29,21 @@ export default function RoomInkLayer() {
       style={{ zIndex: 5000 }}
       aria-hidden
     >
-      {committed.map((stroke) => (
+      <CommittedInk strokes={strokes} />
+      <LiveInk drafts={liveInk} />
+    </svg>
+  );
+}
+
+const CommittedInk = memo(function CommittedInk({
+  strokes,
+}: {
+  strokes: Record<string, Stroke>;
+}) {
+  const ordered = useMemo(() => orderStrokes(strokes), [strokes]);
+  return (
+    <>
+      {ordered.map((stroke) => (
         <path
           key={stroke.id}
           d={inkPath(stroke.points)}
@@ -36,7 +54,14 @@ export default function RoomInkLayer() {
           strokeLinejoin="round"
         />
       ))}
-      {live.map((draft) => (
+    </>
+  );
+});
+
+function LiveInk({ drafts }: { drafts: Record<string, InkDraft> }) {
+  return (
+    <>
+      {Object.values(drafts).map((draft) => (
         <path
           key={draft.id}
           d={inkPath(draft.points)}
@@ -48,6 +73,8 @@ export default function RoomInkLayer() {
           opacity={0.9}
         />
       ))}
-    </svg>
+    </>
   );
 }
+
+export default memo(RoomInkLayer);

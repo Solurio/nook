@@ -9,7 +9,7 @@ import {
   type Viewport,
 } from "@/state/room-store";
 import { draftItem, topZ } from "@/lib/items";
-import { parseYouTubeId } from "@/lib/media";
+import { resolveLink } from "@/lib/embeds";
 import type { Background } from "@/lib/types";
 import ItemFrame from "./item-frame";
 import Cursors from "./cursors";
@@ -226,8 +226,9 @@ export default function Canvas() {
       if (!trimmed) return;
       const z = topZ(Object.values(useRoomStore.getState().items));
 
-      const videoId = parseYouTubeId(trimmed);
-      if (videoId) {
+      const resolved = resolveLink(trimmed);
+
+      if (resolved?.kind === "media") {
         await createItem(
           draftItem("media", at, z, {
             data: {
@@ -235,13 +236,13 @@ export default function Canvas() {
                 {
                   id: `${Date.now()}`,
                   provider: "youtube" as const,
-                  videoId,
+                  videoId: resolved.videoId,
                   title: "queued track",
                   addedBy: useRoomStore.getState().me?.name ?? "someone",
                 },
               ],
               index: 0,
-              playing: false,
+              playing: true,
               positionSec: 0,
               anchoredAt: Date.now(),
               volume: 60,
@@ -252,12 +253,15 @@ export default function Canvas() {
         return;
       }
 
-      if (/^https?:\/\//i.test(trimmed)) {
-        if (/\.(png|jpe?g|gif|webp|avif|svg)(\?|$)/i.test(trimmed)) {
-          await createItem(draftItem("image", at, z, { data: { url: trimmed } }));
-        } else {
-          await createItem(draftItem("embed", at, z, { data: { url: trimmed } }));
-        }
+      if (resolved?.kind === "image") {
+        await createItem(draftItem("image", at, z, { data: { url: resolved.url } }));
+        return;
+      }
+
+      if (resolved?.kind === "embed") {
+        await createItem(
+          draftItem("embed", at, z, { data: { url: resolved.url, title: resolved.title } }),
+        );
         return;
       }
 
@@ -370,6 +374,17 @@ export default function Canvas() {
 
       {/* Space is held to pan, so the ink surface steps aside for it. */}
       {tool !== "select" && !spaceHeld && <InkOverlay />}
+
+      {tool !== "select" && (
+        <button
+          type="button"
+          onClick={() => useRoomStore.getState().setTool("select")}
+          className="surface animate-drift-in pointer-events-auto absolute top-16 left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-medium"
+        >
+          <span className="size-1.5 rounded-full bg-glow" />
+          {tool === "draw" ? "drawing" : "erasing"} &mdash; press Esc or tap to stop
+        </button>
+      )}
 
       {dropping && <DropVeil />}
     </div>

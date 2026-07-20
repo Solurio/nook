@@ -25,7 +25,7 @@ export default function ItemRenderer({
     case "text":
       return <TextItem item={item as Item<"text">} editing={editing} />;
     case "media":
-      return <MediaItem item={item as Item<"media">} />;
+      return <MediaItem item={item as Item<"media">} selected={selected} />;
     case "embed":
       return <EmbedItem item={item as Item<"embed">} selected={selected} />;
     case "game":
