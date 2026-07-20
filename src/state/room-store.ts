@@ -1,7 +1,34 @@
 "use client";
 
 import { create } from "zustand";
-import type { AnyItem, Background, Identity, Message, Peer, Room, TransformPatch } from "@/lib/types";
+import type {
+  AnyItem,
+  Background,
+  Identity,
+  InkDraft,
+  Message,
+  Peer,
+  Room,
+  Stroke,
+  Tool,
+  TransformPatch,
+} from "@/lib/types";
+
+export interface Brush {
+  color: string;
+  size: number;
+}
+
+export const BRUSH_COLORS = [
+  "#f4efe6",
+  "#f2a4b8",
+  "#f6c177",
+  "#a6d189",
+  "#8bc7e8",
+  "#c4a7f0",
+  "#f28e6a",
+  "#1a1420",
+] as const;
 
 export interface Viewport {
   x: number;
@@ -21,10 +48,17 @@ interface RoomState {
   peers: Record<string, Peer>;
   me: Identity | null;
 
+  strokes: Record<string, Stroke>;
+  /** In-flight ink from peers, keyed by author so each has one active line. */
+  liveInk: Record<string, InkDraft>;
+
   selectedId: string | null;
   editingId: string | null;
   /** Items this client is mid-drag on; remote updates for these are ignored. */
   grabbed: Set<string>;
+
+  tool: Tool;
+  brush: Brush;
 
   viewport: Viewport;
   panel: PanelId;
@@ -43,6 +77,14 @@ interface RoomState {
 
   hydrateMessages: (messages: Message[]) => void;
   appendMessage: (message: Message) => void;
+
+  hydrateStrokes: (strokes: Stroke[]) => void;
+  upsertStroke: (stroke: Stroke) => void;
+  removeStroke: (id: string) => void;
+  setLiveInk: (userId: string, draft: InkDraft | null) => void;
+
+  setTool: (tool: Tool) => void;
+  setBrush: (patch: Partial<Brush>) => void;
 
   setMe: (me: Identity) => void;
   syncPeers: (peers: Peer[]) => void;
@@ -70,9 +112,15 @@ export const useRoomStore = create<RoomState>((set, get) => ({
   peers: {},
   me: null,
 
+  strokes: {},
+  liveInk: {},
+
   selectedId: null,
   editingId: null,
   grabbed: new Set<string>(),
+
+  tool: "select",
+  brush: { color: "#f2a4b8", size: 4 },
 
   viewport: { x: 0, y: 0, scale: 1 },
   panel: null,
@@ -166,6 +214,43 @@ export const useRoomStore = create<RoomState>((set, get) => ({
         s.panel === "chat" || mine ? s.unreadChat : s.unreadChat + 1;
       return { messages, unreadChat };
     }),
+
+  hydrateStrokes: (strokes) =>
+    set({ strokes: Object.fromEntries(strokes.map((s) => [s.id, s])) }),
+
+  upsertStroke: (stroke) =>
+    set((s) => {
+      // The committed row supersedes any broadcast draft from its author.
+      const liveInk = { ...s.liveInk };
+      if (stroke.created_by && liveInk[stroke.created_by]) delete liveInk[stroke.created_by];
+      return { strokes: { ...s.strokes, [stroke.id]: stroke }, liveInk };
+    }),
+
+  removeStroke: (id) =>
+    set((s) => {
+      if (!s.strokes[id]) return {};
+      const next = { ...s.strokes };
+      delete next[id];
+      return { strokes: next };
+    }),
+
+  setLiveInk: (userId, draft) =>
+    set((s) => {
+      const liveInk = { ...s.liveInk };
+      if (draft) liveInk[userId] = draft;
+      else delete liveInk[userId];
+      return { liveInk };
+    }),
+
+  setTool: (tool) =>
+    set((s) => ({
+      tool,
+      // Leaving select mode drops any selection so the frame does not linger.
+      selectedId: tool === "select" ? s.selectedId : null,
+      editingId: tool === "select" ? s.editingId : null,
+    })),
+
+  setBrush: (patch) => set((s) => ({ brush: { ...s.brush, ...patch } })),
 
   setMe: (me) => set({ me }),
 

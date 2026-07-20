@@ -55,6 +55,10 @@ export default function ImageItem({
           alt={alt ?? ""}
           draggable={false}
           onError={() => setBroken(true)}
+          // A plain img (never next/image) keeps animated GIFs and WebPs playing;
+          // the optimizer would flatten them to a single frame.
+          loading="eager"
+          decoding="async"
           className="size-full object-cover"
           style={{ borderRadius: polaroid ? 2 : radius }}
         />

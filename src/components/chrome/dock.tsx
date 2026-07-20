@@ -3,12 +3,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import {
+  Brush,
   Dices,
+  Eraser,
   Gamepad2,
   Globe,
   Grid3x3,
   ImagePlus,
   Minus,
+  MousePointer2,
   Music4,
   Pencil,
   Plus,
@@ -21,12 +24,15 @@ import { useRoomStore } from "@/state/room-store";
 import { draftItem, topZ } from "@/lib/items";
 import { REACTIONS, REACTION_GLYPHS } from "@/lib/reactions";
 import type { GameKind, ItemKind } from "@/lib/types";
+import BrushPopover from "./brush-popover";
 
 export default function Dock() {
   const { createItem, canEdit, sendPing } = useRoom();
   const viewport = useRoomStore((s) => s.viewport);
   const zoomAt = useRoomStore((s) => s.zoomAt);
   const setViewport = useRoomStore((s) => s.setViewport);
+  const tool = useRoomStore((s) => s.tool);
+  const setTool = useRoomStore((s) => s.setTool);
 
   const [gamesOpen, setGamesOpen] = useState(false);
   const [reactionsOpen, setReactionsOpen] = useState(false);
@@ -100,6 +106,35 @@ export default function Dock() {
           >
             <Plus className="size-4" strokeWidth={2.4} />
           </DockButton>
+        </div>
+
+        {/* Tools: point, draw, erase */}
+        <div className="surface relative flex items-center gap-0.5 rounded-2xl p-1.5">
+          <DockButton
+            label="point and drag (V)"
+            active={tool === "select"}
+            onClick={() => setTool("select")}
+          >
+            <MousePointer2 className="size-4.5" strokeWidth={2} />
+          </DockButton>
+          <DockButton
+            label="draw on the room (B)"
+            disabled={!canEdit}
+            active={tool === "draw"}
+            onClick={() => setTool(tool === "draw" ? "select" : "draw")}
+          >
+            <Brush className="size-4.5" strokeWidth={2} />
+          </DockButton>
+          <DockButton
+            label="erase (E)"
+            disabled={!canEdit}
+            active={tool === "erase"}
+            onClick={() => setTool(tool === "erase" ? "select" : "erase")}
+          >
+            <Eraser className="size-4.5" strokeWidth={2} />
+          </DockButton>
+
+          {tool === "draw" && <BrushPopover />}
         </div>
 
         {/* Add things */}

@@ -63,7 +63,7 @@ export default function Landing() {
           .single();
 
         if (!insertError && data) {
-          router.push(`/r/${data.slug}`);
+          router.push(`/r/?r=${data.slug}`);
           return;
         }
         if (insertError && insertError.code !== "23505") throw insertError;
@@ -84,7 +84,7 @@ export default function Landing() {
         setError("That does not look like a nook link.");
         return;
       }
-      router.push(`/r/${slug}`);
+      router.push(`/r/?r=${slug}`);
     },
     [joinValue, router],
   );
@@ -187,7 +187,7 @@ export default function Landing() {
                 {recent.map((entry) => (
                   <li key={entry.slug} className="group relative">
                     <Link
-                      href={`/r/${entry.slug}`}
+                      href={`/r/?r=${entry.slug}`}
                       className="flex items-center gap-2.5 rounded-2xl bg-white/5 py-2.5 pr-9 pl-4 text-sm ring-1 ring-white/10 transition hover:bg-white/9 hover:ring-white/20"
                     >
                       <span className="font-medium">{entry.name}</span>

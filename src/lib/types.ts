@@ -113,6 +113,29 @@ export interface Message {
   created_at: string;
 }
 
+/** A stroke of ink drawn directly onto the room canvas. */
+export interface Stroke {
+  id: string;
+  room_id: string;
+  color: string;
+  size: number;
+  /** Flat [x0,y0,x1,y1,...] in world coordinates. */
+  points: number[];
+  created_by: string | null;
+  created_at: string;
+}
+
+/** In-flight stroke shared over broadcast before it is committed. */
+export interface InkDraft {
+  id: string;
+  userId: string;
+  color: string;
+  size: number;
+  points: number[];
+}
+
+export type Tool = "select" | "draw" | "erase";
+
 export interface Identity {
   userId: string;
   name: string;

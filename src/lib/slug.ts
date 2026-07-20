@@ -37,6 +37,18 @@ export function normalizeSlugInput(input: string): string | null {
   const trimmed = input.trim();
   if (!trimmed) return null;
 
+  // Rooms are addressed as /r/?r=slug, so an "r" query parameter wins when a
+  // whole URL is pasted in.
+  const query = trimmed.includes("?") ? trimmed.slice(trimmed.indexOf("?") + 1) : "";
+  if (query) {
+    const fromQuery = new URLSearchParams(query.split("#")[0]).get("r");
+    if (fromQuery) {
+      const clean = fromQuery.trim().toLowerCase();
+      return /^[a-z0-9-]{3,64}$/.test(clean) ? clean : null;
+    }
+  }
+
+  // Otherwise fall back to the last path segment (bare slug or an /r/slug link).
   let candidate = trimmed;
   if (trimmed.includes("/")) {
     const parts = trimmed.replace(/\/+$/, "").split("/");

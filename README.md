@@ -11,24 +11,32 @@ Foi feito por saudade do Here.fm.
 Uma sala é uma tela infinita. Você arrasta, gira e redimensiona qualquer coisa
 que colocar nela, e tudo fica salvo onde você largou.
 
-- **Fotos** — arrasta do desktop, cola do clipboard (Ctrl+V) ou joga uma URL.
-  Tem quatro molduras: lisa, com sombra, polaroid e adesivo.
+- **Fotos e GIFs** — arrasta do desktop, cola do clipboard (Ctrl+V) ou joga uma
+  URL. GIFs animam normalmente. Tem quatro molduras: lisa, com sombra, polaroid
+  e adesivo.
 - **Bilhetes** e **texto grande** — dois cliques pra escrever. O que você digita
   aparece pros outros enquanto digita.
+- **Desenhar na sala** — um pincel que pinta direto na tela infinita, com
+  paleta de cores, cor personalizada e espessura. Tem borracha (arrasta em cima
+  de um traço pra apagar). Todo traço é compartilhado ao vivo e fica salvo.
 - **Música e vídeo em sincronia** — cola um link do YouTube e todo mundo assiste
   junto. Quem der play, pausar ou arrastar a barra move o vídeo pra todo mundo.
   Tem fila, e um modo só-áudio pra quando é pra ser rádio de fundo.
 - **Janelas** — um iframe pra qualquer site que aceite ser embedado.
-- **Jogos** — velha, lig-4 e uma lousa de rabisco compartilhada. Nos dois
-  primeiros dá pra "sentar" numa cadeira pra marcar de quem é a vez, ou deixar
-  solto e qualquer um joga.
+- **Jogos** — velha, lig-4 e uma lousa de rabisco compartilhada (com pincel e
+  borracha). Nos dois primeiros dá pra "sentar" numa cadeira pra marcar de quem
+  é a vez, ou deixar solto e qualquer um joga.
 - **Decoração** — fundo sólido, degradê, ou uma imagem sua (esticada ou repetida
   em ladrilho, com controle de escurecimento).
 - **Chat**, cursores com nome de todo mundo que está online, e reações que
   sobem na tela.
 
-Atalhos: espaço arrasta a tela, Ctrl+scroll dá zoom, Delete apaga o que está
-selecionado, Ctrl+D duplica, Ctrl+0 volta pro centro, Esc larga tudo.
+Quando alguém abre o link, primeiro escolhe um apelido e uma cor, e só então
+entra na sala. O apelido fica salvo pra próxima vez.
+
+Atalhos: `V` volta pro cursor, `B` pega o pincel, `E` a borracha, espaço arrasta
+a tela, Ctrl+scroll dá zoom, Delete apaga o que está selecionado, Ctrl+D
+duplica, Ctrl+0 volta pro centro, Esc larga tudo.
 
 ## Como isso funciona
 
@@ -64,7 +72,11 @@ em segundo plano.
 ### Stack
 
 Next.js 16 (App Router) com React 19, TypeScript, Tailwind v4 e Zustand pro
-estado da sala. Supabase pro resto. Deploy na Vercel.
+estado da sala. Supabase pro resto. É exportado como site estático
+(`output: "export"`), então o app inteiro roda no navegador e hospeda em
+qualquer lugar — a sala a abrir vem no parâmetro `?r=` do endereço
+(`/r/?r=cocoa-willow-7fk2`), então não existe rota dinâmica pra um host estático
+tropeçar.
 
 ### Permissões
 
@@ -84,9 +96,12 @@ Precisa de Node 20+ e de um projeto Supabase (o plano gratuito serve).
 crie um projeto novo. Escolha a região mais perto de vocês, isso mexe direto na
 latência do tempo real.
 
-**2. Rode a migração.** Abra o SQL Editor do projeto, cole o conteúdo de
-`supabase/migrations/0001_init.sql` e execute. Isso cria as tabelas, as
-policies de RLS, liga a replicação de tempo real e cria o bucket de imagens.
+**2. Rode as migrações.** Abra o SQL Editor do projeto e execute, em ordem, o
+conteúdo de `supabase/migrations/0001_init.sql` e depois
+`supabase/migrations/0002_strokes.sql`. A primeira cria as tabelas, as policies
+de RLS, liga a replicação de tempo real e cria o bucket de imagens. A segunda
+adiciona a tabela `strokes`, que guarda os desenhos feitos direto na sala — sem
+ela, o pincel não salva.
 
 **3. Ligue o login anônimo.** Em *Authentication → Sign In / Providers*,
 habilite **Anonymous sign-ins**. Sem isso ninguém consegue entrar, porque toda
@@ -113,9 +128,11 @@ Abre em `http://localhost:3000`.
 
 ### Publicando
 
-Importe o repositório na Vercel, coloque as mesmas duas variáveis de ambiente
-em *Settings → Environment Variables*, e faz deploy. Não precisa de mais nada:
-não tem servidor de socket, não tem cron, não tem worker.
+O site é exportado estático (`npm run build` gera a pasta `out/`), então sobe em
+qualquer host de arquivo estático de graça, com o repositório continuando
+privado. O passo a passo pra Cloudflare Pages e pra Vercel está em
+[DEPLOY.md](DEPLOY.md). Não tem servidor de socket, nem cron, nem worker — o
+Supabase faz tudo pelo navegador.
 
 O plano gratuito do Supabase dá 500MB de banco, 1GB de storage, 200 conexões
 simultâneas de tempo real e 2 milhões de mensagens por mês. Pra três pessoas

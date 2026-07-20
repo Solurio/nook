@@ -29,9 +29,11 @@ import type {
   Identity,
   ItemDataMap,
   ItemKind,
+  InkDraft,
   Message,
   Peer,
   Room,
+  Stroke,
   TransformPatch,
 } from "@/lib/types";
 
@@ -48,6 +50,10 @@ interface RoomApi {
   error: string | null;
   canEdit: boolean;
   isOwner: boolean;
+
+  /** True once the visitor has picked a name and stepped into the room. */
+  joined: boolean;
+  join: (name: string, tint: string) => void;
 
   createItem: (draft: ItemDraft) => Promise<AnyItem | null>;
   duplicateItem: (id: string) => Promise<void>;
@@ -70,6 +76,10 @@ interface RoomApi {
 
   broadcastStroke: (itemId: string, stroke: DoodleStroke) => void;
   liveStrokes: Record<string, DoodleStroke[]>;
+
+  createStroke: (color: string, size: number, points: number[]) => Promise<void>;
+  eraseStroke: (id: string) => Promise<void>;
+  broadcastInk: (draft: InkDraft | null) => void;
 
   updateIdentity: (patch: Partial<Pick<Identity, "name" | "tint">>) => void;
 }
@@ -100,18 +110,27 @@ export function RoomProvider({
 
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
+  const [joined, setJoined] = useState(false);
   const [pings, setPings] = useState<Ping[]>([]);
   const [liveStrokes, setLiveStrokes] = useState<Record<string, DoodleStroke[]>>({});
 
   const channelRef = useRef<RealtimeChannel | null>(null);
   const identityRef = useRef<Identity | null>(null);
   const roomIdRef = useRef<string | null>(initialRoom?.id ?? null);
+  // Presence is only announced after the visitor steps through the door.
+  const joinedRef = useRef(false);
 
   const room = useRoomStore((s) => s.room);
   const me = useRoomStore((s) => s.me);
 
   const isOwner = Boolean(room && me && room.owner_id === me.userId);
   const canEdit = Boolean(room && (!room.locked || isOwner));
+
+  // The page is statically exported with a generic title, so the room's name
+  // is set on the tab here, client-side, once it (or a rename) loads.
+  useEffect(() => {
+    if (room?.name) document.title = `${room.name} — nook`;
+  }, [room?.name]);
 
   const pushPing = useCallback((ping: Ping) => {
     setPings((current) => [...current, ping]);
@@ -174,7 +193,7 @@ export function RoomProvider({
         store.getState().setRoom(loadedRoom);
         rememberRoom(loadedRoom.slug, loadedRoom.name);
 
-        const [itemsResult, messagesResult] = await Promise.all([
+        const [itemsResult, messagesResult, strokesResult] = await Promise.all([
           supabase.from("items").select("*").eq("room_id", loadedRoom.id),
           supabase
             .from("messages")
@@ -182,6 +201,12 @@ export function RoomProvider({
             .eq("room_id", loadedRoom.id)
             .order("created_at", { ascending: false })
             .limit(80),
+          supabase
+            .from("strokes")
+            .select("*")
+            .eq("room_id", loadedRoom.id)
+            .order("created_at", { ascending: true })
+            .limit(1500),
         ]);
 
         if (itemsResult.error) throw itemsResult.error;
@@ -191,6 +216,7 @@ export function RoomProvider({
         store
           .getState()
           .hydrateMessages(((messagesResult.data ?? []) as Message[]).slice().reverse());
+        store.getState().hydrateStrokes((strokesResult.data ?? []) as Stroke[]);
 
         // Realtime needs the fresh access token before it will honour RLS.
         const {
@@ -238,6 +264,13 @@ export function RoomProvider({
               return { ...current, [itemId]: next };
             });
           })
+          .on("broadcast", { event: "ink" }, ({ payload }) => {
+            const { userId: from, draft } = payload as {
+              userId: string;
+              draft: InkDraft | null;
+            };
+            store.getState().setLiveInk(from, draft);
+          })
           .on(
             "postgres_changes",
             { event: "*", schema: "public", table: "items", filter: `room_id=eq.${loadedRoom.id}` },
@@ -267,6 +300,23 @@ export function RoomProvider({
           )
           .on(
             "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "strokes",
+              filter: `room_id=eq.${loadedRoom.id}`,
+            },
+            (payload) => {
+              if (payload.eventType === "DELETE") {
+                const old = payload.old as { id?: string };
+                if (old?.id) store.getState().removeStroke(old.id);
+                return;
+              }
+              store.getState().upsertStroke(payload.new as Stroke);
+            },
+          )
+          .on(
+            "postgres_changes",
             { event: "UPDATE", schema: "public", table: "rooms", filter: `id=eq.${loadedRoom.id}` },
             (payload) => {
               store.getState().patchRoom(payload.new as Room);
@@ -287,8 +337,10 @@ export function RoomProvider({
           .subscribe(async (state) => {
             if (state === "SUBSCRIBED") {
               store.getState().setConnection("live");
+              // Only announce presence once the visitor has actually entered;
+              // before that they are loading the room but not "here" yet.
               const current = identityRef.current;
-              if (current) {
+              if (current && joinedRef.current) {
                 await channel.track({ ...current, joinedAt: Date.now() } satisfies Peer);
               }
             } else if (state === "CHANNEL_ERROR" || state === "TIMED_OUT") {
@@ -561,9 +613,79 @@ export function RoomProvider({
       identityRef.current = next;
       store.getState().setMe(next);
       saveLocalIdentity({ name: next.name, tint: next.tint });
+      if (joinedRef.current) {
+        void channelRef.current?.track({ ...next, joinedAt: Date.now() } satisfies Peer);
+      }
+    },
+    [store],
+  );
+
+  const join = useCallback(
+    (name: string, tint: string) => {
+      const current = identityRef.current;
+      if (!current) return;
+
+      const trimmed = name.trim().slice(0, 32) || current.name;
+      const next: Identity = { ...current, name: trimmed, tint };
+      identityRef.current = next;
+      store.getState().setMe(next);
+      saveLocalIdentity({ name: next.name, tint: next.tint });
+
+      joinedRef.current = true;
+      setJoined(true);
+      // The channel may already be subscribed; announce presence now.
       void channelRef.current?.track({ ...next, joinedAt: Date.now() } satisfies Peer);
     },
     [store],
+  );
+
+  // -------------------------------------------------------------------------
+  // Room ink
+  // -------------------------------------------------------------------------
+
+  const createStroke = useCallback(
+    async (color: string, size: number, points: number[]) => {
+      const roomId = roomIdRef.current;
+      const identity = identityRef.current;
+      if (!roomId || !identity || points.length < 2) return;
+
+      const { data, error: insertError } = await supabase
+        .from("strokes")
+        .insert({ room_id: roomId, color, size, points, created_by: identity.userId })
+        .select()
+        .single();
+
+      // Clear our own broadcast draft regardless; the row (or nothing) replaces it.
+      store.getState().setLiveInk(identity.userId, null);
+
+      if (insertError) {
+        setError(insertError.message);
+        return;
+      }
+      store.getState().upsertStroke(data as Stroke);
+    },
+    [supabase, store],
+  );
+
+  const eraseStroke = useCallback(
+    async (id: string) => {
+      if (!store.getState().strokes[id]) return;
+      store.getState().removeStroke(id);
+      const { error: deleteError } = await supabase.from("strokes").delete().eq("id", id);
+      if (deleteError) setError(deleteError.message);
+    },
+    [supabase, store],
+  );
+
+  const broadcastInk = useCallback(
+    (draft: InkDraft | null) => {
+      const identity = identityRef.current;
+      if (!identity) return;
+      // Mirror locally so our own in-flight line shows without a round trip.
+      store.getState().setLiveInk(identity.userId, draft);
+      broadcast("ink", { userId: identity.userId, draft });
+    },
+    [broadcast, store],
   );
 
   const value: RoomApi = {
@@ -571,6 +693,8 @@ export function RoomProvider({
     error,
     canEdit,
     isOwner,
+    joined,
+    join,
     createItem,
     duplicateItem,
     deleteItem,
@@ -588,6 +712,9 @@ export function RoomProvider({
     pings,
     broadcastStroke,
     liveStrokes,
+    createStroke,
+    eraseStroke,
+    broadcastInk,
     updateIdentity,
   };
 

@@ -8,6 +8,7 @@ import { RoomProvider, useRoom } from "@/realtime/room-provider";
 import { useRoomStore } from "@/state/room-store";
 import type { Room } from "@/lib/types";
 import Canvas from "@/components/canvas/canvas";
+import JoinGate from "@/components/room/join-gate";
 import TopBar from "@/components/chrome/top-bar";
 import Dock from "@/components/chrome/dock";
 import ChatPanel from "@/components/chrome/chat-panel";
@@ -61,7 +62,7 @@ function NotConfigured() {
 }
 
 function RoomBody() {
-  const { status, error } = useRoom();
+  const { status, error, joined } = useRoom();
   const panel = useRoomStore((s) => s.panel);
 
   if (status === "error") {
@@ -91,6 +92,8 @@ function RoomBody() {
       </main>
     );
   }
+
+  if (!joined) return <JoinGate />;
 
   return (
     <main className="relative h-dvh w-full overflow-hidden">

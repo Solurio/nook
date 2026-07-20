@@ -15,6 +15,8 @@ import ItemFrame from "./item-frame";
 import Cursors from "./cursors";
 import PingLayer from "./ping-layer";
 import DropVeil from "./drop-veil";
+import RoomInkLayer from "./room-ink-layer";
+import InkOverlay from "./ink-overlay";
 
 const IMAGE_TYPES = /^image\//;
 
@@ -30,6 +32,7 @@ export default function Canvas() {
   const setEditing = useRoomStore((s) => s.setEditing);
   const selectedId = useRoomStore((s) => s.selectedId);
   const editingId = useRoomStore((s) => s.editingId);
+  const tool = useRoomStore((s) => s.tool);
   const panBy = useRoomStore((s) => s.panBy);
   const zoomAt = useRoomStore((s) => s.zoomAt);
 
@@ -146,8 +149,14 @@ export default function Canvas() {
         useRoomStore.getState().select(null);
         useRoomStore.getState().setEditing(null);
         useRoomStore.getState().setPanel(null);
+        useRoomStore.getState().setTool("select");
         return;
       }
+
+      // Quick tool switches, the way most canvas apps do it.
+      if (event.key.toLowerCase() === "v") useRoomStore.getState().setTool("select");
+      if (event.key.toLowerCase() === "b" && canEdit) useRoomStore.getState().setTool("draw");
+      if (event.key.toLowerCase() === "e" && canEdit) useRoomStore.getState().setTool("erase");
 
       if ((event.key === "Delete" || event.key === "Backspace") && id && canEdit) {
         event.preventDefault();
@@ -354,9 +363,13 @@ export default function Canvas() {
             editing={editingId === item.id}
           />
         ))}
+        <RoomInkLayer />
         <Cursors />
         <PingLayer />
       </div>
+
+      {/* Space is held to pan, so the ink surface steps aside for it. */}
+      {tool !== "select" && !spaceHeld && <InkOverlay />}
 
       {dropping && <DropVeil />}
     </div>
