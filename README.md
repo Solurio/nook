@@ -109,7 +109,8 @@ conteúdo de `supabase/migrations/0001_init.sql` e depois
 `supabase/migrations/0002_strokes.sql`. A primeira cria as tabelas, as policies
 de RLS, liga a replicação de tempo real e cria o bucket de imagens. A segunda
 adiciona a tabela `strokes`, que guarda os desenhos feitos direto na sala — sem
-ela, o pincel não salva.
+ela, o pincel não salva. Rode também `0003_cobrowse.sql` e `0004_screencast.sql`
+(liberam os tipos de item do navegador compartilhado e da transmissão de aba).
 
 **3. Ligue o login anônimo.** Em *Authentication → Sign In / Providers*,
 habilite **Anonymous sign-ins**. Sem isso ninguém consegue entrar, porque toda
@@ -172,6 +173,31 @@ A busca de GIFs usa a API do Giphy. Pega uma chave gratuita em
 como `NEXT_PUBLIC_GIPHY_KEY` — no `.env.local` pra rodar local, ou nas variáveis
 de ambiente da Cloudflare/Vercel pro deploy. Sem a chave, o painel de stickers
 só mostra um aviso e o resto do app funciona normal.
+
+## Transmitir uma aba ao vivo (WebRTC)
+
+O item "transmitir uma aba" (botão de monitor com seta pra cima na dock) é o
+jeito grátis e em tempo real de compartilhar um site/jogo/música com a sala:
+
+- Quem clica em "escolher aba e transmitir" escolhe uma aba do **próprio
+  navegador** (com os próprios logins) no seletor do navegador. Isso resolve o
+  problema do YouTube/Spotify: como roda na aba da pessoa, os logins e o player
+  funcionam.
+- O vídeo e o som vão ao vivo, peer-to-peer (WebRTC), pra todo mundo na sala. A
+  sinalização passa pelo canal do Supabase; nada de vídeo toca no banco.
+- É um de cada vez, tipo fliperama: quem está "sentado" transmite; os outros
+  veem. "Assumir" passa a vez (o anterior para sozinho).
+
+Uma ressalva honesta: a conexão P2P usa só servidores **STUN** públicos, que
+conectam a maioria das redes domésticas direto. Uma minoria de redes mais
+fechadas precisa de um **TURN** (relay), que não é grátis de forma confiável. Se
+a imagem não subir entre duas pessoas, é isso -- dá pra plugar um TURN (ex.:
+Cloudflare Calls, Metered) depois. E o compartilhamento é da aba inteira: quem
+transmite controla na aba real dele, os outros veem o vídeo dentro do app.
+
+Diferença pro navegador compartilhado (Hyperbeam): ali **os dois controlam** o
+mesmo navegador na nuvem (pago); aqui **um transmite** a própria aba e os outros
+veem (grátis). Os dois convivem.
 
 ## Sobre "compartilhar um site" em tempo real
 

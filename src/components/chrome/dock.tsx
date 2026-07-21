@@ -14,6 +14,7 @@ import {
   ImagePlus,
   Minus,
   MonitorPlay,
+  MonitorUp,
   MousePointer2,
   Music4,
   Pencil,
@@ -158,7 +159,14 @@ export default function Dock() {
             <Globe className="size-4.5" strokeWidth={2} />
           </DockButton>
           <DockButton
-            label="shared browser (live, together)"
+            label="transmit a tab (live, one shares)"
+            disabled={!canEdit}
+            onClick={() => add("screencast")}
+          >
+            <MonitorUp className="size-4.5" strokeWidth={2} />
+          </DockButton>
+          <DockButton
+            label="shared browser (hyperbeam, both control)"
             disabled={!canEdit}
             onClick={() => add("cobrowse")}
           >

@@ -145,7 +145,8 @@ function ItemFrame({
     item.kind === "media" ||
     item.kind === "embed" ||
     item.kind === "game" ||
-    item.kind === "cobrowse";
+    item.kind === "cobrowse" ||
+    item.kind === "screencast";
 
   return (
     <div

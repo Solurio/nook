@@ -5,7 +5,8 @@ export type ItemKind =
   | "media"
   | "embed"
   | "game"
-  | "cobrowse";
+  | "cobrowse"
+  | "screencast";
 
 export type Background =
   | { kind: "solid"; color: string }
@@ -32,6 +33,19 @@ export interface ItemDataMap {
   embed: { url: string; title?: string };
   game: GameData;
   cobrowse: CobrowseData;
+  screencast: ScreencastData;
+}
+
+/**
+ * A live tab/screen broadcast (WebRTC). One person shares their tab -- running
+ * in their own browser with their own logins -- and everyone else watches the
+ * live stream. Only "who is broadcasting" is stored/synced; the video itself is
+ * peer-to-peer and never touches the database.
+ */
+export interface ScreencastData {
+  /** Optional link, a hint of what is being shown; the sharer opens it to share. */
+  url?: string;
+  broadcaster: { userId: string; name: string } | null;
 }
 
 /**

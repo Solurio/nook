@@ -36,6 +36,7 @@ import type {
   Stroke,
   TransformPatch,
 } from "@/lib/types";
+import type { Signal } from "@/lib/webrtc";
 
 export interface Ping {
   id: string;
@@ -84,6 +85,10 @@ interface RoomApi {
   startCobrowse: (url: string) => Promise<CobrowseResult>;
   stopCobrowse: (sessionId: string) => Promise<void>;
 
+  /** WebRTC signalling for the live screen share, over the room channel. */
+  sendSignal: (signal: Signal) => void;
+  onSignal: (handler: (signal: Signal) => void) => () => void;
+
   updateIdentity: (patch: Partial<Pick<Identity, "name" | "tint">>) => void;
 }
 
@@ -124,6 +129,9 @@ export function RoomProvider({
   const channelRef = useRef<RealtimeChannel | null>(null);
   const identityRef = useRef<Identity | null>(null);
   const roomIdRef = useRef<string | null>(initialRoom?.id ?? null);
+  // Live WebRTC signalling listeners (screen share). Kept in a ref so the boot
+  // effect wires them once while components come and go.
+  const signalHandlers = useRef(new Set<(signal: Signal) => void>());
   // Presence is only announced after the visitor steps through the door.
   const joinedRef = useRef(false);
 
@@ -277,6 +285,10 @@ export function RoomProvider({
               draft: InkDraft | null;
             };
             store.getState().setLiveInk(from, draft);
+          })
+          .on("broadcast", { event: "rtc" }, ({ payload }) => {
+            const signal = payload as Signal;
+            signalHandlers.current.forEach((handler) => handler(signal));
           })
           .on(
             "postgres_changes",
@@ -747,6 +759,20 @@ export function RoomProvider({
     }
   }, []);
 
+  const sendSignal = useCallback(
+    (signal: Signal) => {
+      broadcast("rtc", signal);
+    },
+    [broadcast],
+  );
+
+  const onSignal = useCallback((handler: (signal: Signal) => void) => {
+    signalHandlers.current.add(handler);
+    return () => {
+      signalHandlers.current.delete(handler);
+    };
+  }, []);
+
   const value: RoomApi = {
     status,
     error,
@@ -776,6 +802,8 @@ export function RoomProvider({
     broadcastInk,
     startCobrowse,
     stopCobrowse,
+    sendSignal,
+    onSignal,
     updateIdentity,
   };
 

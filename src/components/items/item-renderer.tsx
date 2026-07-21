@@ -8,6 +8,7 @@ import MediaItem from "./media-item";
 import EmbedItem from "./embed-item";
 import GameItem from "./game-item";
 import CobrowseItem from "./cobrowse-item";
+import ScreencastItem from "./screencast-item";
 
 export default function ItemRenderer({
   item,
@@ -33,6 +34,8 @@ export default function ItemRenderer({
       return <GameItem item={item as Item<"game">} />;
     case "cobrowse":
       return <CobrowseItem item={item as Item<"cobrowse">} selected={selected} />;
+    case "screencast":
+      return <ScreencastItem item={item as Item<"screencast">} />;
     default:
       return null;
   }
