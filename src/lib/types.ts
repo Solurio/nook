@@ -63,10 +63,15 @@ export interface CobrowseData {
 
 export type FrameStyle = "none" | "polaroid" | "shadow" | "sticker";
 
+export type MediaProvider = "youtube" | "audio" | "soundcloud";
+
 export interface MediaTrack {
   id: string;
-  provider: "youtube";
-  videoId: string;
+  provider: MediaProvider;
+  /** youtube: the video id. audio/soundcloud: the source URL. */
+  ref?: string;
+  /** Legacy field for youtube tracks saved before `ref` existed. */
+  videoId?: string;
   title: string;
   addedBy: string;
 }

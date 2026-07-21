@@ -17,9 +17,17 @@ import {
 } from "lucide-react";
 import { useRoom } from "@/realtime/room-provider";
 import { useRoomStore } from "@/state/room-store";
-import { anchor, currentTrack, formatClock, parseYouTubeId, projectedPosition } from "@/lib/media";
-import { loadYouTubeApi, YT_STATE, type YTPlayer } from "@/lib/youtube-api";
-import type { Item, MediaData, MediaTrack } from "@/lib/types";
+import {
+  anchor,
+  currentTrack,
+  formatClock,
+  parseMediaLink,
+  projectedPosition,
+  trackRef,
+} from "@/lib/media";
+import ProviderPlayer from "./players/provider-player";
+import type { PlayerControl, PlayerState } from "./players/types";
+import type { Item, MediaData, MediaProvider, MediaTrack } from "@/lib/types";
 
 /** How far the local playhead may wander before we snap it back. */
 const DRIFT_TOLERANCE_SEC = 1.4;
@@ -38,10 +46,9 @@ export default function MediaItem({
   const media = item.data;
   const track = currentTrack(media);
 
-  const hostRef = useRef<HTMLDivElement>(null);
-  const playerRef = useRef<YTPlayer | null>(null);
+  const playerRef = useRef<PlayerControl | null>(null);
   const suppress = useRef(false);
-  const loadedVideo = useRef<string | null>(null);
+  const loadedRef = useRef<string | null>(null);
   const mediaRef = useRef(media);
 
   // Interval and player callbacks outlive the render they were created in, so
@@ -50,7 +57,10 @@ export default function MediaItem({
     mediaRef.current = media;
   });
 
-  const [ready, setReady] = useState(false);
+  // The mounted player reports which provider it is ready for; switching
+  // provider (a new key) makes this false until the new one reports back.
+  const [readyFor, setReadyFor] = useState<MediaProvider | null>(null);
+  const ready = track != null && readyFor === track.provider;
   // We muted the player only to satisfy the browser's autoplay policy, so the
   // video can play in sync for everyone without a click; the user unmutes when
   // they want sound.
@@ -101,90 +111,36 @@ export default function MediaItem({
   );
 
   // ---------------------------------------------------------------------------
-  // Player lifecycle
+  // Player events (mirror a user's own play/pause/skip into shared state)
   // ---------------------------------------------------------------------------
 
-  useEffect(() => {
-    let disposed = false;
-
-    loadYouTubeApi()
-      .then((YT) => {
-        if (disposed || !hostRef.current) return;
-
-        const player = new YT.Player(hostRef.current, {
-          playerVars: {
-            controls: 0,
-            disablekb: 1,
-            modestbranding: 1,
-            rel: 0,
-            playsinline: 1,
-            fs: 0,
-          },
-          events: {
-            onReady: ({ target }) => {
-              if (disposed) return;
-              playerRef.current = target;
-              target.setVolume(volume);
-              setReady(true);
-            },
-            onStateChange: ({ data, target }) => {
-              if (disposed) return;
-              setDuration(target.getDuration() || 0);
-
-              if (suppress.current) return;
-              const state = mediaRef.current;
-
-              // Someone used the player's own controls: mirror that choice
-              // into shared state so the room follows along.
-              if (data === YT_STATE.PLAYING && !state.playing) {
-                write(anchor(state, target.getCurrentTime(), true));
-              } else if (data === YT_STATE.PAUSED && state.playing) {
-                write(anchor(state, target.getCurrentTime(), false));
-              } else if (data === YT_STATE.ENDED) {
-                advance(state, 1);
-              }
-            },
-          },
-        });
-
-        playerRef.current = player;
-      })
-      .catch(() => {
-        // The IFrame API could not load (offline, blocked). Nothing to play.
-      });
-
-    return () => {
-      disposed = true;
-      const player = playerRef.current;
-      playerRef.current = null;
-      try {
-        player?.destroy();
-      } catch {
-        // The iframe may already be gone if the item was deleted mid-teardown.
+  const handleStateChange = useCallback(
+    (state: PlayerState) => {
+      if (suppress.current) return;
+      const s = mediaRef.current;
+      const at = playerRef.current?.getTime() ?? s.positionSec;
+      if (state === "playing" && !s.playing) {
+        write(anchor(s, at, true));
+      } else if (state === "paused" && s.playing) {
+        write(anchor(s, at, false));
+      } else if (state === "ended") {
+        advance(s, 1);
       }
-    };
-    // The player is created once; track and volume changes are pushed in below.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    },
+    [advance, write],
+  );
 
   // Load whichever track the room is on.
   useEffect(() => {
     const player = playerRef.current;
-    if (!ready || !player) return;
+    if (!ready || !player || !track) return;
 
-    if (!track) {
-      loadedVideo.current = null;
-      return;
-    }
-    if (loadedVideo.current === track.videoId) return;
+    const ref = trackRef(track);
+    if (loadedRef.current === ref) return;
 
-    loadedVideo.current = track.videoId;
+    loadedRef.current = ref;
     const start = projectedPosition(media);
-
-    quietly(() => {
-      if (media.playing) player.loadVideoById(track.videoId, start);
-      else player.cueVideoById(track.videoId, start);
-    });
+    quietly(() => player.load(ref, start, media.playing));
   }, [ready, track, media, quietly]);
 
   // Follow shared play/pause. When someone else hits play, the browser will
@@ -195,24 +151,24 @@ export default function MediaItem({
     const player = playerRef.current;
     if (!ready || !player || !track) return;
 
-    const state = player.getPlayerState();
-    if (media.playing && state !== YT_STATE.PLAYING && state !== YT_STATE.BUFFERING) {
-      quietly(() => player.playVideo());
+    const state = player.state();
+    if (media.playing && state !== "playing" && state !== "buffering") {
+      quietly(() => player.play());
       window.setTimeout(() => {
         const p = playerRef.current;
         if (!p || !mediaRef.current.playing) return;
-        const s = p.getPlayerState();
-        if (s === YT_STATE.UNSTARTED || s === YT_STATE.CUED || s === YT_STATE.PAUSED) {
+        const s = p.state();
+        if (s === "unstarted" || s === "cued" || s === "paused") {
           p.mute();
           setAutoMuted(true);
           quietly(() => {
-            p.seekTo(projectedPosition(mediaRef.current), true);
-            p.playVideo();
+            p.seek(projectedPosition(mediaRef.current));
+            p.play();
           });
         }
       }, 400);
-    } else if (!media.playing && state === YT_STATE.PLAYING) {
-      quietly(() => player.pauseVideo());
+    } else if (!media.playing && state === "playing") {
+      quietly(() => player.pause());
     }
   }, [ready, media.playing, media.anchoredAt, track, quietly]);
 
@@ -224,7 +180,7 @@ export default function MediaItem({
       const player = playerRef.current;
       if (!player) return;
 
-      const now = player.getCurrentTime();
+      const now = player.getTime();
       setElapsed(now);
       setDuration(player.getDuration() || 0);
 
@@ -233,21 +189,22 @@ export default function MediaItem({
 
       const expected = projectedPosition(state);
       if (Math.abs(expected - now) > DRIFT_TOLERANCE_SEC) {
-        quietly(() => player.seekTo(expected, true));
+        quietly(() => player.seek(expected));
       }
 
-      // Still stuck at the gate a beat later: force muted playback so the room
-      // stays together, and surface an unmute prompt.
-      if (player.getPlayerState() === YT_STATE.UNSTARTED) {
+      // Shared state says play but this client is stuck (autoplay blocked): force
+      // muted playback so the room stays together, and offer an unmute prompt.
+      const s = player.state();
+      if (s !== "playing" && s !== "buffering") {
         player.mute();
         setAutoMuted(true);
-        quietly(() => player.playVideo());
+        quietly(() => player.play());
       }
     };
 
     const fast = window.setInterval(() => {
       const player = playerRef.current;
-      if (player) setElapsed(player.getCurrentTime());
+      if (player) setElapsed(player.getTime());
     }, 250);
     const slow = window.setInterval(tick, SYNC_INTERVAL_MS);
     tick();
@@ -279,7 +236,7 @@ export default function MediaItem({
   const toggle = useCallback(() => {
     if (!canEdit) return;
     const player = playerRef.current;
-    const at = player ? player.getCurrentTime() : media.positionSec;
+    const at = player ? player.getTime() : media.positionSec;
     write(anchor(media, at, !media.playing));
   }, [canEdit, media, write]);
 
@@ -287,7 +244,7 @@ export default function MediaItem({
     (seconds: number) => {
       if (!canEdit) return;
       const player = playerRef.current;
-      quietly(() => player?.seekTo(seconds, true));
+      quietly(() => player?.seek(seconds));
       write(anchor(media, seconds, media.playing));
     },
     [canEdit, media, quietly, write],
@@ -295,14 +252,14 @@ export default function MediaItem({
 
   const addTrack = useCallback(
     (raw: string) => {
-      const videoId = parseYouTubeId(raw);
-      if (!videoId) return false;
+      const parsed = parseMediaLink(raw);
+      if (!parsed) return false;
 
       const entry: MediaTrack = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        provider: "youtube",
-        videoId,
-        title: "queued track",
+        provider: parsed.provider,
+        ref: parsed.ref,
+        title: parsed.title,
         addedBy: me?.name ?? "someone",
       };
 
@@ -347,14 +304,21 @@ export default function MediaItem({
           compact ? "h-0" : "flex-1",
         )}
       >
-        <div ref={hostRef} className="size-full" />
-
-        {!track && (
+        {track ? (
+          <ProviderPlayer
+            key={track.provider}
+            provider={track.provider}
+            ref={playerRef}
+            onReady={() => setReadyFor(track.provider)}
+            onStateChange={handleStateChange}
+            onDuration={setDuration}
+          />
+        ) : (
           <div className="absolute inset-0 grid place-items-center bg-ink-900 px-6 text-center">
             <div className="text-muted">
               <Music4 className="mx-auto mb-2 size-6" strokeWidth={1.7} />
               <p className="text-sm">nothing queued yet</p>
-              <p className="mt-1 text-xs opacity-70">paste a youtube link below</p>
+              <p className="mt-1 text-xs opacity-70">cola um link do youtube, soundcloud ou um .mp3</p>
             </div>
           </div>
         )}
@@ -494,7 +458,7 @@ export default function MediaItem({
                   value={adding}
                   onChange={(event) => setAdding(event.target.value)}
                   onKeyDown={(event) => event.stopPropagation()}
-                  placeholder="youtube link"
+                  placeholder="youtube, soundcloud ou .mp3"
                   spellCheck={false}
                   className="min-w-0 flex-1 rounded-lg bg-white/8 px-2.5 py-1.5 text-xs ring-1 ring-white/10 outline-none placeholder:text-muted/60 focus:ring-glow/50"
                 />

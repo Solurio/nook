@@ -19,11 +19,14 @@ que colocar nela, e tudo fica salvo onde você largou.
 - **Desenhar na sala** — um pincel que pinta direto na tela infinita, com
   paleta de cores, cor personalizada e espessura. Tem borracha (arrasta em cima
   de um traço pra apagar). Todo traço é compartilhado ao vivo e fica salvo.
-- **Música e vídeo em sincronia** — cola um link do YouTube e todo mundo assiste
-  junto. Quem der play, pausar ou arrastar a barra move o vídeo pra todo mundo.
-  Como o navegador não deixa dar autoplay com som sem um clique, quem chega
-  entra com o vídeo tocando **mudo** e em sincronia, e clica pra ativar o som.
-  Tem fila e um modo só-áudio.
+- **Música e vídeo em sincronia** — cola um link do **YouTube**, um arquivo de
+  áudio direto (**.mp3/.ogg/.wav/.m4a/...**) ou do **SoundCloud** e todo mundo
+  ouve/assiste junto. Quem der play, pausar ou arrastar a barra move pra todo
+  mundo. Como o navegador não deixa dar autoplay com som sem um clique, quem
+  chega entra tocando **mudo** e em sincronia, e clica pra ativar o som. Tem
+  fila e um modo só-áudio. (Cada tipo usa a API de controle do próprio provedor
+  — por isso sincroniza de verdade. Spotify/Twitch/sites que não expõem controle
+  livre vão pra janela de site ou pra transmissão de aba.)
 - **Stickers/GIFs** — uma janela de busca de GIFs (Giphy) que solta o GIF na
   parede como objeto, igual o Here.fm. Precisa de uma chave gratuita do Giphy
   (veja abaixo); sem ela o resto do app funciona normal.

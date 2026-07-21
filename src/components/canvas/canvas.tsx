@@ -10,6 +10,7 @@ import {
 } from "@/state/room-store";
 import { draftItem, topZ } from "@/lib/items";
 import { resolveLink } from "@/lib/embeds";
+import { parseMediaLink } from "@/lib/media";
 import type { Background } from "@/lib/types";
 import ItemFrame from "./item-frame";
 import Cursors from "./cursors";
@@ -226,18 +227,19 @@ export default function Canvas() {
       if (!trimmed) return;
       const z = topZ(Object.values(useRoomStore.getState().items));
 
-      const resolved = resolveLink(trimmed);
-
-      if (resolved?.kind === "media") {
+      // A playable, syncable link (youtube / audio file / soundcloud) opens in
+      // the music player; other providers fall through to the site window.
+      const playable = parseMediaLink(trimmed);
+      if (playable) {
         await createItem(
           draftItem("media", at, z, {
             data: {
               queue: [
                 {
                   id: `${Date.now()}`,
-                  provider: "youtube" as const,
-                  videoId: resolved.videoId,
-                  title: "queued track",
+                  provider: playable.provider,
+                  ref: playable.ref,
+                  title: playable.title,
                   addedBy: useRoomStore.getState().me?.name ?? "someone",
                 },
               ],
@@ -246,12 +248,14 @@ export default function Canvas() {
               positionSec: 0,
               anchoredAt: Date.now(),
               volume: 60,
-              audioOnly: false,
+              audioOnly: playable.provider === "audio",
             },
           }),
         );
         return;
       }
+
+      const resolved = resolveLink(trimmed);
 
       if (resolved?.kind === "image") {
         await createItem(draftItem("image", at, z, { data: { url: resolved.url } }));

@@ -1,4 +1,4 @@
-import type { MediaData, MediaTrack } from "./types";
+import type { MediaData, MediaProvider, MediaTrack } from "./types";
 
 /**
  * Pulls a YouTube video id out of the shapes people actually paste: watch
@@ -56,6 +56,48 @@ export function emptyMedia(): MediaData {
 
 export function currentTrack(media: MediaData): MediaTrack | null {
   return media.queue[media.index] ?? null;
+}
+
+/** The provider-specific reference to load: a video id or a source URL. */
+export function trackRef(track: MediaTrack): string {
+  return track.ref ?? track.videoId ?? "";
+}
+
+const AUDIO_EXT = /\.(mp3|ogg|oga|wav|m4a|aac|flac|opus|weba)(\?|#|$)/i;
+
+/**
+ * Works out which synced player a pasted link belongs in. YouTube, direct audio
+ * files and SoundCloud each have a real control API, so they play in the music
+ * player and stay in sync. Anything else returns null (it belongs in the site
+ * window / shared browser instead).
+ */
+export function parseMediaLink(
+  input: string,
+): { provider: MediaProvider; ref: string; title: string } | null {
+  const raw = input.trim();
+  if (!raw) return null;
+
+  const videoId = parseYouTubeId(raw);
+  if (videoId) return { provider: "youtube", ref: videoId, title: "youtube" };
+
+  let url: URL;
+  try {
+    url = new URL(raw.startsWith("http") ? raw : `https://${raw}`);
+  } catch {
+    return null;
+  }
+  const host = url.hostname.replace(/^www\./, "");
+
+  if (AUDIO_EXT.test(url.pathname)) {
+    const name = decodeURIComponent(url.pathname.split("/").pop() ?? "audio");
+    return { provider: "audio", ref: url.toString(), title: name.replace(AUDIO_EXT, "") };
+  }
+
+  if (host === "soundcloud.com" || host === "m.soundcloud.com" || host === "on.soundcloud.com") {
+    return { provider: "soundcloud", ref: url.toString(), title: "soundcloud" };
+  }
+
+  return null;
 }
 
 /**
