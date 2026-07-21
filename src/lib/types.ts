@@ -70,12 +70,32 @@ export interface MediaData {
   audioOnly: boolean;
 }
 
-export type GameKind = "tictactoe" | "connectfour" | "doodle";
+export type GameKind = "tictactoe" | "connectfour" | "doodle" | "chess" | "checkers";
 
 export type GameData =
   | { game: "tictactoe"; state: TicTacToeState }
   | { game: "connectfour"; state: ConnectFourState }
-  | { game: "doodle"; state: DoodleState };
+  | { game: "doodle"; state: DoodleState }
+  | { game: "chess"; state: ChessState }
+  | { game: "checkers"; state: CheckersState };
+
+export interface ChessState {
+  /** 64 cells, index = row*8+col, row 0 is black's back rank. */
+  board: ({ color: "w" | "b"; type: "p" | "n" | "b" | "r" | "q" | "k" } | null)[];
+  turn: "w" | "b";
+  seats: { w: string | null; b: string | null };
+  wins: { w: number; b: number; draw: number };
+}
+
+export interface CheckersState {
+  /** 64 cells, row-major; pieces sit on dark squares. */
+  board: ({ side: "r" | "b"; king: boolean } | null)[];
+  turn: "r" | "b";
+  seats: { r: string | null; b: string | null };
+  wins: { r: number; b: number; draw: number };
+  /** Board index of a piece mid multi-jump, if the turn must continue. */
+  chain: number | null;
+}
 
 export interface TicTacToeState {
   /** 9 cells, "x" | "o" | null. */

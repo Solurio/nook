@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import {
   Brush,
+  CircleDot,
+  Crown,
   Dices,
   Eraser,
   Gamepad2,
@@ -176,7 +178,19 @@ export default function Dock() {
           </DockButton>
 
           {gamesOpen && (
-            <div className="surface-raised animate-drift-in absolute bottom-full right-1.5 mb-2 w-48 overflow-hidden rounded-2xl p-1 shadow-2xl">
+            <div className="surface-raised animate-drift-in absolute right-1.5 bottom-full mb-2 w-48 overflow-hidden rounded-2xl p-1 shadow-2xl">
+              <GameOption
+                icon={<Crown className="size-4" strokeWidth={2} />}
+                title="chess"
+                hint="the real one"
+                onClick={() => add("game", "chess")}
+              />
+              <GameOption
+                icon={<CircleDot className="size-4" strokeWidth={2} />}
+                title="checkers"
+                hint="jump and crown"
+                onClick={() => add("game", "checkers")}
+              />
               <GameOption
                 icon={<Grid3x3 className="size-4" strokeWidth={2} />}
                 title="tic tac toe"
@@ -213,14 +227,17 @@ export default function Dock() {
           </DockButton>
 
           {reactionsOpen && (
-            <div className="surface-raised animate-drift-in absolute right-0 bottom-full mb-2 grid grid-cols-8 gap-0.5 rounded-2xl p-1.5 shadow-2xl">
+            <div className="surface-raised animate-drift-in absolute right-0 bottom-full mb-2 grid w-[17.5rem] max-w-[92vw] grid-cols-8 gap-1 rounded-2xl p-2 shadow-2xl">
               {REACTIONS.map((key) => (
                 <button
                   key={key}
                   type="button"
-                  onClick={() => react(REACTION_GLYPHS[key])}
+                  onClick={() => {
+                    react(REACTION_GLYPHS[key]);
+                    setReactionsOpen(false);
+                  }}
                   aria-label={`react ${key}`}
-                  className="grid size-9 place-items-center rounded-xl text-xl transition hover:scale-110 hover:bg-white/10"
+                  className="grid aspect-square place-items-center rounded-xl text-xl transition hover:scale-110 hover:bg-white/10"
                 >
                   {REACTION_GLYPHS[key]}
                 </button>

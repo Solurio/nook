@@ -88,3 +88,38 @@ export function withParent(url: string): string {
   const host = typeof window !== "undefined" ? window.location.hostname : "localhost";
   return url.replaceAll(PARENT, host);
 }
+
+// Hosts that refuse to be framed (X-Frame-Options / frame-ancestors). Their
+// dedicated embeds (player.twitch.tv, open.spotify.com/embed, ...) are fine, so
+// this only flags the "bare site" forms that would show a browser block page.
+const FRAME_BLOCKED = [
+  "youtube.com",
+  "youtu.be",
+  "google.com",
+  "twitch.tv",
+  "instagram.com",
+  "facebook.com",
+  "twitter.com",
+  "x.com",
+  "reddit.com",
+  "open.spotify.com",
+  "netflix.com",
+  "amazon.com",
+  "tiktok.com",
+];
+
+/** Whether a URL, as-is, is one the browser will refuse to put in an iframe. */
+export function blocksFraming(url: string): boolean {
+  const parsed = safeUrl(url);
+  if (!parsed) return false;
+  // The purpose-built embed hosts are allowed even if their parent site isn't.
+  if (
+    parsed.hostname.startsWith("player.") ||
+    parsed.hostname.startsWith("w.soundcloud") ||
+    parsed.pathname.startsWith("/embed")
+  ) {
+    return false;
+  }
+  const host = parsed.hostname.replace(/^www\./, "");
+  return FRAME_BLOCKED.some((blocked) => host === blocked || host.endsWith(`.${blocked}`));
+}

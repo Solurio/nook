@@ -13,11 +13,11 @@ export default function PingLayer() {
       {pings.map((ping) => (
         <div
           key={ping.id}
-          className="animate-ping-pop pointer-events-none absolute top-0 left-0 z-[9500] text-3xl"
+          className="animate-ping-pop pointer-events-none absolute top-0 left-0 z-[9500] text-6xl"
           style={{
             transform: `translate3d(${ping.x}px, ${ping.y}px, 0) scale(${1 / scale})`,
             transformOrigin: "center",
-            textShadow: `0 0 18px ${ping.tint}`,
+            textShadow: `0 0 22px ${ping.tint}`,
           }}
         >
           {ping.glyph}

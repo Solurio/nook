@@ -84,7 +84,11 @@ export async function onRequestPost({ request, env }) {
   }
 
   if (!res.ok) {
-    return json({ error: "hyperbeam_error", status: res.status }, 502);
+    // Forward Hyperbeam's own message so the room can show *why* -- almost
+    // always a free-tier limit (too many concurrent sessions, or out of
+    // minutes) rather than a bad link.
+    const detail = await res.text().catch(() => "");
+    return json({ error: "hyperbeam_error", status: res.status, detail: detail.slice(0, 300) }, 502);
   }
 
   const data = await res.json();

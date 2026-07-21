@@ -1,4 +1,6 @@
 import { emptyMedia } from "./media";
+import { initialBoard as initialChess } from "./chess";
+import { initialBoard as initialCheckers } from "./checkers";
 import type { AnyItem, GameKind, ItemDataMap, ItemKind } from "./types";
 
 export const NOTE_TINTS = [
@@ -35,6 +37,8 @@ const GAME_SIZE: Record<GameKind, { width: number; height: number }> = {
   tictactoe: { width: 320, height: 390 },
   connectfour: { width: 400, height: 430 },
   doodle: { width: 460, height: 400 },
+  chess: { width: 380, height: 440 },
+  checkers: { width: 380, height: 440 },
 };
 
 function emptyGameData(game: GameKind): ItemDataMap["game"] {
@@ -61,6 +65,27 @@ function emptyGameData(game: GameKind): ItemDataMap["game"] {
       };
     case "doodle":
       return { game: "doodle", state: { strokes: [] } };
+    case "chess":
+      return {
+        game: "chess",
+        state: {
+          board: initialChess(),
+          turn: "w",
+          seats: { w: null, b: null },
+          wins: { w: 0, b: 0, draw: 0 },
+        },
+      };
+    case "checkers":
+      return {
+        game: "checkers",
+        state: {
+          board: initialCheckers(),
+          turn: "r",
+          seats: { r: null, b: null },
+          wins: { r: 0, b: 0, draw: 0 },
+          chain: null,
+        },
+      };
   }
 }
 

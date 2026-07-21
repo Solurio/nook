@@ -89,7 +89,7 @@ interface RoomApi {
 
 export type CobrowseResult =
   | { ok: true; embedUrl: string; sessionId: string }
-  | { ok: false; error: "not_configured" | "unauthorized" | "failed" };
+  | { ok: false; error: "not_configured" | "unauthorized" | "failed"; detail?: string };
 
 const RoomContext = createContext<RoomApi | null>(null);
 
@@ -716,6 +716,8 @@ export function RoomProvider({
           embedUrl?: string;
           sessionId?: string;
           error?: string;
+          detail?: string;
+          status?: number;
         };
 
         if (res.ok && data.embedUrl && data.sessionId) {
@@ -723,7 +725,11 @@ export function RoomProvider({
         }
         if (data.error === "not_configured") return { ok: false, error: "not_configured" };
         if (res.status === 401) return { ok: false, error: "unauthorized" };
-        return { ok: false, error: "failed" };
+        return {
+          ok: false,
+          error: "failed",
+          detail: data.detail || (data.status ? `Hyperbeam ${data.status}` : undefined),
+        };
       } catch {
         return { ok: false, error: "failed" };
       }

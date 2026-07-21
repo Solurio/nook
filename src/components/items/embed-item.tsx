@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { ExternalLink, Globe } from "lucide-react";
+import { ExternalLink, Globe, ShieldAlert } from "lucide-react";
 import { useRoom } from "@/realtime/room-provider";
-import { resolveLink, withParent } from "@/lib/embeds";
+import { blocksFraming, resolveLink, withParent } from "@/lib/embeds";
 import type { Item } from "@/lib/types";
 
 /**
@@ -84,14 +84,36 @@ export default function EmbedItem({
         </a>
       </div>
 
-      <iframe
-        src={withParent(url)}
-        title={title ?? safeHost(url)}
-        className="min-h-0 flex-1 bg-white"
-        sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-presentation"
-        referrerPolicy="no-referrer"
-        loading="lazy"
-      />
+      {blocksFraming(url) ? (
+        <div className="grid min-h-0 flex-1 place-items-center bg-ink-900 px-6 text-center">
+          <div className="max-w-[280px] space-y-2 text-muted">
+            <ShieldAlert className="mx-auto size-5 text-warm" strokeWidth={1.8} />
+            <p className="text-xs leading-relaxed">
+              <span className="text-chalk">{safeHost(url)}</span> não deixa ser aberto dentro de
+              outra página (trava do próprio site). Abre numa aba nova, ou usa o{" "}
+              <span className="text-chalk">navegador compartilhado</span> pra ver junto.
+            </p>
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 rounded-lg bg-white/8 px-2.5 py-1 text-[11px] text-chalk transition hover:bg-white/12"
+            >
+              <ExternalLink className="size-3" strokeWidth={2.2} />
+              abrir numa aba
+            </a>
+          </div>
+        </div>
+      ) : (
+        <iframe
+          src={withParent(url)}
+          title={title ?? safeHost(url)}
+          className="min-h-0 flex-1 bg-white"
+          sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-presentation"
+          referrerPolicy="no-referrer"
+          loading="lazy"
+        />
+      )}
 
       {/* While the item is unselected the iframe should not swallow drags. */}
       {!selected && <div className="absolute inset-0 top-9" />}

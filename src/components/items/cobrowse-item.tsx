@@ -56,7 +56,9 @@ export default function CobrowseItem({
           ? "not-configured"
           : result.error === "unauthorized"
             ? "Entra na sala de novo e tenta outra vez."
-            : "Não consegui abrir a sessão. Tenta de novo.",
+            : result.detail
+              ? `Hyperbeam recusou: ${result.detail}`
+              : "Não consegui abrir a sessão. Provável limite do plano do Hyperbeam (sessões simultâneas ou minutos). Fecha as sessões abertas e confere o painel deles.",
       );
     }
   };
