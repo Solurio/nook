@@ -5,12 +5,13 @@ import { Loader2, Search, Sticker, X } from "lucide-react";
 import { useRoom } from "@/realtime/room-provider";
 import { useRoomStore } from "@/state/room-store";
 import { draftItem, topZ } from "@/lib/items";
-import { giphyEnabled, searchGifs, trendingGifs, type Gif } from "@/lib/giphy";
+import type { Gif } from "@/lib/gifs";
+import { anyGifSource, enabledSources, searchGifs } from "@/lib/gif-search";
 
 /**
- * Type a word, get GIFs, drop one onto the wall as a sticker -- the Here.fm
- * move. Powered by Giphy; if no key is configured it says so instead of
- * failing silently.
+ * Type a word, get GIFs and stickers, drop one onto the wall -- the Here.fm
+ * move. Searches every configured provider (Giphy + Klipy) at once so the
+ * variety is wide; if one is thin on a term the others fill in.
  */
 export default function StickersPanel() {
   const { createItem, canEdit } = useRoom();
@@ -20,14 +21,16 @@ export default function StickersPanel() {
   const [gifs, setGifs] = useState<Gif[]>([]);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
-  const enabled = giphyEnabled();
+  const enabled = anyGifSource();
+  const sources = enabledSources();
 
   const load = useCallback(async (query: string) => {
     setLoading(true);
     setFailed(false);
     try {
-      const results = query.trim() ? await searchGifs(query) : await trendingGifs();
+      const results = await searchGifs(query);
       setGifs(results);
+      setFailed(results.length === 0 && query.trim().length > 0);
     } catch {
       setFailed(true);
       setGifs([]);
@@ -57,13 +60,15 @@ export default function StickersPanel() {
       };
       const z = topZ(Object.values(useRoomStore.getState().items));
 
-      // Keep the GIF's aspect ratio, capped to a friendly size.
       const ratio = gif.width / gif.height || 1;
-      const width = Math.min(300, gif.width);
+      const width = Math.min(300, gif.width || 200);
       const height = Math.round(width / ratio);
 
+      // Stickers are transparent, so they drop bare; gifs get a soft frame.
       const base = draftItem("image", at, z, {
-        data: { url: gif.full, frame: "sticker", radius: 12 },
+        data: gif.sticker
+          ? { url: gif.full, frame: "none", radius: 0 }
+          : { url: gif.full, frame: "shadow", radius: 12 },
       });
       await createItem({ ...base, width, height });
     },
@@ -75,7 +80,7 @@ export default function StickersPanel() {
       <header className="flex items-center justify-between border-b border-white/8 px-4 py-3">
         <h2 className="flex items-center gap-1.5 text-sm font-semibold">
           <Sticker className="size-4 text-glow" strokeWidth={2.2} />
-          stickers
+          gifs &amp; stickers
         </h2>
         <button
           type="button"
@@ -89,15 +94,16 @@ export default function StickersPanel() {
 
       {!enabled ? (
         <div className="flex-1 space-y-2 px-5 py-6 text-sm leading-relaxed text-muted">
-          <p>Pra buscar GIFs, o app precisa de uma chave gratuita do Giphy.</p>
+          <p>Pra buscar gifs e stickers, o app precisa de pelo menos uma chave gratuita.</p>
           <ol className="list-decimal space-y-1 pl-4 text-xs">
             <li>
-              Pega uma em{" "}
-              <span className="text-chalk">developers.giphy.com</span> (API key, leva 2 min).
+              <span className="text-chalk">developers.giphy.com</span> (Giphy) e/ou{" "}
+              <span className="text-chalk">partner.klipy.com</span> (Klipy).
             </li>
             <li>
-              Adiciona <code className="rounded bg-white/8 px-1">NEXT_PUBLIC_GIPHY_KEY</code> nas
-              variaveis de ambiente (Cloudflare/Vercel) e re-deploya.
+              Adiciona <code className="rounded bg-white/8 px-1">NEXT_PUBLIC_GIPHY_KEY</code> e/ou{" "}
+              <code className="rounded bg-white/8 px-1">NEXT_PUBLIC_KLIPY_KEY</code> nas variaveis
+              de ambiente (Cloudflare) e re-deploya.
             </li>
           </ol>
         </div>
@@ -110,7 +116,7 @@ export default function StickersPanel() {
                 value={term}
                 onChange={(event) => setTerm(event.target.value)}
                 onKeyDown={(event) => event.stopPropagation()}
-                placeholder="search gifs"
+                placeholder="busca gifs e stickers"
                 spellCheck={false}
                 autoFocus
                 className="min-w-0 flex-1 bg-transparent py-2.5 text-sm outline-none placeholder:text-muted/55"
@@ -122,10 +128,10 @@ export default function StickersPanel() {
           <div className="min-h-0 flex-1 overflow-y-auto p-3">
             {failed ? (
               <p className="px-2 pt-6 text-center text-xs text-muted/70">
-                Giphy nao respondeu. Tenta de novo.
+                nada encontrado pra isso.
               </p>
             ) : gifs.length === 0 && !loading ? (
-              <p className="px-2 pt-6 text-center text-xs text-muted/70">nada encontrado.</p>
+              <p className="px-2 pt-6 text-center text-xs text-muted/70">nada por aqui ainda.</p>
             ) : (
               <div className="columns-2 gap-2 [&>*]:mb-2">
                 {gifs.map((gif) => (
@@ -134,8 +140,12 @@ export default function StickersPanel() {
                     type="button"
                     onClick={() => drop(gif)}
                     disabled={!canEdit}
-                    className="block w-full overflow-hidden rounded-xl ring-1 ring-white/8 transition hover:ring-glow/60 disabled:opacity-50"
-                    title="add to the room"
+                    className={
+                      "block w-full overflow-hidden rounded-xl ring-1 ring-white/8 transition hover:ring-glow/60 disabled:opacity-50 " +
+                      // A soft checker helps transparent stickers read on dark.
+                      (gif.sticker ? "bg-[repeating-conic-gradient(#2a2338_0_25%,#211b2e_0_50%)] bg-[length:16px_16px]" : "")
+                    }
+                    title={gif.sticker ? "add sticker" : "add gif"}
                   >
                     <img
                       src={gif.preview}
@@ -151,7 +161,7 @@ export default function StickersPanel() {
           </div>
 
           <p className="border-t border-white/8 px-4 py-2 text-center text-[10px] text-muted/50">
-            gifs via giphy
+            {sources.join(" + ")}
           </p>
         </>
       )}

@@ -166,13 +166,21 @@ jogos, o parser de links do YouTube, a projeção do playhead e a normalização
 slug. O resto (arrastar, o player, a sincronia de verdade entre duas abas) é
 teste na mão, com duas janelas abertas lado a lado.
 
-### Chave do Giphy (opcional, pros stickers)
+### Chaves de gif/sticker (opcional)
 
-A busca de GIFs usa a API do Giphy. Pega uma chave gratuita em
-[developers.giphy.com](https://developers.giphy.com) (API key, 2 min) e coloca
-como `NEXT_PUBLIC_GIPHY_KEY` — no `.env.local` pra rodar local, ou nas variáveis
-de ambiente da Cloudflare/Vercel pro deploy. Sem a chave, o painel de stickers
-só mostra um aviso e o resto do app funciona normal.
+O painel de gifs/stickers busca em vários provedores ao mesmo tempo — se um não
+tem o que você procurou, os outros preenchem. Configura pelo menos um:
+
+- **Giphy** (gifs + stickers transparentes): chave gratuita em
+  [developers.giphy.com](https://developers.giphy.com) → `NEXT_PUBLIC_GIPHY_KEY`.
+- **Klipy** (gifs + stickers, tipo o Discord): chave em
+  [partner.klipy.com](https://partner.klipy.com) → `NEXT_PUBLIC_KLIPY_KEY`.
+
+Coloca no `.env.local` (local) ou nas variáveis de ambiente da Cloudflare
+(deploy). Sem nenhuma chave, o painel só mostra um aviso e o resto funciona
+normal. Obs.: se o Klipy bloquear a chamada direta do navegador (CORS), a busca
+dele é ignorada em silêncio e o Giphy continua — nesse caso dá pra pôr um proxy
+serverless depois.
 
 ## Transmitir uma aba ao vivo (WebRTC)
 
