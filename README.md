@@ -32,11 +32,15 @@ que colocar nela, e tudo fica salvo onde você largou.
   (veja abaixo); sem ela o resto do app funciona normal.
 - **Janelas** — um iframe pra sites que aceitam ser embedados. Links de Twitch,
   Vimeo, SoundCloud e Spotify são convertidos automaticamente pro player certo.
-- **Jogos** — xadrez, damas, velha, lig-4 e uma lousa de rabisco compartilhada
-  (com pincel e borracha). Dá pra "sentar" numa cadeira pra marcar de quem é a
-  vez, ou deixar solto e qualquer um joga. (O xadrez move as peças pelas regras
-  de cada peça, mas não policia xeque/roque/en passant — vocês se acertam, como
-  num tabuleiro de verdade.)
+- **Jogos** — xadrez, damas, velha, lig-4. Dá pra "sentar" numa cadeira pra
+  marcar de quem é a vez, ou deixar solto e qualquer um joga. (O xadrez move as
+  peças pelas regras de cada peça, mas não policia xeque/roque/en passant —
+  vocês se acertam, como num tabuleiro de verdade.)
+- **Lousa de pintura** — não é mais um rabisco: é um app de pintura raster, todo
+  mundo desenhando ao mesmo tempo. Pincéis (caneta, marcador, spray, borracha),
+  tamanho e opacidade, **pressão de mesa digitalizadora** com sensibilidade
+  ajustável, seletor de cor completo, **camadas** (adicionar, esconder,
+  opacidade, hue) e **export em PNG**.
 - **Decoração** — fundo sólido, degradê, ou uma imagem sua (esticada ou repetida
   em ladrilho, com controle de escurecimento).
 - **Chat**, cursores com nome de todo mundo que está online, e reações que

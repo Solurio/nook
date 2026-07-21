@@ -133,16 +133,38 @@ export interface ConnectFourState {
   wins: { r: number; y: number; draw: number };
 }
 
+export type DoodleBrush = "pen" | "marker" | "airbrush" | "eraser";
+
 export interface DoodleStroke {
   id: string;
   color: string;
+  /** Base brush width in CSS px (scaled by pressure per point). */
   size: number;
   /** Flat [x0,y0,x1,y1,...] in 0..1 space so strokes survive resizing. */
   points: number[];
+  /** 0..1; absent means fully opaque (old strokes). */
+  opacity?: number;
+  /** Defaults to "pen" for strokes saved before brushes existed. */
+  brush?: DoodleBrush;
+  /** Per-point pen pressure 0..1; absent means full pressure. */
+  pressures?: number[];
+  /** Layer id; absent means the base layer. */
+  layer?: string;
+}
+
+export interface DoodleLayer {
+  id: string;
+  name: string;
+  visible: boolean;
+  opacity: number;
+  /** hue-rotate effect in degrees. */
+  hue: number;
 }
 
 export interface DoodleState {
   strokes: DoodleStroke[];
+  /** Absent on old boards; treated as a single base layer. */
+  layers?: DoodleLayer[];
 }
 
 export interface Item<K extends ItemKind = ItemKind> {
