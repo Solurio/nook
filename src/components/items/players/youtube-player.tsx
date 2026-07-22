@@ -30,42 +30,50 @@ const YouTubePlayer = forwardRef<PlayerControl, ProviderPlayerProps>(function Yo
 
   useImperativeHandle(
     ref,
-    (): PlayerControl => ({
-      load(videoId, startSec, autoplay) {
-        const p = player.current;
-        if (!p) return;
-        if (autoplay) p.loadVideoById(videoId, startSec);
-        else p.cueVideoById(videoId, startSec);
-      },
-      play() {
-        player.current?.playVideo();
-      },
-      pause() {
-        player.current?.pauseVideo();
-      },
-      seek(sec) {
-        player.current?.seekTo(sec, true);
-      },
-      getTime() {
-        return player.current?.getCurrentTime() ?? 0;
-      },
-      getDuration() {
-        return player.current?.getDuration() ?? 0;
-      },
-      setVolume(volume) {
-        player.current?.setVolume(volume);
-      },
-      mute() {
-        player.current?.mute();
-      },
-      unMute() {
-        player.current?.unMute();
-      },
-      state() {
-        const code = player.current?.getPlayerState();
-        return code === undefined ? "unstarted" : mapState(code);
-      },
-    }),
+    (): PlayerControl => {
+      // The YT.Player object exists before it is ready, but its methods are not
+      // attached yet -- calling them then throws "is not a function". So every
+      // call checks the method exists first and no-ops until the player is live.
+      const has = (name: keyof YTPlayer): boolean =>
+        typeof (player.current as unknown as Record<string, unknown> | null)?.[name] === "function";
+
+      return {
+        load(videoId, startSec, autoplay) {
+          if (autoplay) {
+            if (has("loadVideoById")) player.current!.loadVideoById(videoId, startSec);
+          } else if (has("cueVideoById")) {
+            player.current!.cueVideoById(videoId, startSec);
+          }
+        },
+        play() {
+          if (has("playVideo")) player.current!.playVideo();
+        },
+        pause() {
+          if (has("pauseVideo")) player.current!.pauseVideo();
+        },
+        seek(sec) {
+          if (has("seekTo")) player.current!.seekTo(sec, true);
+        },
+        getTime() {
+          return has("getCurrentTime") ? player.current!.getCurrentTime() : 0;
+        },
+        getDuration() {
+          return has("getDuration") ? player.current!.getDuration() : 0;
+        },
+        setVolume(volume) {
+          if (has("setVolume")) player.current!.setVolume(volume);
+        },
+        mute() {
+          if (has("mute")) player.current!.mute();
+        },
+        unMute() {
+          if (has("unMute")) player.current!.unMute();
+        },
+        state() {
+          return has("getPlayerState") ? mapState(player.current!.getPlayerState()) : "unstarted";
+        },
+      };
+    },
     [],
   );
 

@@ -130,6 +130,16 @@ export default function MediaItem({
     [advance, write],
   );
 
+  // When the queue empties, the provider player unmounts. Clear the readiness
+  // and loaded markers so the next track mounts a fresh player and loads from
+  // scratch, instead of the stale "ready" flag pointing at a torn-down player.
+  useEffect(() => {
+    if (track) return;
+    loadedRef.current = null;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setReadyFor(null);
+  }, [track]);
+
   // Load whichever track the room is on.
   useEffect(() => {
     const player = playerRef.current;
