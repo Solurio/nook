@@ -15,13 +15,13 @@ interface Args {
   onSignal: (handler: (signal: Signal) => void) => () => void;
 }
 
+export type ShareResult = "ok" | "unsupported" | "denied";
+
 export interface Screencast {
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
-  /** true once display-capture was cancelled/denied. */
-  cancelled: boolean;
-  /** Opens the browser's share picker; resolves true if a stream was granted. */
-  startShare: () => Promise<boolean>;
+  /** Opens the browser's share picker; says whether a stream was granted. */
+  startShare: () => Promise<ShareResult>;
   stopShare: () => void;
 }
 
@@ -40,7 +40,6 @@ export function useScreencast({
 }: Args): Screencast {
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
-  const [cancelled, setCancelled] = useState(false);
 
   const localRef = useRef<MediaStream | null>(null);
   const pcs = useRef<Map<string, RTCPeerConnection>>(new Map());
@@ -108,21 +107,20 @@ export function useScreencast({
     stopShareRef.current = stopShare;
   }, [stopShare]);
 
-  const startShare = useCallback(async (): Promise<boolean> => {
+  const startShare = useCallback(async (): Promise<ShareResult> => {
+    // Not on HTTPS, or a browser (most phones) with no screen-capture at all.
+    if (typeof navigator === "undefined" || typeof navigator.mediaDevices?.getDisplayMedia !== "function") {
+      return "unsupported";
+    }
     try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
-        audio: true,
-      });
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
       localRef.current = stream;
       setLocalStream(stream);
-      setCancelled(false);
       // The browser's own "stop sharing" ends the video track.
       stream.getVideoTracks()[0]?.addEventListener("ended", () => stopShareRef.current());
-      return true;
+      return "ok";
     } catch {
-      setCancelled(true);
-      return false;
+      return "denied";
     }
   }, []);
 
@@ -200,5 +198,5 @@ export function useScreencast({
     };
   }, [closeAll]);
 
-  return { localStream, remoteStream, cancelled, startShare, stopShare };
+  return { localStream, remoteStream, startShare, stopShare };
 }

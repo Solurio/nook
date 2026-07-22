@@ -7,6 +7,7 @@ import { useRoomStore } from "@/state/room-store";
 import { clampSize } from "@/lib/items";
 import type { AnyItem, TransformPatch } from "@/lib/types";
 import ItemRenderer from "@/components/items/item-renderer";
+import ItemErrorBoundary from "./item-error-boundary";
 
 type Handle = "nw" | "ne" | "se" | "sw" | "rotate";
 
@@ -182,7 +183,9 @@ function ItemFrame({
       }}
     >
       <div className="relative size-full">
-        <ItemRenderer item={item} editing={editing} selected={selected} />
+        <ItemErrorBoundary resetKey={item.updated_at}>
+          <ItemRenderer item={item} editing={editing} selected={selected} />
+        </ItemErrorBoundary>
       </div>
 
       {selected && canEdit && !editing && (

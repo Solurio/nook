@@ -1,7 +1,8 @@
 "use client";
 
-// Klipy source: gifs + stickers. The key goes in the path
-// (api.klipy.com/api/v1/KEY/gifs/search). Klipy does not publish exact JSON
+// Klipy source: gifs + stickers. Klipy's API sends no CORS headers, so the
+// request goes through our own /api/klipy proxy (a Cloudflare Pages Function)
+// instead of hitting api.klipy.com directly. Klipy does not publish exact JSON
 // field names, so the media URLs are pulled out defensively -- we walk each
 // result for any gif/webp with dimensions and pick a small one for the grid and
 // a bigger one for the drop.
@@ -9,7 +10,6 @@
 import type { Gif } from "./gifs";
 
 const KEY = process.env.NEXT_PUBLIC_KLIPY_KEY;
-const BASE = "https://api.klipy.com/api/v1";
 
 export function klipyEnabled(): boolean {
   return Boolean(KEY);
@@ -70,11 +70,11 @@ export function parseKlipyItem(item: unknown, sticker: boolean, index: number): 
 
 async function run(kind: "gifs" | "stickers", term: string, limit: number): Promise<Gif[]> {
   if (!KEY) return [];
-  const path = term.trim() ? "search" : "trending";
-  const params = new URLSearchParams({ per_page: String(limit), page: "1" });
+  const params = new URLSearchParams({ type: kind, per_page: String(limit) });
   if (term.trim()) params.set("q", term.trim());
 
-  const res = await fetch(`${BASE}/${KEY}/${kind}/${path}?${params.toString()}`);
+  // Same-origin proxy -> no CORS. The function holds the key and calls Klipy.
+  const res = await fetch(`/api/klipy?${params.toString()}`);
   if (!res.ok) throw new Error(`klipy ${res.status}`);
   const body = (await res.json()) as { data?: unknown };
 

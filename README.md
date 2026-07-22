@@ -185,9 +185,14 @@ tem o que você procurou, os outros preenchem. Configura pelo menos um:
 
 Coloca no `.env.local` (local) ou nas variáveis de ambiente da Cloudflare
 (deploy). Sem nenhuma chave, o painel só mostra um aviso e o resto funciona
-normal. Obs.: se o Klipy bloquear a chamada direta do navegador (CORS), a busca
-dele é ignorada em silêncio e o Giphy continua — nesse caso dá pra pôr um proxy
-serverless depois.
+normal.
+
+Obs. sobre o Klipy: a API dele não manda cabeçalhos de CORS, então a busca passa
+por um proxy próprio (`functions/api/klipy.js`, uma Cloudflare Pages Function em
+`/api/klipy`) em vez de chamar `api.klipy.com` direto. Ele usa a mesma
+`NEXT_PUBLIC_KLIPY_KEY` (ou uma `KLIPY_KEY` só de servidor, se preferir) — não
+precisa configurar nada novo. Como é uma Function da Cloudflare, o Klipy só
+funciona no site publicado, não no `npm run dev` local.
 
 ## Transmitir uma aba ao vivo (WebRTC)
 

@@ -27,7 +27,7 @@ export default function ScreencastItem({ item }: { item: Item<"screencast"> }) {
     [peers, myId],
   );
 
-  const { localStream, remoteStream, cancelled, startShare, stopShare } = useScreencast({
+  const { localStream, remoteStream, startShare, stopShare } = useScreencast({
     itemId: item.id,
     broadcasterId: broadcaster?.userId ?? null,
     me: myId,
@@ -38,6 +38,7 @@ export default function ScreencastItem({ item }: { item: Item<"screencast"> }) {
 
   const [urlDraft, setUrlDraft] = useState(data.url ?? "");
   const [muted, setMuted] = useState(true);
+  const [notice, setNotice] = useState<"unsupported" | "denied" | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const stream = amBroadcaster ? localStream : remoteStream;
@@ -53,12 +54,15 @@ export default function ScreencastItem({ item }: { item: Item<"screencast"> }) {
 
   const begin = async () => {
     if (!canEdit) return;
-    const ok = await startShare();
-    if (ok) {
+    setNotice(null);
+    const result = await startShare();
+    if (result === "ok") {
       await updateData<"screencast">(item.id, {
         url: urlDraft.trim() || data.url,
         broadcaster: { userId: myId, name: me?.name ?? "someone" },
       });
+    } else {
+      setNotice(result);
     }
   };
 
@@ -177,9 +181,16 @@ export default function ScreencastItem({ item }: { item: Item<"screencast"> }) {
             <MonitorUp className="size-3.5" strokeWidth={2.4} />
             escolher aba e transmitir
           </button>
-          {cancelled && (
-            <p className="text-[11px] text-muted/70">
-              compartilhamento cancelado. abra a aba do site, clique acima e escolha essa aba.
+          {notice === "unsupported" && (
+            <p className="rounded-lg bg-warm/10 px-2.5 py-1.5 text-[11px] leading-relaxed text-warm ring-1 ring-warm/25">
+              este navegador não deixa compartilhar a tela. no celular quase nenhum deixa — usa um
+              computador no Chrome, Edge ou Firefox, e no site (não numa janela em http).
+            </p>
+          )}
+          {notice === "denied" && (
+            <p className="rounded-lg bg-white/6 px-2.5 py-1.5 text-[11px] leading-relaxed text-muted">
+              compartilhamento cancelado ou bloqueado. clica de novo e, no seletor do navegador,
+              escolhe a aba/tela e confirma.
             </p>
           )}
           <p className="text-[10px] leading-relaxed text-muted/60">
