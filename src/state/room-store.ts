@@ -134,7 +134,15 @@ export const useRoomStore = create<RoomState>((set, get) => ({
     set((s) => (s.room ? { room: { ...s.room, background } } : {})),
 
   hydrateItems: (items) =>
-    set({ items: Object.fromEntries(items.map((item) => [item.id, item])) }),
+    set({
+      // Drop rows the wall can't place (no id/kind). Better to skip one bad
+      // record than to hand a broken shape to the canvas.
+      items: Object.fromEntries(
+        (Array.isArray(items) ? items : [])
+          .filter((item) => item && typeof item.id === "string" && item.kind)
+          .map((item) => [item.id, item]),
+      ),
+    }),
 
   upsertItem: (item) =>
     set((s) => {
@@ -326,9 +334,14 @@ export const useRoomStore = create<RoomState>((set, get) => ({
  * and spin. See Canvas.
  */
 export function orderItems(items: Record<string, AnyItem>): AnyItem[] {
-  return Object.values(items).sort(
-    (a, b) => a.z - b.z || a.created_at.localeCompare(b.created_at),
-  );
+  // Null-safe on purpose: one row with a missing z or created_at must not throw
+  // here (this runs above the per-item error boundary, so a throw would blank
+  // the entire wall instead of just that card).
+  return Object.values(items).sort((a, b) => {
+    const byZ = (a.z ?? 0) - (b.z ?? 0);
+    if (byZ) return byZ;
+    return String(a.created_at ?? "").localeCompare(String(b.created_at ?? ""));
+  });
 }
 
 export function screenToWorld(viewport: Viewport, screenX: number, screenY: number) {

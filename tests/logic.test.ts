@@ -11,6 +11,7 @@ import {
   C4_ROWS,
 } from "../src/lib/games.ts";
 import { clampSize, topZ } from "../src/lib/items.ts";
+import { orderItems, useRoomStore } from "../src/state/room-store.ts";
 import type { AnyItem } from "../src/lib/types.ts";
 
 // ---------------------------------------------------------------------------
@@ -228,4 +229,33 @@ test("new items land above everything already placed", () => {
   const items = [{ z: 3 }, { z: 11 }, { z: 7 }] as AnyItem[];
   assert.equal(topZ(items), 12);
   assert.equal(topZ([]), 1);
+});
+
+// ---------------------------------------------------------------------------
+// Wall resilience: one malformed row must never blank the whole room. These run
+// above the per-item error boundary, so a throw here takes every item down.
+// ---------------------------------------------------------------------------
+
+test("orderItems does not throw on rows missing z or created_at", () => {
+  const map: Record<string, AnyItem> = {
+    a: { id: "a", kind: "note", z: 2, created_at: "2024-01-02" } as AnyItem,
+    b: { id: "b", kind: "note", z: 1, created_at: "2024-01-01" } as AnyItem,
+    c: { id: "c", kind: "note" } as unknown as AnyItem, // no z, no created_at
+  };
+
+  const ordered = orderItems(map);
+  assert.equal(ordered.length, 3);
+  // c (z defaults to 0) sorts first, then b, then a -- and nothing throws.
+  assert.deepEqual(ordered.map((i) => i.id), ["c", "b", "a"]);
+});
+
+test("hydrateItems keeps only rows the wall can place", () => {
+  useRoomStore.getState().hydrateItems([
+    { id: "ok", kind: "note", z: 0, created_at: "2024-01-01" } as AnyItem,
+    { kind: "note" } as unknown as AnyItem, // no id
+    null as unknown as AnyItem,
+    { id: "nokind" } as unknown as AnyItem, // no kind
+  ]);
+
+  assert.deepEqual(Object.keys(useRoomStore.getState().items), ["ok"]);
 });

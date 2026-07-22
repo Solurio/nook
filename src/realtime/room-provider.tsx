@@ -224,8 +224,15 @@ export function RoomProvider({
             .limit(1500),
         ]);
 
-        if (itemsResult.error) throw itemsResult.error;
         if (cancelled) return;
+
+        // Open your console (F12) to see exactly what the room returned.
+        console.log("Itens vindos do Supabase:", itemsResult.data);
+        if (itemsResult.error) {
+          // A failed items read should not blank the whole room -- load the
+          // chrome + realtime anyway so items can still stream in live.
+          console.error("[nook] failed to load items", itemsResult.error);
+        }
 
         store.getState().hydrateItems((itemsResult.data ?? []) as AnyItem[]);
         store
