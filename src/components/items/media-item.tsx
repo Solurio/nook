@@ -192,10 +192,10 @@ export default function MediaItem({
         quietly(() => player.seek(expected));
       }
 
-      // Shared state says play but this client is stuck (autoplay blocked): force
-      // muted playback so the room stays together, and offer an unmute prompt.
-      const s = player.state();
-      if (s !== "playing" && s !== "buffering") {
+      // Only if the player never started (autoplay blocked) do we force muted
+      // playback so the room stays together. Being broader than this made the
+      // video mute/restart on ordinary paused/ended/buffering transitions.
+      if (player.state() === "unstarted") {
         player.mute();
         setAutoMuted(true);
         quietly(() => player.play());
@@ -236,7 +236,9 @@ export default function MediaItem({
   const toggle = useCallback(() => {
     if (!canEdit) return;
     const player = playerRef.current;
-    const at = player ? player.getTime() : media.positionSec;
+    // After a track has ended the player's time sits at the very end, so play
+    // from the shared position (0) instead of instantly ending again.
+    const at = player && player.state() !== "ended" ? player.getTime() : media.positionSec;
     write(anchor(media, at, !media.playing));
   }, [canEdit, media, write]);
 
