@@ -21,7 +21,7 @@ import {
 import { newId } from "@/lib/slug";
 import { useThrottled } from "@/lib/use-throttled";
 import type { ItemDraft } from "@/lib/items";
-import { useRoomStore } from "@/state/room-store";
+import { useRoomStore, viewportForItems } from "@/state/room-store";
 import type {
   AnyItem,
   Background,
@@ -234,11 +234,20 @@ export function RoomProvider({
           console.error("[nook] failed to load items", itemsResult.error);
         }
 
-        store.getState().hydrateItems((itemsResult.data ?? []) as AnyItem[]);
+        const loadedItems = (itemsResult.data ?? []) as AnyItem[];
+        store.getState().hydrateItems(loadedItems);
         store
           .getState()
           .hydrateMessages(((messagesResult.data ?? []) as Message[]).slice().reverse());
         store.getState().hydrateStrokes((strokesResult.data ?? []) as Stroke[]);
+
+        // Point the camera at the content on entry. Without this the room opens
+        // at (0,0) and looks empty whenever the wall was built far from origin.
+        if (loadedItems.length > 0 && typeof window !== "undefined") {
+          store
+            .getState()
+            .setViewport(viewportForItems(loadedItems, window.innerWidth, window.innerHeight));
+        }
 
         // Realtime needs the fresh access token before it will honour RLS.
         const {

@@ -36,7 +36,9 @@ export interface Viewport {
   scale: number;
 }
 
-export const MIN_SCALE = 0.25;
+// 0.1 lets you zoom right out to take in a room whose stuff is spread across
+// thousands of pixels -- otherwise a scattered wall never fits on screen at once.
+export const MIN_SCALE = 0.1;
 export const MAX_SCALE = 2.5;
 
 export type PanelId = "chat" | "background" | "peers" | "stickers" | null;
@@ -342,6 +344,47 @@ export function orderItems(items: Record<string, AnyItem>): AnyItem[] {
     if (byZ) return byZ;
     return String(a.created_at ?? "").localeCompare(String(b.created_at ?? ""));
   });
+}
+
+/**
+ * A camera that frames every item at once, centred. This is what you get when
+ * you first walk into a room: without it the canvas opens at (0,0) while all the
+ * content can be parked thousands of pixels away, so the room looks empty even
+ * though everything is there. Empty room -> plain (0,0) start.
+ */
+export function viewportForItems(
+  items: AnyItem[],
+  screenW: number,
+  screenH: number,
+): Viewport {
+  if (items.length === 0 || screenW <= 0 || screenH <= 0) {
+    return { x: 0, y: 0, scale: 1 };
+  }
+
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const it of items) {
+    minX = Math.min(minX, it.x);
+    minY = Math.min(minY, it.y);
+    maxX = Math.max(maxX, it.x + it.width);
+    maxY = Math.max(maxY, it.y + it.height);
+  }
+
+  const pad = 120;
+  const contentW = Math.max(1, maxX - minX);
+  const contentH = Math.max(1, maxY - minY);
+  const fit = Math.min((screenW - pad * 2) / contentW, (screenH - pad * 2) / contentH);
+  const scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, fit));
+
+  const cx = (minX + maxX) / 2;
+  const cy = (minY + maxY) / 2;
+  return {
+    scale,
+    x: screenW / 2 - cx * scale,
+    y: screenH / 2 - cy * scale,
+  };
 }
 
 export function screenToWorld(viewport: Viewport, screenX: number, screenY: number) {

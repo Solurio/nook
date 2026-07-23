@@ -11,7 +11,7 @@ import {
   C4_ROWS,
 } from "../src/lib/games.ts";
 import { clampSize, topZ } from "../src/lib/items.ts";
-import { orderItems, useRoomStore } from "../src/state/room-store.ts";
+import { orderItems, useRoomStore, viewportForItems, MIN_SCALE } from "../src/state/room-store.ts";
 import type { AnyItem } from "../src/lib/types.ts";
 
 // ---------------------------------------------------------------------------
@@ -247,6 +247,38 @@ test("orderItems does not throw on rows missing z or created_at", () => {
   assert.equal(ordered.length, 3);
   // c (z defaults to 0) sorts first, then b, then a -- and nothing throws.
   assert.deepEqual(ordered.map((i) => i.id), ["c", "b", "a"]);
+});
+
+test("viewportForItems frames a wall built far from the origin", () => {
+  // The real bug: items parked out at x~9000 while the camera opens at (0,0),
+  // so the room looks empty. The framed camera must put them on screen.
+  const items = [
+    { x: 8500, y: 1500, width: 500, height: 500 },
+    { x: 11000, y: 3000, width: 400, height: 400 },
+  ] as AnyItem[];
+
+  const screenW = 1280;
+  const screenH = 720;
+  const vp = viewportForItems(items, screenW, screenH);
+
+  assert.ok(vp.scale >= MIN_SCALE, "scale respects the zoom floor");
+
+  // Every corner of every item should land inside the screen rectangle.
+  for (const it of items) {
+    for (const [wx, wy] of [
+      [it.x, it.y],
+      [it.x + it.width, it.y + it.height],
+    ]) {
+      const sx = wx * vp.scale + vp.x;
+      const sy = wy * vp.scale + vp.y;
+      assert.ok(sx >= 0 && sx <= screenW, `x ${sx} on screen`);
+      assert.ok(sy >= 0 && sy <= screenH, `y ${sy} on screen`);
+    }
+  }
+});
+
+test("viewportForItems leaves an empty room at the origin", () => {
+  assert.deepEqual(viewportForItems([], 1280, 720), { x: 0, y: 0, scale: 1 });
 });
 
 test("hydrateItems keeps only rows the wall can place", () => {
