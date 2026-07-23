@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import { hasSupabaseConfig } from "@/lib/supabase/client";
 import { RoomProvider, useRoom } from "@/realtime/room-provider";
 import { useRoomStore } from "@/state/room-store";
@@ -106,6 +106,45 @@ function RoomBody() {
       {panel === "background" && <BackgroundPanel />}
       {panel === "peers" && <PeersPanel />}
       {panel === "stickers" && <StickersPanel />}
+      <ActionToast error={error} />
     </main>
+  );
+}
+
+/**
+ * Adds and edits fail through the database, not the render tree, so their errors
+ * were going nowhere -- you'd click and see nothing happen. This surfaces them.
+ * The classic one: a new item kind the database has not been migrated to accept.
+ */
+function ActionToast({ error }: { error: string | null }) {
+  const { clearError } = useRoom();
+
+  useEffect(() => {
+    if (!error) return;
+    const t = setTimeout(clearError, 8000);
+    return () => clearTimeout(t);
+  }, [error, clearError]);
+
+  if (!error) return null;
+
+  const needsMigration = /check constraint|items_kind_check/i.test(error);
+  const message = needsMigration
+    ? "Não consegui adicionar isso. O banco precisa das migrações mais novas (0003 e 0004) pra aceitar transmissão de aba e navegador compartilhado."
+    : `Algo não salvou: ${error}`;
+
+  return (
+    <div className="pointer-events-none absolute inset-x-0 bottom-24 z-50 flex justify-center px-4">
+      <div className="surface pointer-events-auto flex max-w-md items-start gap-3 rounded-2xl px-4 py-3 text-sm ring-1 ring-warm/30">
+        <p className="flex-1 leading-relaxed text-chalk">{message}</p>
+        <button
+          type="button"
+          onClick={clearError}
+          className="shrink-0 text-muted transition hover:text-chalk"
+          title="fechar"
+        >
+          <X className="size-4" strokeWidth={2.4} />
+        </button>
+      </div>
+    </div>
   );
 }

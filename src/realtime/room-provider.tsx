@@ -49,6 +49,7 @@ export interface Ping {
 interface RoomApi {
   status: "loading" | "ready" | "error";
   error: string | null;
+  clearError: () => void;
   canEdit: boolean;
   isOwner: boolean;
 
@@ -473,6 +474,8 @@ export function RoomProvider({
     [supabase, store],
   );
 
+  const clearError = useCallback(() => setError(null), []);
+
   const duplicateItem = useCallback(
     async (id: string) => {
       const source = store.getState().items[id];
@@ -792,6 +795,7 @@ export function RoomProvider({
   const value: RoomApi = {
     status,
     error,
+    clearError,
     canEdit,
     isOwner,
     joined,
