@@ -21,7 +21,66 @@ import {
   type Board as CheckersBoard,
 } from "../src/lib/checkers.ts";
 
+import { fillPixels } from "../src/lib/paint.ts";
+
 const idx = (r: number, c: number) => r * 8 + c;
+
+// ---------------------------------------------------------------------------
+// Paint bucket
+// ---------------------------------------------------------------------------
+
+/** A w*h RGBA buffer, transparent to start with. */
+function buffer(w: number, h: number): Uint8ClampedArray {
+  return new Uint8ClampedArray(w * h * 4);
+}
+
+function pixel(px: Uint8ClampedArray, w: number, x: number, y: number) {
+  const i = (y * w + x) * 4;
+  return [px[i], px[i + 1], px[i + 2], px[i + 3]];
+}
+
+test("the bucket spreads across an empty area", () => {
+  const w = 5;
+  const h = 5;
+  const px = buffer(w, h);
+
+  const painted = fillPixels(px, w, h, 0, 0, "#ff0000");
+
+  assert.equal(painted, 25, "the whole surface is one region");
+  assert.deepEqual(pixel(px, w, 4, 4), [255, 0, 0, 255], "reaches the far corner");
+});
+
+test("the bucket stops at a drawn edge", () => {
+  const w = 5;
+  const h = 5;
+  const px = buffer(w, h);
+
+  // An opaque wall down the middle column.
+  for (let y = 0; y < h; y += 1) {
+    const i = (y * w + 2) * 4;
+    px[i] = 10;
+    px[i + 1] = 10;
+    px[i + 2] = 10;
+    px[i + 3] = 255;
+  }
+
+  const painted = fillPixels(px, w, h, 0, 0, "#00ff00");
+
+  assert.equal(painted, 10, "only the two columns left of the wall");
+  assert.deepEqual(pixel(px, w, 1, 3), [0, 255, 0, 255], "filled up to the wall");
+  assert.deepEqual(pixel(px, w, 2, 3), [10, 10, 10, 255], "the wall is untouched");
+  assert.deepEqual(pixel(px, w, 3, 3), [0, 0, 0, 0], "and nothing leaked past it");
+});
+
+test("pouring the colour that is already there does nothing", () => {
+  const w = 3;
+  const h = 3;
+  const px = buffer(w, h);
+  fillPixels(px, w, h, 1, 1, "#123456");
+
+  const again = fillPixels(px, w, h, 1, 1, "#123456");
+  assert.equal(again, 0, "no second pass, and no infinite spin");
+});
 
 // ---------------------------------------------------------------------------
 // Chess

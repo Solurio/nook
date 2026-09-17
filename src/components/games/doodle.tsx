@@ -9,6 +9,7 @@ import {
   EyeOff,
   Highlighter,
   Layers,
+  PaintBucket,
   Pen,
   Plus,
   SprayCan,
@@ -159,6 +160,24 @@ export default function Doodle({ item, state }: { item: Item<"game">; state: Doo
       const point = toLocal(event);
       if (!point) return;
       event.stopPropagation();
+
+      // The bucket is a single tap, not a drag: pour it and be done.
+      if (brush === "fill") {
+        const pour: DoodleStroke = {
+          id: newId(),
+          color,
+          size,
+          opacity,
+          brush: "fill",
+          layer: activeLayer,
+          points: [point[0], point[1]],
+        };
+        broadcastStroke(item.id, pour);
+        commitState([...latestStrokes(), pour].slice(-600));
+        paint();
+        return;
+      }
+
       event.currentTarget.setPointerCapture(event.pointerId);
 
       drawing.current = {
@@ -173,7 +192,21 @@ export default function Doodle({ item, state }: { item: Item<"game">; state: Doo
       };
       paint();
     },
-    [activeLayer, brush, canEdit, color, opacity, paint, pressureOf, size, toLocal],
+    [
+      activeLayer,
+      broadcastStroke,
+      brush,
+      canEdit,
+      color,
+      commitState,
+      item.id,
+      latestStrokes,
+      opacity,
+      paint,
+      pressureOf,
+      size,
+      toLocal,
+    ],
   );
 
   const extend = useCallback(
@@ -317,6 +350,9 @@ export default function Doodle({ item, state }: { item: Item<"game">; state: Doo
           </Tool>
           <Tool active={brush === "airbrush"} label="airbrush" onClick={() => setBrush("airbrush")} disabled={!canEdit}>
             <SprayCan className="size-3.5" strokeWidth={2.2} />
+          </Tool>
+          <Tool active={brush === "fill"} label="paint bucket" onClick={() => setBrush("fill")} disabled={!canEdit}>
+            <PaintBucket className="size-3.5" strokeWidth={2.2} />
           </Tool>
           <Tool active={brush === "eraser"} label="eraser" onClick={() => setBrush("eraser")} disabled={!canEdit}>
             <Eraser className="size-3.5" strokeWidth={2.2} />

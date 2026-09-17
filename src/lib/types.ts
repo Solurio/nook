@@ -30,7 +30,12 @@ export interface ItemDataMap {
   note: { body: string; tint: string };
   text: { body: string; size: number; color: string; weight: number; align: "left" | "center" | "right" };
   media: MediaData;
-  embed: { url: string; title?: string };
+  /**
+   * A window onto another page that everyone in the room shares. The address
+   * lives here rather than in one person's browser, so navigating it moves the
+   * window for everybody at once.
+   */
+  embed: { url: string; title?: string; openedBy?: string; navigatedAt?: number };
   game: GameData;
   cobrowse: CobrowseData;
   screencast: ScreencastData;
@@ -137,7 +142,7 @@ export interface ConnectFourState {
   wins: { r: number; y: number; draw: number };
 }
 
-export type DoodleBrush = "pen" | "marker" | "airbrush" | "eraser";
+export type DoodleBrush = "pen" | "marker" | "airbrush" | "eraser" | "fill";
 
 export interface DoodleStroke {
   id: string;

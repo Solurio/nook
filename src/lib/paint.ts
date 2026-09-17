@@ -7,7 +7,7 @@ import type { DoodleBrush, DoodleLayer, DoodleStroke } from "./types";
 // persistence cheap while giving real paint output -- soft brushes, opacity,
 // pressure, layers and PNG export.
 
-export const BRUSHES: DoodleBrush[] = ["pen", "marker", "airbrush", "eraser"];
+export const BRUSHES: DoodleBrush[] = ["pen", "marker", "airbrush", "eraser", "fill"];
 
 export function defaultLayers(): DoodleLayer[] {
   return [{ id: "base", name: "layer 1", visible: true, opacity: 1, hue: 0 }];
@@ -89,10 +89,132 @@ function stamp(ctx: CanvasRenderingContext2D, stroke: DoodleStroke, w: number, h
   }
 }
 
+/**
+ * Paint bucket. Spreads from the seed pixel across everything close enough in
+ * colour and stops at the edges, the way a fill tool is expected to behave.
+ *
+ * It works on the layer it is poured into, which keeps it deterministic: every
+ * client replays the same ops in the same order and lands on the same picture.
+ */
+export function floodFill(
+  ctx: CanvasRenderingContext2D,
+  seedX: number,
+  seedY: number,
+  hex: string,
+  w: number,
+  h: number,
+  tolerance = 32,
+) {
+  const image = ctx.getImageData(0, 0, w, h);
+  fillPixels(image.data, w, h, seedX, seedY, hex, tolerance);
+  ctx.putImageData(image, 0, 0);
+}
+
+/**
+ * The bucket itself, over raw RGBA. Split out from the canvas so the spreading
+ * rules can be tested without a browser.
+ */
+export function fillPixels(
+  px: Uint8ClampedArray,
+  w: number,
+  h: number,
+  seedX: number,
+  seedY: number,
+  hex: string,
+  tolerance = 32,
+): number {
+  const x0 = clamp(Math.round(seedX), 0, w - 1);
+  const y0 = clamp(Math.round(seedY), 0, h - 1);
+  const at = (x: number, y: number) => (y * w + x) * 4;
+
+  const start = at(x0, y0);
+  const sr = px[start];
+  const sg = px[start + 1];
+  const sb = px[start + 2];
+  const sa = px[start + 3];
+
+  let t = hex.replace("#", "");
+  if (t.length === 3) t = t.split("").map((c) => c + c).join("");
+  const tr = parseInt(t.slice(0, 2), 16) || 0;
+  const tg = parseInt(t.slice(2, 4), 16) || 0;
+  const tb = parseInt(t.slice(4, 6), 16) || 0;
+
+  // Pouring the colour that is already there would spin without changing a thing.
+  if (sr === tr && sg === tg && sb === tb && sa === 255) return 0;
+
+  const limit = tolerance * tolerance * 4;
+  const close = (i: number) => {
+    const dr = px[i] - sr;
+    const dg = px[i + 1] - sg;
+    const db = px[i + 2] - sb;
+    const da = px[i + 3] - sa;
+    return dr * dr + dg * dg + db * db + da * da <= limit;
+  };
+
+  // Scanline flood: walk each row as far as it goes, then seed the rows above
+  // and below. Far fewer stack entries than pushing every pixel.
+  const stack: number[] = [x0, y0];
+  const seen = new Uint8Array(w * h);
+  let painted = 0;
+
+  while (stack.length > 0) {
+    const y = stack.pop() as number;
+    const x = stack.pop() as number;
+    if (seen[y * w + x]) continue;
+
+    let left = x;
+    while (left > 0 && close(at(left - 1, y))) left -= 1;
+    let right = x;
+    while (right < w - 1 && close(at(right + 1, y))) right += 1;
+
+    for (let i = left; i <= right; i += 1) {
+      const p = at(i, y);
+      px[p] = tr;
+      px[p + 1] = tg;
+      px[p + 2] = tb;
+      px[p + 3] = 255;
+      seen[y * w + i] = 1;
+      painted += 1;
+
+      if (y > 0) {
+        const up = at(i, y - 1);
+        if (!seen[(y - 1) * w + i] && close(up)) stack.push(i, y - 1);
+      }
+      if (y < h - 1) {
+        const down = at(i, y + 1);
+        if (!seen[(y + 1) * w + i] && close(down)) stack.push(i, y + 1);
+      }
+    }
+  }
+
+  return painted;
+}
+
 /** Renders one stroke onto a layer canvas, honouring brush, opacity and erase. */
 export function renderStroke(ctx: CanvasRenderingContext2D, stroke: DoodleStroke, w: number, h: number, dpr: number) {
   const brush = stroke.brush ?? "pen";
   const opacity = stroke.opacity ?? 1;
+
+  if (brush === "fill") {
+    const x = (stroke.points[0] ?? 0) * w;
+    const y = (stroke.points[1] ?? 0) * h;
+    if (opacity >= 1) {
+      floodFill(ctx, x, y, stroke.color, w, h);
+      return;
+    }
+    // A translucent pour goes through a scratch layer so it tints rather than
+    // replaces what is underneath.
+    const scratch = makeCanvas(w, h);
+    const sctx = scratch.getContext("2d");
+    if (!sctx) return;
+    sctx.drawImage(ctx.canvas, 0, 0);
+    floodFill(sctx, x, y, stroke.color, w, h);
+    ctx.save();
+    ctx.globalAlpha = clamp(opacity, 0, 1);
+    ctx.drawImage(scratch, 0, 0);
+    ctx.restore();
+    return;
+  }
 
   if (brush === "eraser") {
     ctx.save();
