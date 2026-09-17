@@ -24,6 +24,7 @@ import {
   Plus,
   Smile,
   Spade,
+  Sticker,
   StickyNote,
   Swords,
   Type,
@@ -71,6 +72,8 @@ export default function Dock() {
   const setViewport = useRoomStore((s) => s.setViewport);
   const tool = useRoomStore((s) => s.tool);
   const setTool = useRoomStore((s) => s.setTool);
+  const panel = useRoomStore((s) => s.panel);
+  const setPanel = useRoomStore((s) => s.setPanel);
 
   const [gamesOpen, setGamesOpen] = useState(false);
   const [reactionsOpen, setReactionsOpen] = useState(false);
@@ -207,6 +210,14 @@ export default function Dock() {
           <DockButton label="pin a picture" disabled={!canEdit} onClick={() => add("image")}>
             <ImagePlus className="size-4.5" strokeWidth={2} />
           </DockButton>
+          <DockButton
+            label="gifs and stickers"
+            disabled={!canEdit}
+            active={panel === "stickers"}
+            onClick={() => setPanel(panel === "stickers" ? null : "stickers")}
+          >
+            <Sticker className="size-4.5" strokeWidth={2} />
+          </DockButton>
           <DockButton label="leave a note" disabled={!canEdit} onClick={() => add("note")}>
             <StickyNote className="size-4.5" strokeWidth={2} />
           </DockButton>
@@ -301,6 +312,10 @@ export default function Dock() {
           onClose={() => setSheetOpen(false)}
           onAdd={add}
           onFit={fitEverything}
+          onStickers={() => {
+            setPanel("stickers");
+            setSheetOpen(false);
+          }}
         />
       )}
     </div>
@@ -316,14 +331,17 @@ function AddSheet({
   onClose,
   onAdd,
   onFit,
+  onStickers,
 }: {
   canEdit: boolean;
   onClose: () => void;
   onAdd: (kind: ItemKind, game?: GameKind) => void;
   onFit: () => void;
+  onStickers: () => void;
 }) {
   const things: Array<{ icon: React.ReactNode; label: string; run: () => void }> = [
     { icon: <ImagePlus className="size-5" strokeWidth={2} />, label: "picture", run: () => onAdd("image") },
+    { icon: <Sticker className="size-5" strokeWidth={2} />, label: "gifs and stickers", run: onStickers },
     { icon: <StickyNote className="size-5" strokeWidth={2} />, label: "note", run: () => onAdd("note") },
     { icon: <Type className="size-5" strokeWidth={2} />, label: "big text", run: () => onAdd("text") },
     { icon: <Music4 className="size-5" strokeWidth={2} />, label: "music or video", run: () => onAdd("media") },

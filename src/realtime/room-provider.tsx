@@ -20,7 +20,7 @@ import {
 } from "@/lib/identity";
 import { newId } from "@/lib/slug";
 import { useThrottled } from "@/lib/use-throttled";
-import type { ItemDraft } from "@/lib/items";
+import { relayer, type ItemDraft, type Layering } from "@/lib/items";
 import { useRoomStore, viewportForItems } from "@/state/room-store";
 import type {
   AnyItem,
@@ -65,7 +65,8 @@ interface RoomApi {
   commitTransform: (patch: TransformPatch) => Promise<void>;
   broadcastTransform: (patch: TransformPatch) => void;
   updateData: <K extends ItemKind>(id: string, data: ItemDataMap[K]) => Promise<void>;
-  bringToFront: (id: string) => Promise<void>;
+  /** Move an item through the stack: to the front, the back, or one step either way. */
+  restack: (id: string, where: Layering) => Promise<void>;
 
   updateBackground: (background: Background) => Promise<void>;
   renameRoom: (name: string) => Promise<void>;
@@ -545,25 +546,29 @@ export function RoomProvider({
 
   const updateData = useCallback(
     async <K extends ItemKind>(id: string, data: ItemDataMap[K]) => {
-      store.getState().patchItemData(id, data as Record<string, unknown>);
+      store.getState().patchItemData(id, data as unknown as Record<string, unknown>);
       const { error: updateError } = await supabase.from("items").update({ data }).eq("id", id);
       if (updateError) setError(updateError.message);
     },
     [supabase, store],
   );
 
-  const bringToFront = useCallback(
-    async (id: string) => {
-      const items = Object.values(store.getState().items);
-      const target = items.find((item) => item.id === id);
-      if (!target) return;
-      const top = items.reduce((max, item) => Math.max(max, item.z), 0);
-      if (target.z === top && items.length > 1) return;
+  const restack = useCallback(
+    async (id: string, where: Layering) => {
+      const moves = relayer(Object.values(store.getState().items), id, where);
+      if (moves.length === 0) return;
 
-      const z = top + 1;
-      store.getState().upsertItem({ ...target, z });
-      const { error: updateError } = await supabase.from("items").update({ z }).eq("id", id);
-      if (updateError) setError(updateError.message);
+      // Show it straight away; the rows catch up.
+      for (const move of moves) {
+        const live = store.getState().items[move.id];
+        if (live) store.getState().upsertItem({ ...live, z: move.z });
+      }
+
+      const results = await Promise.all(
+        moves.map((move) => supabase.from("items").update({ z: move.z }).eq("id", move.id)),
+      );
+      const failed = results.find((result) => result.error);
+      if (failed?.error) setError(failed.error.message);
     },
     [supabase, store],
   );
@@ -839,7 +844,7 @@ export function RoomProvider({
     commitTransform,
     broadcastTransform,
     updateData,
-    bringToFront,
+    restack,
     updateBackground,
     renameRoom,
     setLocked,

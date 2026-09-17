@@ -240,7 +240,10 @@ export const useRoomStore = create<RoomState>((set, get) => ({
       return {
         items: {
           ...s.items,
-          [id]: { ...item, data: { ...(item.data as object), ...data } as AnyItem["data"] },
+          [id]: {
+            ...item,
+            data: { ...(item.data as object), ...data } as unknown as AnyItem["data"],
+          },
         },
       };
     }),

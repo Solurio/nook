@@ -42,7 +42,7 @@ function ItemFrame({
   selected: boolean;
   editing: boolean;
 }) {
-  const { canEdit, broadcastTransform, commitTransform, bringToFront } = useRoom();
+  const { canEdit, broadcastTransform, commitTransform } = useRoom();
   const select = useRoomStore((s) => s.select);
   const setEditing = useRoomStore((s) => s.setEditing);
   const grab = useRoomStore((s) => s.grab);
@@ -50,6 +50,8 @@ function ItemFrame({
 
   const gesture = useRef<Gesture | null>(null);
   const frameRef = useRef<HTMLDivElement>(null);
+
+  const pinned = Boolean(item.data?.pinned);
 
   const current = useCallback((): TransformPatch => {
     const live = useRoomStore.getState().items[item.id] ?? item;
@@ -65,7 +67,7 @@ function ItemFrame({
 
   const beginGesture = useCallback(
     (event: React.PointerEvent, mode: Gesture["mode"], handle: Handle | null) => {
-      if (!canEdit || editing) return;
+      if (!canEdit || editing || pinned) return;
       if (event.button !== 0 && event.pointerType === "mouse") return;
       event.stopPropagation();
 
@@ -91,13 +93,17 @@ function ItemFrame({
 
       grab(item.id);
       select(item.id);
-      void bringToFront(item.id);
+      // Note what this deliberately does not do: raise the item. Touching
+      // anything used to send it to the top, which quietly undid whatever
+      // arrangement you had made -- reach for something small tucked behind a
+      // photo and it leapt in front of it. Stacking is deliberate now, from
+      // the inspector.
       // Capture on the frame itself. Capturing on the handle meant a re-render
       // that swapped the handle out dropped the capture, the pointerup never
       // landed, and the item kept trailing the cursor with no button held.
       event.currentTarget.setPointerCapture(event.pointerId);
     },
-    [bringToFront, canEdit, current, editing, grab, item.id, select],
+    [canEdit, current, editing, grab, item.id, pinned, select],
   );
 
   const finish = useCallback(() => {
@@ -203,11 +209,16 @@ function ItemFrame({
       }}
       onPointerDown={(event) => {
         if (event.button !== 0 && event.pointerType === "mouse") return;
+        // A pinned item still answers to a tap -- there has to be a way back to
+        // the button that unpins it -- it just refuses to budge.
+        if (pinned) {
+          select(item.id);
+          return;
+        }
         // Media, embeds and games own their own clicks; dragging those uses
         // the grip in the selection frame instead.
         if (interactive && !event.altKey) {
           select(item.id);
-          void bringToFront(item.id);
           return;
         }
         beginGesture(event, "move", null);
@@ -230,7 +241,14 @@ function ItemFrame({
         </ItemErrorBoundary>
       </div>
 
-      {selected && canEdit && !editing && (
+      {selected && canEdit && pinned && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -inset-1.5 rounded-xl border-2 border-dashed border-warm/65"
+        />
+      )}
+
+      {selected && canEdit && !editing && !pinned && (
         <>
           <div
             aria-hidden

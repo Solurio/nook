@@ -25,7 +25,17 @@ export interface Room {
 }
 
 /** Kind-specific payloads. Anything not listed is ignored by the renderer. */
-export interface ItemDataMap {
+/** Things any item can carry, whatever kind it is. */
+export interface CommonItemData {
+  /**
+   * Pinned items stay where they are: no dragging, no resizing. For the
+   * backdrop pieces you arranged once and keep catching by accident.
+   */
+  pinned?: boolean;
+}
+
+/** Kind-specific payloads. Anything not listed is ignored by the renderer. */
+interface ItemPayloads {
   image: { url: string; alt?: string; radius?: number; frame?: FrameStyle };
   note: { body: string; tint: string };
   text: {
@@ -48,6 +58,11 @@ export interface ItemDataMap {
   cobrowse: CobrowseData;
   screencast: ScreencastData;
 }
+
+/** Every payload, plus the fields shared across all of them. */
+export type ItemDataMap = {
+  [K in keyof ItemPayloads]: ItemPayloads[K] & CommonItemData;
+};
 
 /**
  * A live tab/screen broadcast (WebRTC). One person shares their tab -- running

@@ -5,9 +5,14 @@ import {
   AlignCenter,
   AlignLeft,
   AlignRight,
+  BringToFront,
+  ChevronDown,
+  ChevronUp,
   Copy,
   Frame,
   Pencil,
+  Pin,
+  SendToBack,
   Trash2,
 } from "lucide-react";
 import { useRoom } from "@/realtime/room-provider";
@@ -31,7 +36,7 @@ const TEXT_EFFECTS: Array<{ id: TextEffect; label: string }> = [
  * items themselves stay uncluttered.
  */
 export default function Inspector() {
-  const { canEdit, deleteItem, duplicateItem, updateData } = useRoom();
+  const { canEdit, deleteItem, duplicateItem, restack, updateData } = useRoom();
   const selectedId = useRoomStore((s) => s.selectedId);
   const item = useRoomStore((s) => (s.selectedId ? s.items[s.selectedId] : undefined));
   const editingId = useRoomStore((s) => s.editingId);
@@ -39,10 +44,14 @@ export default function Inspector() {
 
   if (!item || !selectedId || !canEdit || editingId === selectedId) return null;
 
+  // Pinned things are not being fiddled with, so the strip drops back to the
+  // few controls that still make sense on one.
+  const pinned = Boolean(item.data.pinned);
+
   return (
     <div className="pointer-events-none absolute inset-x-0 top-16 z-40 flex justify-center px-3">
       <div className="surface pointer-events-auto flex max-w-[calc(100vw-1.5rem)] items-center gap-1 overflow-x-auto rounded-2xl p-1.5">
-        {item.kind === "note" && (
+        {!pinned && item.kind === "note" && (
           <>
             <Swatches
               values={NOTE_TINTS as unknown as string[]}
@@ -56,17 +65,45 @@ export default function Inspector() {
           </>
         )}
 
-        {item.kind === "text" && <TextControls item={item as Item<"text">} />}
+        {!pinned && item.kind === "text" && <TextControls item={item as Item<"text">} />}
 
-        {item.kind === "image" && <ImageControls item={item as Item<"image">} />}
+        {!pinned && item.kind === "image" && <ImageControls item={item as Item<"image">} />}
 
-        {(item.kind === "media" || item.kind === "embed" || item.kind === "game") && (
+        {!pinned && (item.kind === "media" || item.kind === "embed" || item.kind === "game") && (
           <span className="px-2.5 text-[11px] text-muted">
             hold alt and drag to move, or use the handle above
           </span>
         )}
 
+        {pinned && <span className="px-2.5 text-[11px] text-warm">stuck to the wall</span>}
+
         <Divider />
+
+        {/* Far to near. The outer two clear the whole pile; the inner two step
+            past a single neighbour, which is what you want when something is
+            hiding behind one particular photo. */}
+        <Action label="send to the back" onClick={() => void restack(item.id, "back")}>
+          <SendToBack className="size-4" strokeWidth={2.2} />
+        </Action>
+        <Action label="one step back" onClick={() => void restack(item.id, "backward")}>
+          <ChevronDown className="size-4" strokeWidth={2.2} />
+        </Action>
+        <Action label="one step forward" onClick={() => void restack(item.id, "forward")}>
+          <ChevronUp className="size-4" strokeWidth={2.2} />
+        </Action>
+        <Action label="bring to the front" onClick={() => void restack(item.id, "front")}>
+          <BringToFront className="size-4" strokeWidth={2.2} />
+        </Action>
+
+        <Divider />
+
+        <Action
+          label={pinned ? "unpin" : "pin where it is"}
+          active={pinned}
+          onClick={() => void updateData(item.id, { ...item.data, pinned: !pinned })}
+        >
+          <Pin className="size-4" strokeWidth={2.2} />
+        </Action>
 
         <Action label="duplicate" onClick={() => void duplicateItem(item.id)}>
           <Copy className="size-4" strokeWidth={2.2} />

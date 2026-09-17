@@ -242,3 +242,62 @@ export function clampSize(kind: ItemKind, width: number, height: number) {
     height: Math.max(min.height, Math.round(height)),
   };
 }
+
+/** Where in the pile an item should end up. */
+export type Layering = "front" | "back" | "forward" | "backward";
+
+/**
+ * Work out the z changes that move one item through the stack. "front" and
+ * "back" clear the whole pile; "forward" and "backward" trade places with the
+ * one neighbour on that side, so you can slide something out from behind a
+ * photo without launching it over everything else.
+ *
+ * Returns only the rows that actually change, empty when there is nothing to do.
+ */
+export function relayer(
+  items: AnyItem[],
+  id: string,
+  where: Layering,
+): Array<{ id: string; z: number }> {
+  const me = items.find((item) => item.id === id);
+  if (!me) return [];
+
+  // Seeded from the items themselves. Starting the search at zero would call an
+  // empty patch of wall the top of the stack whenever every item sits above it.
+  const layers = items.map((item) => item.z ?? 0);
+
+  if (where === "front") {
+    const top = Math.max(...layers);
+    const alone = me.z === top && layers.filter((z) => z === top).length === 1;
+    return alone ? [] : [{ id, z: top + 1 }];
+  }
+
+  if (where === "back") {
+    const bottom = Math.min(...layers);
+    const alone = me.z === bottom && layers.filter((z) => z === bottom).length === 1;
+    return alone ? [] : [{ id, z: bottom - 1 }];
+  }
+
+  const others = items.filter((item) => item.id !== id);
+  const neighbour =
+    where === "forward"
+      ? others
+          .filter((item) => (item.z ?? 0) >= (me.z ?? 0))
+          .sort((a, b) => (a.z ?? 0) - (b.z ?? 0))[0]
+      : others
+          .filter((item) => (item.z ?? 0) <= (me.z ?? 0))
+          .sort((a, b) => (b.z ?? 0) - (a.z ?? 0))[0];
+
+  if (!neighbour) return [];
+
+  // Already sharing a number with the neighbour: swapping would change nothing,
+  // so step past it instead.
+  if ((neighbour.z ?? 0) === (me.z ?? 0)) {
+    return [{ id, z: (me.z ?? 0) + (where === "forward" ? 1 : -1) }];
+  }
+
+  return [
+    { id, z: neighbour.z ?? 0 },
+    { id: neighbour.id, z: me.z ?? 0 },
+  ];
+}
