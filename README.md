@@ -15,7 +15,8 @@ it, and it all stays where you dropped it.
   (Ctrl+V), or drop in a URL. GIFs animate. Four frames to choose from: plain,
   shadowed, polaroid, sticker.
 - **Notes** and **big text.** Double click to write. What you type shows up for
-  everyone else as you type it.
+  everyone else as you type it, and text can be set to shimmer through a
+  rainbow, shake, ripple a letter at a time, glow or pulse.
 - **Drawing on the room.** A brush that paints straight onto the infinite
   canvas, with a colour palette, a custom colour and adjustable width. There's
   an eraser too (drag over a stroke to remove it). Every stroke is shared live
@@ -25,19 +26,33 @@ it, and it all stays where you dropped it.
   together. Play, pause or scrub and it moves for the whole room. Browsers
   won't autoplay audio without a click, so anyone arriving starts **muted** but
   already in sync, then clicks to turn sound on. There's a queue and an
-  audio-only mode. Each provider is driven through its own control API, which
-  is why the sync is real rather than approximate.
+  audio-only mode. A YouTube **playlist** link loads the whole list, and an mp3
+  or mp4 dropped in (or picked from your phone) is uploaded and played the same
+  way. Each provider is driven through its own control API, which is why the
+  sync is real rather than approximate.
 - **Stickers and GIFs.** A search panel that drops the GIF onto the wall as an
   object, the way Here.fm did it. Needs a free key (see below); without one the
   rest of the app works fine.
-- **Windows.** An iframe for sites that allow embedding. Twitch, Vimeo,
-  SoundCloud and Spotify links are converted to the right player automatically.
-- **Games.** Chess, checkers, tic-tac-toe, connect four. You can take a seat to
-  mark whose turn it is, or leave it open and let anyone play.
+- **Windows.** A page the whole room shares. The address belongs to the window
+  rather than to one person's browser, so typing a new one moves it for
+  everybody at once. Twitch, Vimeo, SoundCloud and Spotify links convert to the
+  right player automatically.
+- **Games.** Chess (with check, mate and castling), checkers, connect four,
+  tic-tac-toe, **intransitive** (a race where the pieces beat each other in a
+  circle instead of a ladder), **dominoes**, **codenames** in English or
+  Portuguese, **coup**, and a **card table** you set up yourself: pick which
+  ranks and suits are in the deck, how many chairs, whether they play in pairs,
+  then shuffle and deal.
+
+  Every game has chairs. Sit in one and the turns are yours; leave them all
+  empty and whoever is holding the device plays every side, which is how one
+  phone gets passed round a room. The board turns to face whichever chair you
+  took.
 - **Paint board.** Not a doodle pad: a raster painting app with everyone drawing
-  at once. Brushes (pen, marker, spray, eraser), size and opacity, **graphics
-  tablet pressure** with adjustable sensitivity, a full colour picker,
-  **layers** (add, hide, opacity, hue) and **PNG export**.
+  at once. Brushes (pen, marker, spray, eraser), a **paint bucket**, size and
+  opacity, **graphics tablet pressure** with adjustable sensitivity and palm
+  rejection, a full colour picker, **layers** (add, hide, opacity, hue), and
+  export as a PNG or as a **looping gif of the drawing being made**.
 - **Decorating.** A solid colour, a gradient, or your own image, either
   stretched or tiled, with a dimmer.
 - **Chat**, named cursors for everyone online, and reactions that float up the
