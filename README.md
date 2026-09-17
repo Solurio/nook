@@ -123,7 +123,9 @@ create a new project. Pick the region closest to you, it feeds straight into
 realtime latency.
 
 **2. Run the migrations.** Open the project's SQL Editor and run the contents of
-`supabase/migrations/` in order. The first creates the tables, the RLS policies,
+`supabase/migrations/` in order. All of them, including the newest: `0005`
+widens what the upload bucket accepts, and without it a photo straight off a
+phone is refused for being HEIC. The first creates the tables, the RLS policies,
 turns on realtime replication and creates the image bucket. The rest add the
 `strokes` table (without it the brush doesn't save) and widen the allowed item
 kinds. Run them in numeric order, and if you ever re-run an older one, run the
