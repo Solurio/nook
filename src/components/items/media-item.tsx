@@ -517,7 +517,7 @@ export default function MediaItem({
                   <input
                     type="file"
                     accept="audio/*,video/*"
-                    className="hidden"
+                    className="absolute size-px overflow-hidden opacity-0"
                     onChange={(event) => {
                       const file = event.target.files?.[0];
                       event.target.value = "";

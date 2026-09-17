@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import clsx from "clsx";
 import { ImagePlus } from "lucide-react";
 import { useRoom } from "@/realtime/room-provider";
@@ -90,6 +90,7 @@ function EmptySlot({
   onUrl: (url: string) => void | Promise<void>;
 }) {
   const [value, setValue] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
 
   return (
     <div
@@ -107,19 +108,31 @@ function EmptySlot({
           className="w-full max-w-[240px] space-y-2"
           onPointerDown={(event) => event.stopPropagation()}
         >
-          <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-chalk px-3 py-2 text-xs font-semibold text-ink-950 transition hover:bg-white">
+          {/* Opened by calling the input directly rather than by wrapping it in
+              a label: a display:none input is not reliably activated that way,
+              and the click has to survive an item that also wants to be
+              dragged. */}
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-chalk px-3 py-2 text-xs font-semibold text-ink-950 transition hover:bg-white"
+          >
             <ImagePlus className="size-3.5" strokeWidth={2.4} />
             choose a file
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file) void onPick(file);
-              }}
-            />
-          </label>
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            // Kept in the layout but out of sight; display:none inputs are the
+            // ones browsers refuse to open.
+            className="absolute size-px overflow-hidden opacity-0"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = "";
+              if (file) void onPick(file);
+            }}
+          />
           <form
             onSubmit={(event) => {
               event.preventDefault();

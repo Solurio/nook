@@ -124,7 +124,7 @@ export default function BackgroundPanel() {
               <input
                 type="file"
                 accept="image/*"
-                className="hidden"
+                className="absolute size-px overflow-hidden opacity-0"
                 onChange={async (event) => {
                   const file = event.target.files?.[0];
                   if (!file) return;
