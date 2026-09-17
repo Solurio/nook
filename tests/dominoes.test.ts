@@ -11,6 +11,8 @@ import {
   roundOutcome,
   opener,
   isDouble,
+  flip,
+  orientFor,
   type Line,
   type Tile,
 } from "../src/lib/dominoes.ts";
@@ -114,4 +116,73 @@ test("the highest double leads, or the heaviest tile if there is none", () => {
     "s1",
     "no doubles, so the heaviest",
   );
+});
+
+test("turning a tile swaps its halves and nothing else", () => {
+  assert.deepEqual(flip([2, 5]), [5, 2]);
+  assert.deepEqual(flip(flip([2, 5])), [2, 5]);
+  assert.deepEqual(flip([4, 4]), [4, 4], "a double looks the same either way");
+});
+
+test("a tile lands matching half inwards, whichever end it goes on", () => {
+  const line: Line = [
+    [3, 1],
+    [1, 5],
+  ];
+
+  // The left end shows 3, so the 3 has to face right, against the line.
+  assert.deepEqual(orientFor(line, [6, 3] as Tile, "left"), [6, 3]);
+  assert.deepEqual(orientFor(line, [3, 6] as Tile, "left"), [6, 3]);
+
+  // The right end shows 5, so the 5 has to face left.
+  assert.deepEqual(orientFor(line, [5, 0] as Tile, "right"), [5, 0]);
+  assert.deepEqual(orientFor(line, [0, 5] as Tile, "right"), [5, 0]);
+});
+
+test("the same tile faces opposite ways at the two ends", () => {
+  // Both ends showing a 3 is the case where the choice is visible: the 3 has
+  // to point right to join the left end, and left to join the right one.
+  const line: Line = [[3, 3]];
+  const tile: Tile = [3, 6];
+
+  assert.deepEqual(orientFor(line, tile, "left"), [6, 3]);
+  assert.deepEqual(orientFor(line, tile, "right"), [3, 6]);
+  assert.deepEqual(place(line, tile, "left"), [
+    [6, 3],
+    [3, 3],
+  ]);
+  assert.deepEqual(place(line, tile, "right"), [
+    [3, 3],
+    [3, 6],
+  ]);
+});
+
+test("a tile that does not reach an end lies nowhere", () => {
+  const line: Line = [[3, 4]];
+  assert.equal(orientFor(line, [1, 2] as Tile, "left"), null);
+  assert.equal(orientFor(line, [1, 2] as Tile, "right"), null);
+});
+
+test("the first tile down keeps the way it was held", () => {
+  assert.deepEqual(orientFor([], [2, 5] as Tile, "left"), [2, 5]);
+  assert.deepEqual(place([], [2, 5] as Tile, "right"), [[2, 5]]);
+});
+
+test("laying a tile agrees with how it was shown lying", () => {
+  const line: Line = [
+    [3, 1],
+    [1, 5],
+  ];
+  for (const side of ["left", "right"] as const) {
+    for (const tile of [[6, 3], [3, 6], [5, 0], [0, 5]] as Tile[]) {
+      const laid = orientFor(line, tile, side);
+      const after = place(line, tile, side);
+      if (!laid) {
+        assert.equal(after, null);
+        continue;
+      }
+      assert.ok(after);
+      assert.deepEqual(side === "left" ? after[0] : after[after.length - 1], laid);
+    }
+  }
 });

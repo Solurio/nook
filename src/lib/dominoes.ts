@@ -50,6 +50,34 @@ export function playableSides(line: Line, tile: Tile): Side[] {
   return sides;
 }
 
+/** The same tile the other way round. */
+export function flip(tile: Tile): Tile {
+  return [tile[1], tile[0]];
+}
+
+/**
+ * The tile as it would actually come to rest at that end, matching half facing
+ * the line. Null when it does not reach that end at all.
+ *
+ * This is what turning a domino in your hand amounts to: a tile that fits both
+ * ends fits them the other way up, and seeing which way it lands is most of
+ * deciding where to put it.
+ */
+export function orientFor(line: Line, tile: Tile, side: Side): Tile | null {
+  const ends = openEnds(line);
+  if (!ends) return tile;
+
+  if (side === "left") {
+    if (tile[1] === ends.left) return tile;
+    if (tile[0] === ends.left) return flip(tile);
+    return null;
+  }
+
+  if (tile[0] === ends.right) return tile;
+  if (tile[1] === ends.right) return flip(tile);
+  return null;
+}
+
 export function canPlayTile(line: Line, tile: Tile): boolean {
   return playableSides(line, tile).length > 0;
 }
@@ -63,18 +91,10 @@ export function hasMove(line: Line, hand: Tile[]): boolean {
  * null when it does not fit that end.
  */
 export function place(line: Line, tile: Tile, side: Side): Line | null {
-  const ends = openEnds(line);
-  if (!ends) return [tile];
-
-  if (side === "left") {
-    if (tile[1] === ends.left) return [tile, ...line];
-    if (tile[0] === ends.left) return [[tile[1], tile[0]], ...line];
-    return null;
-  }
-
-  if (tile[0] === ends.right) return [...line, tile];
-  if (tile[1] === ends.right) return [...line, [tile[1], tile[0]]];
-  return null;
+  const laid = orientFor(line, tile, side);
+  if (!laid) return null;
+  if (line.length === 0) return [laid];
+  return side === "left" ? [laid, ...line] : [...line, laid];
 }
 
 export interface Standing {

@@ -11,7 +11,9 @@ import {
   fullSet,
   handPips,
   hasMove,
+  isDouble,
   openEnds,
+  orientFor,
   opener,
   place,
   playableSides,
@@ -195,11 +197,13 @@ export default function Dominoes({
       </div>
 
       {/* The line */}
-      <div className="flex min-h-0 flex-1 items-center gap-1 overflow-x-auto rounded-xl bg-ink-950/25 p-2 inset-ring inset-ring-white/6">
+      <div className="flex min-h-0 flex-1 items-center gap-0.5 overflow-x-auto rounded-xl bg-ink-950/25 p-2 inset-ring inset-ring-white/6">
         {line.length === 0 ? (
           <p className="w-full text-center text-[11px] text-muted/50">the line is empty</p>
         ) : (
-          line.map((tile, i) => <Domino key={i} tile={tile as Tile} />)
+          line.map((tile, i) => (
+            <Domino key={i} tile={tile as Tile} upright={isDouble(tile as Tile)} />
+          ))
         )}
       </div>
 
@@ -227,6 +231,8 @@ export default function Dominoes({
                 <Domino
                   key={i}
                   tile={tile as Tile}
+                  upright
+                  big
                   dim={!playable}
                   selected={picked === i}
                   onClick={
@@ -245,25 +251,38 @@ export default function Dominoes({
           )}
         </div>
 
-        {/* Which end, when a tile fits both */}
-        {picked !== null && (
-          <div className="mt-1.5 flex items-center gap-1.5">
-            <span className="text-[10px] text-muted/70">which end?</span>
+        {/* A tile that reaches both ends reaches them turned different ways
+            round. Rather than name the ends, show it lying as it would land. */}
+        {picked !== null && hand[picked] && (
+          <div className="mt-1.5 flex flex-wrap items-center gap-2">
+            <span className="text-[10px] text-muted/70">lay it down</span>
+            {(["left", "right"] as const).map((side) => {
+              const laid = orientFor(line, hand[picked] as Tile, side);
+              if (!laid) return null;
+              return (
+                <span key={side} className="flex items-center gap-1">
+                  {side === "left" && (
+                    <ArrowLeft className="size-3.5 text-muted/60" strokeWidth={2.2} />
+                  )}
+                  <Domino
+                    tile={laid}
+                    upright={isDouble(laid)}
+                    big
+                    label={`${side} end, ${laid[0]} against ${laid[1]}`}
+                    onClick={() => playTile(picked, side)}
+                  />
+                  {side === "right" && (
+                    <ArrowRight className="size-3.5 text-muted/60" strokeWidth={2.2} />
+                  )}
+                </span>
+              );
+            })}
             <button
               type="button"
-              onClick={() => playTile(picked, "left")}
-              className="flex items-center gap-1 rounded-lg bg-white/8 px-2.5 py-1.5 text-[11px] text-chalk transition hover:bg-white/12"
+              onClick={() => setPicked(null)}
+              className="rounded-lg px-2 py-1.5 text-[11px] text-muted"
             >
-              <ArrowLeft className="size-3.5" strokeWidth={2.2} />
-              left
-            </button>
-            <button
-              type="button"
-              onClick={() => playTile(picked, "right")}
-              className="flex items-center gap-1 rounded-lg bg-white/8 px-2.5 py-1.5 text-[11px] text-chalk transition hover:bg-white/12"
-            >
-              right
-              <ArrowRight className="size-3.5" strokeWidth={2.2} />
+              cancel
             </button>
           </div>
         )}
@@ -316,39 +335,93 @@ export default function Dominoes({
   );
 }
 
-/** One tile, lying along the line. */
+/**
+ * Pip layouts on a three by three grid, the way they are printed on a real
+ * tile. Six splits into two columns rather than filling the middle row.
+ */
+const PIPS: Record<number, number[]> = {
+  0: [],
+  1: [4],
+  2: [0, 8],
+  3: [0, 4, 8],
+  4: [0, 2, 6, 8],
+  5: [0, 2, 4, 6, 8],
+  6: [0, 2, 3, 5, 6, 8],
+};
+
+/** Half a tile: one number, drawn as dots. */
+function Half({ value, big }: { value: number; big?: boolean }) {
+  const on = PIPS[value] ?? [];
+  return (
+    <span
+      className={clsx(
+        "grid flex-1 grid-cols-3 grid-rows-3 place-items-center",
+        big ? "gap-px p-1" : "gap-px p-0.5",
+      )}
+    >
+      {Array.from({ length: 9 }, (_, i) => (
+        <span
+          key={i}
+          className={clsx(
+            "rounded-full",
+            big ? "size-[3.5px]" : "size-[2.5px]",
+            on.includes(i) ? "bg-[#1a1420]" : "bg-transparent",
+          )}
+        />
+      ))}
+    </span>
+  );
+}
+
+/**
+ * One domino. Tiles in the line lie along it, left half first, except doubles,
+ * which sit across it the way they do on a table. Tiles in your hand stand up,
+ * because that is how you hold them.
+ */
 function Domino({
   tile,
+  upright,
+  big,
   dim,
   selected,
   onClick,
+  label,
 }: {
   tile: Tile;
+  upright?: boolean;
+  big?: boolean;
   dim?: boolean;
   selected?: boolean;
   onClick?: () => void;
+  label?: string;
 }) {
+  const size = big
+    ? upright
+      ? "h-14 w-7"
+      : "h-7 w-14"
+    : upright
+      ? "h-10 w-5"
+      : "h-5 w-10";
+
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={!onClick}
-      aria-label={`${tile[0]} and ${tile[1]}`}
-      title={`${tile[0]} | ${tile[1]}`}
+      aria-label={label ?? `${tile[0]} and ${tile[1]}`}
+      title={label ?? `${tile[0]} | ${tile[1]}`}
       className={clsx(
-        "flex h-11 w-7 shrink-0 flex-col overflow-hidden rounded-md bg-[#f6f2e8] text-[#1a1420] shadow-sm ring-1 ring-black/25 transition",
+        "flex shrink-0 overflow-hidden rounded-md bg-[#f6f2e8] shadow-sm ring-1 ring-black/25 transition",
+        upright ? "flex-col" : "flex-row",
+        size,
         onClick && "hover:-translate-y-0.5 hover:ring-2 hover:ring-glow/70",
         selected && "-translate-y-1 ring-2 ring-glow",
         dim && "opacity-45",
       )}
     >
-      <span className="grid flex-1 place-items-center text-[12px] font-bold leading-none">
-        {tile[0]}
-      </span>
-      <span className="h-px w-full bg-[#1a1420]/25" />
-      <span className="grid flex-1 place-items-center text-[12px] font-bold leading-none">
-        {tile[1]}
-      </span>
+      <Half value={tile[0]} big={big} />
+      <span className={clsx("bg-[#1a1420]/25", upright ? "h-px w-full" : "h-full w-px")} />
+      <Half value={tile[1]} big={big} />
     </button>
   );
 }
