@@ -76,7 +76,7 @@ export default function StickersPanel() {
   );
 
   return (
-    <aside className="surface animate-drift-in absolute top-16 right-3 bottom-20 z-40 flex w-[21rem] flex-col overflow-hidden rounded-3xl">
+    <aside className="surface animate-drift-in absolute inset-x-2 bottom-20 z-40 flex max-h-[68dvh] flex-col overflow-hidden rounded-3xl sm:inset-x-auto sm:top-16 sm:right-3 sm:max-h-none sm:w-[21rem]">
       <header className="flex items-center justify-between border-b border-white/8 px-4 py-3">
         <h2 className="flex items-center gap-1.5 text-sm font-semibold">
           <Sticker className="size-4 text-glow" strokeWidth={2.2} />

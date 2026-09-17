@@ -21,7 +21,7 @@ export default function PeersPanel() {
     .sort((a, b) => a.joinedAt - b.joinedAt);
 
   return (
-    <aside className="surface animate-drift-in absolute top-16 right-3 z-40 w-[19rem] overflow-hidden rounded-3xl">
+    <aside className="surface animate-drift-in absolute inset-x-2 bottom-20 z-40 max-h-[68dvh] overflow-hidden rounded-3xl sm:inset-x-auto sm:top-16 sm:right-3 sm:bottom-auto sm:w-[19rem]">
       <header className="flex items-center justify-between border-b border-white/8 px-4 py-3">
         <h2 className="text-sm font-semibold">who is here</h2>
         <button

@@ -43,16 +43,18 @@ export default function TopBar() {
 
   return (
     <div className="pointer-events-none absolute inset-x-0 top-0 z-50 flex items-start justify-between gap-3 p-3">
-      <div className="surface pointer-events-auto flex items-center gap-1 rounded-2xl p-1.5">
+      <div className="surface pointer-events-auto flex items-center gap-0.5 rounded-2xl p-1 sm:gap-1 sm:p-1.5">
+        {/* On a phone every pixel here is needed by the buttons on the right,
+            and the browser's own back button already goes home. */}
         <Link
           href="/"
           aria-label="back to the front door"
-          className="grid size-8 place-items-center rounded-xl text-muted transition hover:bg-white/8 hover:text-chalk"
+          className="hidden size-8 place-items-center rounded-xl text-muted transition hover:bg-white/8 hover:text-chalk sm:grid"
         >
           <DoorOpen className="size-4" strokeWidth={2.2} />
         </Link>
 
-        <div className="mx-0.5 h-5 w-px bg-white/10" />
+        <div className="mx-0.5 hidden h-5 w-px bg-white/10 sm:block" />
 
         {editingName ? (
           <NameField
@@ -69,7 +71,7 @@ export default function TopBar() {
             disabled={!canEdit}
             onClick={() => setEditingName(true)}
             title={canEdit ? "rename this nook" : undefined}
-            className="max-w-52 truncate rounded-xl px-2.5 py-1.5 text-sm font-medium transition hover:bg-white/8 disabled:hover:bg-transparent"
+            className="max-w-20 truncate rounded-xl px-2.5 py-1.5 text-sm font-medium transition hover:bg-white/8 disabled:hover:bg-transparent sm:max-w-52"
           >
             {room?.name ?? "a nook"}
           </button>
@@ -86,7 +88,7 @@ export default function TopBar() {
         />
       </div>
 
-      <div className="surface pointer-events-auto flex items-center gap-1 rounded-2xl p-1.5">
+      <div className="surface pointer-events-auto flex items-center gap-0.5 rounded-2xl p-1 sm:gap-1 sm:p-1.5">
         <button
           type="button"
           onClick={() => setPanel(panel === "peers" ? null : "peers")}
@@ -172,14 +174,17 @@ export default function TopBar() {
         <button
           type="button"
           onClick={copyLink}
-          className="flex h-8 items-center gap-1.5 rounded-xl bg-chalk px-3 text-xs font-semibold text-ink-950 transition hover:bg-white"
+          title={copied ? "copied" : "copy the invite link"}
+          aria-label="copy the invite link"
+          className="flex h-8 items-center gap-1.5 rounded-xl bg-chalk px-2 text-xs font-semibold text-ink-950 transition hover:bg-white sm:px-3"
         >
           {copied ? (
             <Check className="size-3.5" strokeWidth={2.8} />
           ) : (
             <Link2 className="size-3.5" strokeWidth={2.6} />
           )}
-          {copied ? "copied" : "invite"}
+          {/* The word costs more width than a phone can spare up here. */}
+          <span className="hidden sm:inline">{copied ? "copied" : "invite"}</span>
         </button>
       </div>
     </div>
