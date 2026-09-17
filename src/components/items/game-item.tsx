@@ -11,6 +11,8 @@ import CardTable from "@/components/games/card-table";
 import Dominoes from "@/components/games/dominoes";
 import Codenames from "@/components/games/codenames";
 import Coup from "@/components/games/coup";
+import Spyfall from "@/components/games/spyfall";
+import Resistance from "@/components/games/resistance";
 
 export default function GameItem({ item }: { item: Item<"game"> }) {
   switch (item.data.game) {
@@ -34,6 +36,10 @@ export default function GameItem({ item }: { item: Item<"game"> }) {
       return <Codenames item={item} state={item.data.state} />;
     case "coup":
       return <Coup item={item} state={item.data.state} />;
+    case "spyfall":
+      return <Spyfall item={item} state={item.data.state} />;
+    case "resistance":
+      return <Resistance item={item} state={item.data.state} />;
     default:
       return null;
   }

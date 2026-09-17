@@ -129,7 +129,9 @@ export type GameKind =
   | "cards"
   | "dominoes"
   | "codenames"
-  | "coup";
+  | "coup"
+  | "spyfall"
+  | "resistance";
 
 export type GameData =
   | { game: "tictactoe"; state: TicTacToeState }
@@ -141,7 +143,9 @@ export type GameData =
   | { game: "cards"; state: CardTableState }
   | { game: "dominoes"; state: DominoesState }
   | { game: "codenames"; state: CodenamesState }
-  | { game: "coup"; state: CoupState };
+  | { game: "coup"; state: CoupState }
+  | { game: "spyfall"; state: SpyfallState }
+  | { game: "resistance"; state: ResistanceState };
 
 export interface ChessState {
   /** 64 cells, index = row*8+col, row 0 is black's back rank. */
@@ -157,6 +161,55 @@ export interface ChessState {
 
 /** Coup. The shape lives in lib/coup.ts; this mirrors it for stored state. */
 export type CoupState = import("./coup").CoupState;
+
+/**
+ * Spyfall. Everyone is somewhere together and knows their job there, except
+ * one, who knows neither and has to keep up.
+ */
+export interface SpyfallState {
+  seats: Record<string, string | null>;
+  seatCount: number;
+  /** Index into the pack, or null before the first deal. */
+  location: number | null;
+  /** Chair id of the one who was told nothing. */
+  spy: string | null;
+  /** Chair id to the job they hold at the location. */
+  roles: Record<string, string>;
+  /** Epoch ms the clock was set running, null while it is stopped. */
+  startedAt: number | null;
+  /** Seconds still to run when the clock was last set going. */
+  seconds: number;
+  /** Once the round is called, everything is on show. */
+  revealed: boolean;
+  pack: "en" | "pt";
+  wins: { spy: number; table: number };
+}
+
+/** The Resistance. Five missions, and spies hidden among the people sent on them. */
+export interface ResistanceState {
+  seats: Record<string, string | null>;
+  seatCount: number;
+  /** Chair ids working for the other side. Empty before a deal. */
+  spies: string[];
+  /** Index into the chairs: whose proposal it is. */
+  leader: number;
+  /** Which mission, 0 through 4. */
+  mission: number;
+  /** How the missions came back so far; true is a success. */
+  results: boolean[];
+  /** Proposals turned down in a row. Five and the cell has collapsed. */
+  rejections: number;
+  /** Chair ids the leader wants to send. */
+  team: string[];
+  /** Chair id to their vote on the proposal. */
+  votes: Record<string, boolean>;
+  /** Chair id to what they did on the mission; true is carrying it out. */
+  plays: Record<string, boolean>;
+  stage: "lobby" | "propose" | "vote" | "mission" | "over";
+  /** Set when the round is called, and the spies are named. */
+  revealed: boolean;
+  wins: { resistance: number; spies: number };
+}
 
 /** Codenames: the words, and the key only the spymasters look at. */
 export interface CodenamesState {

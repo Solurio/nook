@@ -4,6 +4,7 @@ import { initialBoard as initialCheckers } from "./checkers";
 import { initialBoard as initialIntransitive } from "./intransitive";
 import { buildDeck, fullDeckConfig, seatIds } from "./cards";
 import { newGame as newCoup } from "./coup";
+import { DEFAULT_SECONDS as SPYFALL_SECONDS } from "./spyfall";
 import { newSetup as newCodenames } from "./codenames";
 import type { AnyItem, GameKind, ItemDataMap, ItemKind } from "./types";
 
@@ -49,6 +50,8 @@ const GAME_SIZE: Record<GameKind, { width: number; height: number }> = {
   dominoes: { width: 440, height: 400 },
   codenames: { width: 480, height: 440 },
   coup: { width: 460, height: 420 },
+  spyfall: { width: 460, height: 440 },
+  resistance: { width: 480, height: 460 },
 };
 
 function emptyGameData(game: GameKind): ItemDataMap["game"] {
@@ -87,6 +90,41 @@ function emptyGameData(game: GameKind): ItemDataMap["game"] {
       };
     case "coup":
       return { game: "coup", state: newCoup(seatIds(4)) };
+    case "spyfall":
+      return {
+        game: "spyfall",
+        state: {
+          seats: {},
+          seatCount: 6,
+          location: null,
+          spy: null,
+          roles: {},
+          startedAt: null,
+          seconds: SPYFALL_SECONDS,
+          revealed: false,
+          pack: "en",
+          wins: { spy: 0, table: 0 },
+        },
+      };
+    case "resistance":
+      return {
+        game: "resistance",
+        state: {
+          seats: {},
+          seatCount: 5,
+          spies: [],
+          leader: 0,
+          mission: 0,
+          results: [],
+          rejections: 0,
+          team: [],
+          votes: {},
+          plays: {},
+          stage: "lobby",
+          revealed: false,
+          wins: { resistance: 0, spies: 0 },
+        },
+      };
     case "codenames": {
       const setup = newCodenames("en");
       return {
