@@ -189,6 +189,9 @@ two windows open side by side.
 The gif/sticker panel searches several providers at once, so when one doesn't
 have what you're after the others fill in. Set up at least one:
 
+- **Tenor** (gifs and stickers, the most generous free allowance by a distance;
+  worth having as the one that is still answering late in the day): key from
+  the Google Cloud console → `NEXT_PUBLIC_TENOR_KEY`.
 - **Giphy** (gifs plus transparent stickers): free key at
   [developers.giphy.com](https://developers.giphy.com) → `NEXT_PUBLIC_GIPHY_KEY`.
 - **Klipy** (gifs and stickers, Discord style): key at
@@ -202,7 +205,8 @@ These keys are metered. A free Giphy key is roughly 100 requests an hour and
 1000 a day, and one search spends two of them per provider (gifs and stickers
 are separate calls). Run out and Giphy answers 429, or 403 once the day is
 gone; the panel says so in those words rather than pretending the search found
-nothing, and it comes back on its own. Searches are remembered for the visit so
+nothing, and it comes back on its own. A key the provider refuses outright is
+reported differently, because that one never recovers on its own. Searches are remembered for the visit so
 reopening the panel costs nothing. Two providers configured means one running
 dry still leaves you with gifs.
 
