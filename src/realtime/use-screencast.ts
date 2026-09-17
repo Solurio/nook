@@ -21,8 +21,13 @@ export interface Screencast {
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
   /** Opens the browser's share picker; says whether a stream was granted. */
-  startShare: () => Promise<ShareResult>;
+  startShare: (withAudio?: boolean) => Promise<ShareResult>;
   stopShare: () => void;
+  /** True when the share carries an audio track at all. */
+  hasAudio: boolean;
+  /** Broadcaster-side kill switch for the outgoing sound. */
+  audioMuted: boolean;
+  setAudioMuted: (muted: boolean) => void;
 }
 
 /**
@@ -40,6 +45,7 @@ export function useScreencast({
 }: Args): Screencast {
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  const [audioMuted, setAudioMutedState] = useState(false);
 
   const localRef = useRef<MediaStream | null>(null);
   const pcs = useRef<Map<string, RTCPeerConnection>>(new Map());
@@ -107,21 +113,37 @@ export function useScreencast({
     stopShareRef.current = stopShare;
   }, [stopShare]);
 
-  const startShare = useCallback(async (): Promise<ShareResult> => {
+  const startShare = useCallback(async (withAudio = true): Promise<ShareResult> => {
     // Not on HTTPS, or a browser (most phones) with no screen-capture at all.
     if (typeof navigator === "undefined" || typeof navigator.mediaDevices?.getDisplayMedia !== "function") {
       return "unsupported";
     }
     try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: withAudio,
+      });
       localRef.current = stream;
       setLocalStream(stream);
+      setAudioMutedState(false);
       // The browser's own "stop sharing" ends the video track.
       stream.getVideoTracks()[0]?.addEventListener("ended", () => stopShareRef.current());
       return "ok";
     } catch {
       return "denied";
     }
+  }, []);
+
+  /**
+   * Silences the outgoing audio without dropping the share. Which app the sound
+   * comes from is the operating system's call, not ours, so when something like
+   * a voice chat bleeds into a whole-screen capture this is the way out of it.
+   */
+  const setAudioMuted = useCallback((muted: boolean) => {
+    localRef.current?.getAudioTracks().forEach((track) => {
+      track.enabled = !muted;
+    });
+    setAudioMutedState(muted);
   }, []);
 
   // Incoming signalling.
@@ -198,5 +220,13 @@ export function useScreencast({
     };
   }, [closeAll]);
 
-  return { localStream, remoteStream, startShare, stopShare };
+  return {
+    localStream,
+    remoteStream,
+    startShare,
+    stopShare,
+    hasAudio: (localStream?.getAudioTracks().length ?? 0) > 0,
+    audioMuted,
+    setAudioMuted,
+  };
 }

@@ -25,6 +25,7 @@ import {
   projectedPosition,
   trackRef,
 } from "@/lib/media";
+import VolumeSlider from "@/components/chrome/volume-slider";
 import ProviderPlayer from "./players/provider-player";
 import type { PlayerControl, PlayerState } from "./players/types";
 import type { Item, MediaData, MediaProvider, MediaTrack } from "@/lib/types";
@@ -420,17 +421,13 @@ export default function MediaItem({
                 <Volume2 className="size-4" strokeWidth={2.2} />
               )}
             </IconButton>
-            <input
-              type="range"
-              min={0}
-              max={100}
+            <VolumeSlider
               value={muted ? 0 : volume}
-              onChange={(event) => {
+              onChange={(next) => {
                 setMuted(false);
-                setVolume(Number(event.target.value));
+                setVolume(next);
               }}
-              aria-label="volume"
-              className="h-1 w-full max-w-20 cursor-pointer appearance-none rounded-full bg-white/15 accent-glow"
+              className="max-w-24"
             />
           </div>
 
