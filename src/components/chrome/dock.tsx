@@ -27,6 +27,7 @@ import {
   StickyNote,
   Swords,
   Type,
+  VenetianMask,
   X,
 } from "lucide-react";
 import { useRoom } from "@/realtime/room-provider";
@@ -50,6 +51,7 @@ const GAMES: Array<{ kind: GameKind; title: string; hint: string; icon: React.Re
     icon: <Swords />,
   },
   { kind: "cards", title: "card table", hint: "any deck, any rules", icon: <Spade /> },
+  { kind: "coup", title: "coup", hint: "lie well, or lose a card", icon: <VenetianMask /> },
   {
     kind: "codenames",
     title: "codenames",

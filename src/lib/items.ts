@@ -2,7 +2,8 @@ import { emptyMedia } from "./media";
 import { initialBoard as initialChess } from "./chess";
 import { initialBoard as initialCheckers } from "./checkers";
 import { initialBoard as initialIntransitive } from "./intransitive";
-import { buildDeck, fullDeckConfig } from "./cards";
+import { buildDeck, fullDeckConfig, seatIds } from "./cards";
+import { newGame as newCoup } from "./coup";
 import { newSetup as newCodenames } from "./codenames";
 import type { AnyItem, GameKind, ItemDataMap, ItemKind } from "./types";
 
@@ -47,6 +48,7 @@ const GAME_SIZE: Record<GameKind, { width: number; height: number }> = {
   cards: { width: 440, height: 420 },
   dominoes: { width: 440, height: 400 },
   codenames: { width: 480, height: 440 },
+  coup: { width: 460, height: 420 },
 };
 
 function emptyGameData(game: GameKind): ItemDataMap["game"] {
@@ -83,6 +85,8 @@ function emptyGameData(game: GameKind): ItemDataMap["game"] {
           wins: { w: 0, b: 0, draw: 0 },
         },
       };
+    case "coup":
+      return { game: "coup", state: newCoup(seatIds(4)) };
     case "codenames": {
       const setup = newCodenames("en");
       return {

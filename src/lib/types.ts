@@ -113,7 +113,8 @@ export type GameKind =
   | "intransitive"
   | "cards"
   | "dominoes"
-  | "codenames";
+  | "codenames"
+  | "coup";
 
 export type GameData =
   | { game: "tictactoe"; state: TicTacToeState }
@@ -124,7 +125,8 @@ export type GameData =
   | { game: "intransitive"; state: IntransitiveState }
   | { game: "cards"; state: CardTableState }
   | { game: "dominoes"; state: DominoesState }
-  | { game: "codenames"; state: CodenamesState };
+  | { game: "codenames"; state: CodenamesState }
+  | { game: "coup"; state: CoupState };
 
 export interface ChessState {
   /** 64 cells, index = row*8+col, row 0 is black's back rank. */
@@ -137,6 +139,9 @@ export interface ChessState {
   /** Square a pawn just skipped, capturable en passant on this turn only. */
   ep?: number | null;
 }
+
+/** Coup. The shape lives in lib/coup.ts; this mirrors it for stored state. */
+export type CoupState = import("./coup").CoupState;
 
 /** Codenames: the words, and the key only the spymasters look at. */
 export interface CodenamesState {

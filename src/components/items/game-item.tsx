@@ -10,6 +10,7 @@ import Intransitive from "@/components/games/intransitive";
 import CardTable from "@/components/games/card-table";
 import Dominoes from "@/components/games/dominoes";
 import Codenames from "@/components/games/codenames";
+import Coup from "@/components/games/coup";
 
 export default function GameItem({ item }: { item: Item<"game"> }) {
   switch (item.data.game) {
@@ -31,6 +32,8 @@ export default function GameItem({ item }: { item: Item<"game"> }) {
       return <Dominoes item={item} state={item.data.state} />;
     case "codenames":
       return <Codenames item={item} state={item.data.state} />;
+    case "coup":
+      return <Coup item={item} state={item.data.state} />;
     default:
       return null;
   }
