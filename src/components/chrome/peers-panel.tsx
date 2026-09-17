@@ -1,20 +1,25 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import clsx from "clsx";
-import { X } from "lucide-react";
+import { Trash2, X } from "lucide-react";
 import { useRoom } from "@/realtime/room-provider";
 import { useRoomStore } from "@/state/room-store";
 import { TINTS } from "@/lib/identity";
 
 export default function PeersPanel() {
-  const { updateIdentity } = useRoom();
+  const { updateIdentity, isOwner, deleteRoom } = useRoom();
+  const router = useRouter();
   const peers = useRoomStore((s) => s.peers);
   const me = useRoomStore((s) => s.me);
+  const room = useRoomStore((s) => s.room);
   const setPanel = useRoomStore((s) => s.setPanel);
 
   // This field is the only thing that can rename you, so it owns the value.
   const [nameDraft, setNameDraft] = useState(me?.name ?? "");
+  const [confirming, setConfirming] = useState(false);
+  const [removing, setRemoving] = useState(false);
 
   const others = Object.values(peers)
     .filter((peer) => peer.userId !== me?.userId)
@@ -95,6 +100,54 @@ export default function PeersPanel() {
             </ul>
           )}
         </section>
+
+        {isOwner && (
+          <section className="border-t border-white/8 pt-3">
+            <h3 className="mb-2 text-[11px] font-medium tracking-wide text-muted uppercase">
+              this nook
+            </h3>
+
+            {confirming ? (
+              <div className="space-y-2">
+                <p className="text-xs leading-relaxed text-muted">
+                  Delete <span className="text-chalk">{room?.name}</span> and everything in it?
+                  The link stops working for everyone. This cannot be undone.
+                </p>
+                <div className="flex gap-1.5">
+                  <button
+                    type="button"
+                    disabled={removing}
+                    onClick={async () => {
+                      setRemoving(true);
+                      if (await deleteRoom()) router.push("/");
+                      else setRemoving(false);
+                    }}
+                    className="flex-1 rounded-xl bg-red-500/20 py-2 text-xs font-semibold text-red-200 transition hover:bg-red-500/30 disabled:opacity-50"
+                  >
+                    {removing ? "deleting" : "yes, delete it"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={removing}
+                    onClick={() => setConfirming(false)}
+                    className="flex-1 rounded-xl bg-white/8 py-2 text-xs font-medium text-muted transition hover:bg-white/12 hover:text-chalk"
+                  >
+                    keep it
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirming(true)}
+                className="flex w-full items-center gap-2 rounded-xl px-2 py-2 text-xs text-muted transition hover:bg-red-500/12 hover:text-red-300"
+              >
+                <Trash2 className="size-3.5 shrink-0" strokeWidth={2.2} />
+                delete this nook
+              </button>
+            )}
+          </section>
+        )}
       </div>
     </aside>
   );

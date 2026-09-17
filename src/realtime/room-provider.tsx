@@ -67,6 +67,8 @@ interface RoomApi {
 
   updateBackground: (background: Background) => Promise<void>;
   renameRoom: (name: string) => Promise<void>;
+  /** Owner only. Removes the room and everything in it. */
+  deleteRoom: () => Promise<boolean>;
   setLocked: (locked: boolean) => Promise<void>;
 
   sendMessage: (body: string) => Promise<void>;
@@ -474,6 +476,19 @@ export function RoomProvider({
 
   const clearError = useCallback(() => setError(null), []);
 
+  const deleteRoom = useCallback(async (): Promise<boolean> => {
+    const roomId = roomIdRef.current;
+    if (!roomId) return false;
+    // Items, messages and strokes all hang off the room with cascade deletes,
+    // so the one row takes the whole place with it.
+    const { error: deleteError } = await supabase.from("rooms").delete().eq("id", roomId);
+    if (deleteError) {
+      setError(deleteError.message);
+      return false;
+    }
+    return true;
+  }, [supabase]);
+
   const duplicateItem = useCallback(
     async (id: string) => {
       const source = store.getState().items[id];
@@ -794,6 +809,7 @@ export function RoomProvider({
     status,
     error,
     clearError,
+    deleteRoom,
     canEdit,
     isOwner,
     joined,

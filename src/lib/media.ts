@@ -67,6 +67,36 @@ const AUDIO_EXT = /\.(mp3|ogg|oga|wav|m4a|aac|flac|opus|weba)(\?|#|$)/i;
 const VIDEO_EXT = /\.(mp4|webm|ogv|m4v|mov)(\?|#|$)/i;
 
 /**
+ * A YouTube playlist link. The player can load a whole list by id without an
+ * API key, so a playlist is one "track" whose ref carries the list instead of a
+ * video. Marked with a prefix so the player knows which call to make.
+ */
+export function parseYouTubePlaylist(input: string): string | null {
+  const raw = input.trim();
+  if (!raw) return null;
+
+  let url: URL;
+  try {
+    url = new URL(raw.startsWith("http") ? raw : `https://${raw}`);
+  } catch {
+    return null;
+  }
+
+  const host = url.hostname.replace(/^www\./, "");
+  const youtube =
+    host === "youtube.com" || host === "m.youtube.com" || host === "music.youtube.com";
+  if (!youtube) return null;
+
+  const list = url.searchParams.get("list");
+  if (!list || !/^[\w-]{12,60}$/.test(list)) return null;
+
+  // A watch link that merely happens to sit in a playlist should still play the
+  // video someone picked; only a playlist address means the whole list.
+  const wantsList = url.pathname === "/playlist" || !url.searchParams.get("v");
+  return wantsList ? list : null;
+}
+
+/**
  * Works out which synced player a pasted link belongs in. YouTube, direct audio
  * files and SoundCloud each have a real control API, so they play in the music
  * player and stay in sync. Anything else returns null (it belongs in the site
@@ -77,6 +107,9 @@ export function parseMediaLink(
 ): { provider: MediaProvider; ref: string; title: string } | null {
   const raw = input.trim();
   if (!raw) return null;
+
+  const list = parseYouTubePlaylist(raw);
+  if (list) return { provider: "youtube", ref: `list:${list}`, title: "youtube playlist" };
 
   const videoId = parseYouTubeId(raw);
   if (videoId) return { provider: "youtube", ref: videoId, title: "youtube" };

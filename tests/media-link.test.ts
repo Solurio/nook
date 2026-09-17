@@ -25,6 +25,21 @@ test("an audio link with a query string still counts", () => {
   assert.equal(parseMediaLink("https://cdn.site/track.mp3?token=abc")?.provider, "audio");
 });
 
+test("a playlist link loads the whole list, not one video", () => {
+  const list = parseMediaLink("https://www.youtube.com/playlist?list=PLabcdefghijklmnop");
+  assert.equal(list?.provider, "youtube");
+  assert.equal(list?.ref, "list:PLabcdefghijklmnop", "the ref carries the list id");
+
+  const music = parseMediaLink("https://music.youtube.com/playlist?list=OLAK5uy_abcdefghijk");
+  assert.equal(music?.ref, "list:OLAK5uy_abcdefghijk");
+
+  // A watch link that merely sits inside a playlist still plays that video.
+  const watch = parseMediaLink(
+    "https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=PLabcdefghijklmnop",
+  );
+  assert.equal(watch?.ref, "dQw4w9WgXcQ", "the chosen video wins over its list");
+});
+
 test("video files play in the video player, not the audio one", () => {
   const mp4 = parseMediaLink("https://example.com/clips/Beach%20Day.mp4");
   assert.equal(mp4?.provider, "video");

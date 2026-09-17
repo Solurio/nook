@@ -38,11 +38,23 @@ const YouTubePlayer = forwardRef<PlayerControl, ProviderPlayerProps>(function Yo
         typeof (player.current as unknown as Record<string, unknown> | null)?.[name] === "function";
 
       return {
-        load(videoId, startSec, autoplay) {
+        load(ref, startSec, autoplay) {
+          // "list:ID" means a whole playlist, which the player can take by id
+          // with no API key of ours involved.
+          if (ref.startsWith("list:")) {
+            const list = ref.slice(5);
+            const args = { list, listType: "playlist" as const, startSeconds: startSec };
+            if (autoplay) {
+              if (has("loadPlaylist")) player.current!.loadPlaylist(args);
+            } else if (has("cuePlaylist")) {
+              player.current!.cuePlaylist(args);
+            }
+            return;
+          }
           if (autoplay) {
-            if (has("loadVideoById")) player.current!.loadVideoById(videoId, startSec);
+            if (has("loadVideoById")) player.current!.loadVideoById(ref, startSec);
           } else if (has("cueVideoById")) {
-            player.current!.cueVideoById(videoId, startSec);
+            player.current!.cueVideoById(ref, startSec);
           }
         },
         play() {

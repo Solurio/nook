@@ -5,12 +5,21 @@
  * one-shot loader so several players can share a single script tag.
  */
 
+/** A whole playlist by id; the player fetches the entries itself. */
+export interface PlaylistRequest {
+  list: string;
+  listType: "playlist";
+  startSeconds?: number;
+}
+
 export interface YTPlayer {
   playVideo(): void;
   pauseVideo(): void;
   seekTo(seconds: number, allowSeekAhead: boolean): void;
   loadVideoById(videoId: string, startSeconds?: number): void;
   cueVideoById(videoId: string, startSeconds?: number): void;
+  loadPlaylist(options: PlaylistRequest): void;
+  cuePlaylist(options: PlaylistRequest): void;
   getCurrentTime(): number;
   getDuration(): number;
   getPlayerState(): number;

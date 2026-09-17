@@ -5,6 +5,7 @@ import clsx from "clsx";
 import {
   Download,
   Eraser,
+  Film,
   Eye,
   EyeOff,
   Highlighter,
@@ -13,6 +14,7 @@ import {
   Pen,
   Plus,
   SprayCan,
+  Loader2,
   Trash2,
   Undo2,
   X,
@@ -21,6 +23,7 @@ import { useRoom } from "@/realtime/room-provider";
 import { useRoomStore } from "@/state/room-store";
 import { newId } from "@/lib/slug";
 import { defaultLayers, exportCanvas, layersOf, renderComposite, renderStroke } from "@/lib/paint";
+import { encodeGif, type GifFrame } from "@/lib/gif";
 import type { DoodleBrush, DoodleLayer, DoodleState, DoodleStroke, Item } from "@/lib/types";
 
 const SWATCHES = [
@@ -43,6 +46,7 @@ export default function Doodle({ item, state }: { item: Item<"game">; state: Doo
   const [pressure, setPressure] = useState(0.6);
   const [activeLayerState, setActiveLayer] = useState(layers[layers.length - 1].id);
   const [showLayers, setShowLayers] = useState(false);
+  const [rendering, setRendering] = useState(false);
 
   // Derived so it stays valid if a layer is removed elsewhere -- no sync effect.
   const activeLayer = layers.some((l) => l.id === activeLayerState)
@@ -295,6 +299,54 @@ export default function Doodle({ item, state }: { item: Item<"game">; state: Doo
     }, "image/png");
   }, [layers, state.strokes]);
 
+  /**
+   * A timelapse of the drawing appearing, as a looping gif. Strokes are already
+   * stored as ops in the order they were made, so replaying them is just
+   * rendering the first N of them over and over.
+   */
+  const downloadGif = useCallback(async () => {
+    const c = committed.current;
+    if (!c || state.strokes.length === 0 || rendering) return;
+    setRendering(true);
+    try {
+      // Encoding is proportional to pixels, so cap the size of the output.
+      const scale = Math.min(1, 420 / Math.max(1, c.width));
+      const w = Math.max(1, Math.round(c.width * scale));
+      const h = Math.max(1, Math.round(c.height * scale));
+
+      const strokes = state.strokes;
+      const steps = Math.min(20, strokes.length);
+      const frames: GifFrame[] = [];
+
+      for (let i = 1; i <= steps; i += 1) {
+        const upTo = Math.ceil((strokes.length * i) / steps);
+        const canvas = exportCanvas(strokes.slice(0, upTo), layers, w, h);
+        const ctx = canvas.getContext("2d");
+        if (!ctx) continue;
+        frames.push({
+          data: ctx.getImageData(0, 0, w, h).data,
+          // Hold on the finished picture before it loops round again.
+          delayMs: i === steps ? 1400 : 110,
+        });
+        // Let the spinner paint between frames.
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      }
+
+      const bytes = encodeGif(frames, w, h);
+      // The encoder hands back a view over its own exact buffer, so this is the
+      // whole file and nothing more.
+      const blob = new Blob([bytes.buffer as ArrayBuffer], { type: "image/gif" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `nook-doodle-${Date.now()}.gif`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setRendering(false);
+    }
+  }, [layers, rendering, state.strokes]);
+
   // ----- Layers (plain handlers; they read the derived active layer) -----
   const addLayer = () => {
     if (!canEdit) return;
@@ -414,6 +466,17 @@ export default function Doodle({ item, state }: { item: Item<"game">; state: Doo
           </Tool>
           <Tool label="download png" onClick={download} disabled={state.strokes.length === 0}>
             <Download className="size-3.5" strokeWidth={2.2} />
+          </Tool>
+          <Tool
+            label="download a timelapse gif"
+            onClick={() => void downloadGif()}
+            disabled={rendering || state.strokes.length === 0}
+          >
+            {rendering ? (
+              <Loader2 className="size-3.5 animate-spin" strokeWidth={2.2} />
+            ) : (
+              <Film className="size-3.5" strokeWidth={2.2} />
+            )}
           </Tool>
           <Tool label="clear" danger onClick={clear} disabled={!canEdit || state.strokes.length === 0}>
             <Trash2 className="size-3.5" strokeWidth={2.2} />
