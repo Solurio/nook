@@ -8,6 +8,7 @@ import Chess from "@/components/games/chess";
 import Checkers from "@/components/games/checkers";
 import Intransitive from "@/components/games/intransitive";
 import CardTable from "@/components/games/card-table";
+import Dominoes from "@/components/games/dominoes";
 
 export default function GameItem({ item }: { item: Item<"game"> }) {
   switch (item.data.game) {
@@ -25,6 +26,8 @@ export default function GameItem({ item }: { item: Item<"game"> }) {
       return <Intransitive item={item} state={item.data.state} />;
     case "cards":
       return <CardTable item={item} state={item.data.state} />;
+    case "dominoes":
+      return <Dominoes item={item} state={item.data.state} />;
     default:
       return null;
   }

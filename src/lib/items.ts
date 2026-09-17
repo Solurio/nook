@@ -44,6 +44,7 @@ const GAME_SIZE: Record<GameKind, { width: number; height: number }> = {
   checkers: { width: 380, height: 440 },
   intransitive: { width: 420, height: 480 },
   cards: { width: 440, height: 420 },
+  dominoes: { width: 440, height: 400 },
 };
 
 function emptyGameData(game: GameKind): ItemDataMap["game"] {
@@ -78,6 +79,21 @@ function emptyGameData(game: GameKind): ItemDataMap["game"] {
           turn: "w",
           seats: { w: null, b: null },
           wins: { w: 0, b: 0, draw: 0 },
+        },
+      };
+    case "dominoes":
+      return {
+        game: "dominoes",
+        state: {
+          line: [],
+          hands: {},
+          boneyard: [],
+          seats: {},
+          seatCount: 4,
+          teams: 2,
+          turn: "s0",
+          wins: {},
+          passes: 0,
         },
       };
     case "cards":

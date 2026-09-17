@@ -10,6 +10,7 @@ import {
   Eraser,
   Gamepad2,
   Globe,
+  GripVertical,
   Grid3x3,
   ImagePlus,
   Maximize2,
@@ -225,6 +226,12 @@ export default function Dock() {
                 onClick={() => add("game", "chess")}
               />
               <GameOption
+                icon={<GripVertical className="size-4" strokeWidth={2} />}
+                title="dominoes"
+                hint="double six, teams optional"
+                onClick={() => add("game", "dominoes")}
+              />
+              <GameOption
                 icon={<Spade className="size-4" strokeWidth={2} />}
                 title="card table"
                 hint="any deck, any rules"
@@ -339,6 +346,7 @@ function AddSheet({
     { icon: <Crown className="size-5" strokeWidth={2} />, label: "chess", kind: "chess" },
     { icon: <Swords className="size-5" strokeWidth={2} />, label: "intransitive", kind: "intransitive" },
     { icon: <Spade className="size-5" strokeWidth={2} />, label: "card table", kind: "cards" },
+    { icon: <GripVertical className="size-5" strokeWidth={2} />, label: "dominoes", kind: "dominoes" },
     { icon: <CircleDot className="size-5" strokeWidth={2} />, label: "checkers", kind: "checkers" },
     { icon: <Grid3x3 className="size-5" strokeWidth={2} />, label: "tic tac toe", kind: "tictactoe" },
     { icon: <Dices className="size-5" strokeWidth={2} />, label: "connect four", kind: "connectfour" },

@@ -111,7 +111,8 @@ export type GameKind =
   | "chess"
   | "checkers"
   | "intransitive"
-  | "cards";
+  | "cards"
+  | "dominoes";
 
 export type GameData =
   | { game: "tictactoe"; state: TicTacToeState }
@@ -120,7 +121,8 @@ export type GameData =
   | { game: "chess"; state: ChessState }
   | { game: "checkers"; state: CheckersState }
   | { game: "intransitive"; state: IntransitiveState }
-  | { game: "cards"; state: CardTableState };
+  | { game: "cards"; state: CardTableState }
+  | { game: "dominoes"; state: DominoesState };
 
 export interface ChessState {
   /** 64 cells, index = row*8+col, row 0 is black's back rank. */
@@ -132,6 +134,21 @@ export interface ChessState {
   castling?: { wk: boolean; wq: boolean; bk: boolean; bq: boolean };
   /** Square a pawn just skipped, capturable en passant on this turn only. */
   ep?: number | null;
+}
+
+/** Dominoes on a double-six set, on your own or in pairs. */
+export interface DominoesState {
+  /** Laid out left to right; touching halves match. */
+  line: [number, number][];
+  hands: Record<string, [number, number][]>;
+  boneyard: [number, number][];
+  seats: Record<string, string | null>;
+  seatCount: number;
+  teams: number;
+  /** Chair id whose go it is. */
+  turn: string;
+  wins: Record<string, number>;
+  passes: number;
 }
 
 /** A deck on a table, with whatever rules the players agree on. */
