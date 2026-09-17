@@ -4,12 +4,17 @@ import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { Music4 } from "lucide-react";
 import type { PlayerControl, ProviderPlayerProps } from "./types";
 
-/** Plain audio files (mp3/ogg/wav/...). An <audio> element is fully controllable, so it stays in perfect sync. */
-const AudioPlayer = forwardRef<PlayerControl, ProviderPlayerProps>(function AudioPlayer(
-  { onReady, onStateChange, onDuration },
+/**
+ * Plain media files, played by the browser itself. An <audio> or <video>
+ * element is fully controllable, so these stay in perfect sync. A video shows
+ * its picture; an audio file gets a quiet placeholder instead.
+ */
+const ElementPlayer = forwardRef<PlayerControl, ProviderPlayerProps>(function ElementPlayer(
+  { provider, onReady, onStateChange, onDuration },
   ref,
 ) {
-  const el = useRef<HTMLAudioElement>(null);
+  const el = useRef<HTMLMediaElement>(null);
+  const isVideo = provider === "video";
 
   useImperativeHandle(
     ref,
@@ -81,21 +86,32 @@ const AudioPlayer = forwardRef<PlayerControl, ProviderPlayerProps>(function Audi
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => onReady(), []);
 
+  const shared = {
+    preload: "metadata" as const,
+    onLoadedMetadata: () => onDuration(el.current?.duration || 0),
+    onPlay: () => onStateChange("playing" as const),
+    onPause: () => onStateChange("paused" as const),
+    onEnded: () => onStateChange("ended" as const),
+    onWaiting: () => onStateChange("buffering" as const),
+  };
+
+  if (isVideo) {
+    return (
+      <video
+        ref={el as React.RefObject<HTMLVideoElement>}
+        playsInline
+        className="size-full bg-black object-contain"
+        {...shared}
+      />
+    );
+  }
+
   return (
     <div className="grid size-full place-items-center bg-gradient-to-br from-ink-700 to-ink-900">
       <Music4 className="size-12 text-glow/40" strokeWidth={1.3} />
-      <audio
-        ref={el}
-        preload="metadata"
-        onLoadedMetadata={() => onDuration(el.current?.duration || 0)}
-        onPlay={() => onStateChange("playing")}
-        onPause={() => onStateChange("paused")}
-        onEnded={() => onStateChange("ended")}
-        onWaiting={() => onStateChange("buffering")}
-        className="hidden"
-      />
+      <audio ref={el as React.RefObject<HTMLAudioElement>} className="hidden" {...shared} />
     </div>
   );
 });
 
-export default AudioPlayer;
+export default ElementPlayer;

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import {
   ListMusic,
+  Loader2,
   Music4,
   Pause,
   Play,
@@ -11,6 +12,7 @@ import {
   SkipBack,
   SkipForward,
   Trash2,
+  Upload,
   Video,
   Volume2,
   VolumeX,
@@ -42,7 +44,7 @@ export default function MediaItem({
   item: Item<"media">;
   selected: boolean;
 }) {
-  const { updateData, canEdit } = useRoom();
+  const { updateData, canEdit, uploadFile } = useRoom();
   const me = useRoomStore((s) => s.me);
   const media = item.data;
   const track = currentTrack(media);
@@ -70,6 +72,7 @@ export default function MediaItem({
   const [duration, setDuration] = useState(0);
   const [showQueue, setShowQueue] = useState(false);
   const [adding, setAdding] = useState("");
+  const [uploading, setUploading] = useState(false);
   const [volume, setVolume] = useState(() => {
     if (typeof window === "undefined") return 60;
     const stored = Number(window.localStorage.getItem(VOLUME_KEY));
@@ -287,6 +290,34 @@ export default function MediaItem({
     [me, media, write],
   );
 
+  /** Uploads a local song or clip and queues it for the whole room. */
+  const addFile = useCallback(
+    async (file: File) => {
+      setUploading(true);
+      try {
+        const url = await uploadFile(file);
+        if (!url) return;
+        const parsed = parseMediaLink(url);
+        const entry: MediaTrack = {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          provider: parsed?.provider ?? (file.type.startsWith("video/") ? "video" : "audio"),
+          ref: url,
+          title: file.name.replace(/\.[^.]+$/, ""),
+          addedBy: me?.name ?? "someone",
+        };
+        const wasEmpty = media.queue.length === 0;
+        write({
+          ...media,
+          queue: [...media.queue, entry],
+          ...(wasEmpty ? { index: 0, positionSec: 0, playing: true, anchoredAt: Date.now() } : {}),
+        });
+      } finally {
+        setUploading(false);
+      }
+    },
+    [me, media, uploadFile, write],
+  );
+
   const removeTrack = useCallback(
     (id: string) => {
       const index = media.queue.findIndex((t) => t.id === id);
@@ -467,10 +498,32 @@ export default function MediaItem({
                   value={adding}
                   onChange={(event) => setAdding(event.target.value)}
                   onKeyDown={(event) => event.stopPropagation()}
-                  placeholder="youtube, soundcloud ou .mp3"
+                  placeholder="youtube, soundcloud or .mp3"
                   spellCheck={false}
                   className="min-w-0 flex-1 rounded-lg bg-white/8 px-2.5 py-1.5 text-xs ring-1 ring-white/10 outline-none placeholder:text-muted/60 focus:ring-glow/50"
                 />
+                {/* Dragging a file in is not a thing on a phone, so the queue
+                    takes an upload directly. */}
+                <label
+                  title={uploading ? "uploading" : "upload a song or clip"}
+                  className="grid size-7 shrink-0 cursor-pointer place-items-center rounded-lg bg-white/8 text-muted transition hover:bg-white/12 hover:text-chalk"
+                >
+                  {uploading ? (
+                    <Loader2 className="size-3.5 animate-spin" strokeWidth={2.4} />
+                  ) : (
+                    <Upload className="size-3.5" strokeWidth={2.4} />
+                  )}
+                  <input
+                    type="file"
+                    accept="audio/*,video/*"
+                    className="hidden"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      event.target.value = "";
+                      if (file) void addFile(file);
+                    }}
+                  />
+                </label>
                 <button
                   type="submit"
                   aria-label="add to queue"

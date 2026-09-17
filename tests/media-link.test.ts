@@ -25,6 +25,23 @@ test("an audio link with a query string still counts", () => {
   assert.equal(parseMediaLink("https://cdn.site/track.mp3?token=abc")?.provider, "audio");
 });
 
+test("video files play in the video player, not the audio one", () => {
+  const mp4 = parseMediaLink("https://example.com/clips/Beach%20Day.mp4");
+  assert.equal(mp4?.provider, "video");
+  assert.equal(mp4?.title, "Beach Day");
+
+  for (const ext of ["webm", "ogv", "m4v", "mov"]) {
+    assert.equal(parseMediaLink(`https://cdn.site/a.${ext}`)?.provider, "video", ext);
+  }
+
+  // An uploaded file lands on storage with its extension intact, which is what
+  // makes the round trip work.
+  const uploaded = parseMediaLink(
+    "https://proj.supabase.co/storage/v1/object/public/decorations/room/abc.mp4",
+  );
+  assert.equal(uploaded?.provider, "video");
+});
+
 test("soundcloud links go to the soundcloud player", () => {
   const r = parseMediaLink("https://soundcloud.com/artist/some-track");
   assert.equal(r?.provider, "soundcloud");

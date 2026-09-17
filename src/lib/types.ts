@@ -68,7 +68,7 @@ export interface CobrowseData {
 
 export type FrameStyle = "none" | "polaroid" | "shadow" | "sticker";
 
-export type MediaProvider = "youtube" | "audio" | "soundcloud";
+export type MediaProvider = "youtube" | "audio" | "video" | "soundcloud";
 
 export interface MediaTrack {
   id: string;

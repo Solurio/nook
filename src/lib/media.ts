@@ -64,6 +64,7 @@ export function trackRef(track: MediaTrack): string {
 }
 
 const AUDIO_EXT = /\.(mp3|ogg|oga|wav|m4a|aac|flac|opus|weba)(\?|#|$)/i;
+const VIDEO_EXT = /\.(mp4|webm|ogv|m4v|mov)(\?|#|$)/i;
 
 /**
  * Works out which synced player a pasted link belongs in. YouTube, direct audio
@@ -91,6 +92,11 @@ export function parseMediaLink(
   if (AUDIO_EXT.test(url.pathname)) {
     const name = decodeURIComponent(url.pathname.split("/").pop() ?? "audio");
     return { provider: "audio", ref: url.toString(), title: name.replace(AUDIO_EXT, "") };
+  }
+
+  if (VIDEO_EXT.test(url.pathname)) {
+    const name = decodeURIComponent(url.pathname.split("/").pop() ?? "video");
+    return { provider: "video", ref: url.toString(), title: name.replace(VIDEO_EXT, "") };
   }
 
   if (host === "soundcloud.com" || host === "m.soundcloud.com" || host === "on.soundcloud.com") {

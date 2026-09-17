@@ -12,7 +12,7 @@ import {
 import { draftItem, topZ } from "@/lib/items";
 import { resolveLink } from "@/lib/embeds";
 import { parseMediaLink } from "@/lib/media";
-import type { Background } from "@/lib/types";
+import type { Background, MediaData, MediaProvider } from "@/lib/types";
 import ItemFrame from "./item-frame";
 import Cursors from "./cursors";
 import PingLayer from "./ping-layer";
@@ -21,6 +21,23 @@ import RoomInkLayer from "./room-ink-layer";
 import InkOverlay from "./ink-overlay";
 
 const IMAGE_TYPES = /^image\//;
+const PLAYABLE_TYPES = /^(audio|video)\//;
+
+/** A fresh one-track queue, ready to play for the whole room. */
+function newQueue(
+  track: { provider: MediaProvider; ref: string; title: string },
+  addedBy: string,
+): MediaData {
+  return {
+    queue: [{ id: `${Date.now()}`, ...track, addedBy }],
+    index: 0,
+    playing: true,
+    positionSec: 0,
+    anchoredAt: Date.now(),
+    volume: 60,
+    audioOnly: track.provider === "audio",
+  };
+}
 
 export default function Canvas() {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -281,16 +298,37 @@ export default function Canvas() {
 
   const acceptFiles = useCallback(
     async (files: File[], at: { x: number; y: number }) => {
-      const images = files.filter((file) => IMAGE_TYPES.test(file.type));
+      // Pictures go on the wall; songs and clips open in the synced player, so
+      // dropping an mp3 or an mp4 gets you something everyone hears together.
+      const usable = files.filter(
+        (file) => IMAGE_TYPES.test(file.type) || PLAYABLE_TYPES.test(file.type),
+      );
       let offset = 0;
 
-      for (const file of images) {
+      for (const file of usable) {
         const url = await uploadFile(file);
         if (!url) continue;
         const z = topZ(Object.values(useRoomStore.getState().items));
-        await createItem(
-          draftItem("image", { x: at.x + offset, y: at.y + offset }, z, { data: { url } }),
-        );
+        const where = { x: at.x + offset, y: at.y + offset };
+
+        if (IMAGE_TYPES.test(file.type)) {
+          await createItem(draftItem("image", where, z, { data: { url } }));
+        } else {
+          const playable = parseMediaLink(url);
+          const name = file.name.replace(/\.[^.]+$/, "");
+          await createItem(
+            draftItem("media", where, z, {
+              data: newQueue(
+                {
+                  provider: playable?.provider ?? (file.type.startsWith("video/") ? "video" : "audio"),
+                  ref: url,
+                  title: name,
+                },
+                useRoomStore.getState().me?.name ?? "someone",
+              ),
+            }),
+          );
+        }
         offset += 26;
       }
     },
@@ -309,23 +347,7 @@ export default function Canvas() {
       if (playable) {
         await createItem(
           draftItem("media", at, z, {
-            data: {
-              queue: [
-                {
-                  id: `${Date.now()}`,
-                  provider: playable.provider,
-                  ref: playable.ref,
-                  title: playable.title,
-                  addedBy: useRoomStore.getState().me?.name ?? "someone",
-                },
-              ],
-              index: 0,
-              playing: true,
-              positionSec: 0,
-              anchoredAt: Date.now(),
-              volume: 60,
-              audioOnly: playable.provider === "audio",
-            },
+            data: newQueue(playable, useRoomStore.getState().me?.name ?? "someone"),
           }),
         );
         return;

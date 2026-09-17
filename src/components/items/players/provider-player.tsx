@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef } from "react";
-import AudioPlayer from "./audio-player";
+import ElementPlayer from "./element-player";
 import SoundCloudPlayer from "./soundcloud-player";
 import YouTubePlayer from "./youtube-player";
 import type { PlayerControl, ProviderPlayerProps } from "./types";
@@ -13,7 +13,8 @@ const ProviderPlayer = forwardRef<PlayerControl, ProviderPlayerProps>(function P
 ) {
   switch (props.provider) {
     case "audio":
-      return <AudioPlayer ref={ref} {...props} />;
+    case "video":
+      return <ElementPlayer ref={ref} {...props} />;
     case "soundcloud":
       return <SoundCloudPlayer ref={ref} {...props} />;
     default:
