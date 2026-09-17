@@ -3,7 +3,7 @@
 import { memo, useCallback, useRef } from "react";
 import clsx from "clsx";
 import { useRoom } from "@/realtime/room-provider";
-import { useRoomStore } from "@/state/room-store";
+import { gestureLock, useRoomStore } from "@/state/room-store";
 import { clampSize } from "@/lib/items";
 import type { AnyItem, TransformPatch } from "@/lib/types";
 import ItemRenderer from "@/components/items/item-renderer";
@@ -18,9 +18,19 @@ interface Gesture {
   startX: number;
   startY: number;
   origin: TransformPatch;
-  centerX: number;
-  centerY: number;
+  /** Item centre in screen pixels. Rotation is measured against this so the
+   *  angle never depends on pan or zoom. */
+  pivotX: number;
+  pivotY: number;
   startAngle: number;
+}
+
+/** Rotate a vector by `deg`. */
+function spin(x: number, y: number, deg: number) {
+  const r = (deg * Math.PI) / 180;
+  const cos = Math.cos(r);
+  const sin = Math.sin(r);
+  return { x: x * cos - y * sin, y: x * sin + y * cos };
 }
 
 function ItemFrame({
@@ -39,6 +49,7 @@ function ItemFrame({
   const release = useRoomStore((s) => s.release);
 
   const gesture = useRef<Gesture | null>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
 
   const current = useCallback((): TransformPatch => {
     const live = useRoomStore.getState().items[item.id] ?? item;
@@ -55,12 +66,16 @@ function ItemFrame({
   const beginGesture = useCallback(
     (event: React.PointerEvent, mode: Gesture["mode"], handle: Handle | null) => {
       if (!canEdit || editing) return;
+      if (event.button !== 0 && event.pointerType === "mouse") return;
       event.stopPropagation();
 
       const origin = current();
-      const scale = useRoomStore.getState().viewport.scale;
-      const centerX = origin.x + origin.width / 2;
-      const centerY = origin.y + origin.height / 2;
+
+      // The frame is rotated about its own centre, so the bounding box centre is
+      // the item centre on screen no matter how it is turned.
+      const rect = frameRef.current?.getBoundingClientRect();
+      const pivotX = rect ? rect.left + rect.width / 2 : event.clientX;
+      const pivotY = rect ? rect.top + rect.height / 2 : event.clientY;
 
       gesture.current = {
         pointerId: event.pointerId,
@@ -69,23 +84,56 @@ function ItemFrame({
         startX: event.clientX,
         startY: event.clientY,
         origin,
-        centerX,
-        centerY,
-        startAngle: Math.atan2(event.clientY / scale - centerY, event.clientX / scale - centerX),
+        pivotX,
+        pivotY,
+        startAngle: Math.atan2(event.clientY - pivotY, event.clientX - pivotX),
       };
 
       grab(item.id);
       select(item.id);
       void bringToFront(item.id);
-      (event.target as HTMLElement).setPointerCapture(event.pointerId);
+      // Capture on the frame itself. Capturing on the handle meant a re-render
+      // that swapped the handle out dropped the capture, the pointerup never
+      // landed, and the item kept trailing the cursor with no button held.
+      event.currentTarget.setPointerCapture(event.pointerId);
     },
     [bringToFront, canEdit, current, editing, grab, item.id, select],
   );
+
+  const finish = useCallback(() => {
+    const g = gesture.current;
+    if (!g) return;
+    gesture.current = null;
+
+    const patch = current();
+    release(item.id);
+
+    const moved =
+      patch.x !== g.origin.x ||
+      patch.y !== g.origin.y ||
+      patch.width !== g.origin.width ||
+      patch.height !== g.origin.height ||
+      patch.rotation !== g.origin.rotation;
+
+    if (moved) void commitTransform(patch);
+  }, [commitTransform, current, item.id, release]);
 
   const onPointerMove = useCallback(
     (event: React.PointerEvent) => {
       const g = gesture.current;
       if (!g || g.pointerId !== event.pointerId) return;
+
+      // No button left down means we missed the release (pointer left the
+      // window, another element ate it). Settle up instead of dragging on.
+      if (event.buttons === 0) {
+        finish();
+        return;
+      }
+      // A second finger means the room is being pinched, not this item dragged.
+      if (gestureLock.pinching) {
+        finish();
+        return;
+      }
       event.stopPropagation();
 
       const scale = useRoomStore.getState().viewport.scale;
@@ -97,10 +145,7 @@ function ItemFrame({
       if (g.mode === "move") {
         patch = { ...g.origin, x: Math.round(g.origin.x + dx), y: Math.round(g.origin.y + dy) };
       } else if (g.mode === "rotate") {
-        const angle = Math.atan2(
-          event.clientY / scale - g.centerY,
-          event.clientX / scale - g.centerX,
-        );
+        const angle = Math.atan2(event.clientY - g.pivotY, event.clientX - g.pivotX);
         const degrees = g.origin.rotation + ((angle - g.startAngle) * 180) / Math.PI;
         // Snapping near the cardinals makes straightening a photo painless.
         const snapped = Math.abs(degrees % 90) < 3 ? Math.round(degrees / 90) * 90 : degrees;
@@ -117,29 +162,17 @@ function ItemFrame({
 
       broadcastTransform(patch);
     },
-    [broadcastTransform, item.kind],
+    [broadcastTransform, finish, item.kind],
   );
 
   const endGesture = useCallback(
     (event: React.PointerEvent) => {
       const g = gesture.current;
       if (!g || g.pointerId !== event.pointerId) return;
-      gesture.current = null;
       event.stopPropagation();
-
-      const patch = current();
-      release(item.id);
-
-      const moved =
-        patch.x !== g.origin.x ||
-        patch.y !== g.origin.y ||
-        patch.width !== g.origin.width ||
-        patch.height !== g.origin.height ||
-        patch.rotation !== g.origin.rotation;
-
-      if (moved) void commitTransform(patch);
+      finish();
     },
-    [commitTransform, current, item.id, release],
+    [finish],
   );
 
   const interactive =
@@ -149,8 +182,16 @@ function ItemFrame({
     item.kind === "cobrowse" ||
     item.kind === "screencast";
 
+  const handleProps = {
+    onPointerMove,
+    onPointerUp: endGesture,
+    onPointerCancel: endGesture,
+    onLostPointerCapture: finish,
+  };
+
   return (
     <div
+      ref={frameRef}
       className="absolute will-change-transform"
       style={{
         left: item.x,
@@ -161,7 +202,7 @@ function ItemFrame({
         zIndex: item.z,
       }}
       onPointerDown={(event) => {
-        if (event.button !== 0) return;
+        if (event.button !== 0 && event.pointerType === "mouse") return;
         // Media, embeds and games own their own clicks; dragging those uses
         // the grip in the selection frame instead.
         if (interactive && !event.altKey) {
@@ -174,6 +215,7 @@ function ItemFrame({
       onPointerMove={onPointerMove}
       onPointerUp={endGesture}
       onPointerCancel={endGesture}
+      onLostPointerCapture={finish}
       onDoubleClick={(event) => {
         if (!canEdit) return;
         if (item.kind === "note" || item.kind === "text") {
@@ -198,9 +240,8 @@ function ItemFrame({
           {interactive && (
             <div
               onPointerDown={(event) => beginGesture(event, "move", null)}
-              onPointerMove={onPointerMove}
-              onPointerUp={endGesture}
-              className="absolute -top-9 left-0 flex h-7 w-full cursor-grab items-center justify-center gap-1 rounded-lg bg-glow/85 active:cursor-grabbing"
+              {...handleProps}
+              className="absolute -top-9 left-0 flex h-7 w-full cursor-grab touch-none items-center justify-center gap-1 rounded-lg bg-glow/85 active:cursor-grabbing"
               title="Drag to move"
             >
               <span className="h-1 w-1 rounded-full bg-ink-950/55" />
@@ -211,12 +252,11 @@ function ItemFrame({
           )}
 
           {/* A generous invisible pad around each handle makes them easy to grab
-              without visually bulking up the frame. */}
+              with a finger without visually bulking up the frame. */}
           <div
             onPointerDown={(event) => beginGesture(event, "rotate", "rotate")}
-            onPointerMove={onPointerMove}
-            onPointerUp={endGesture}
-            className="absolute -right-10 -bottom-10 grid size-8 cursor-alias place-items-center"
+            {...handleProps}
+            className="absolute -right-12 -bottom-12 grid size-11 cursor-alias touch-none place-items-center"
             title="Drag to rotate"
           >
             <span className="size-5 rounded-full bg-warm ring-2 ring-ink-950/45" />
@@ -226,14 +266,13 @@ function ItemFrame({
             <div
               key={handle}
               onPointerDown={(event) => beginGesture(event, "resize", handle)}
-              onPointerMove={onPointerMove}
-              onPointerUp={endGesture}
+              {...handleProps}
               className={clsx(
-                "absolute grid size-6 place-items-center",
-                handle === "nw" && "-top-3 -left-3 cursor-nwse-resize",
-                handle === "ne" && "-top-3 -right-3 cursor-nesw-resize",
-                handle === "se" && "-right-3 -bottom-3 cursor-nwse-resize",
-                handle === "sw" && "-bottom-3 -left-3 cursor-nesw-resize",
+                "absolute grid size-9 touch-none place-items-center",
+                handle === "nw" && "-top-4.5 -left-4.5 cursor-nwse-resize",
+                handle === "ne" && "-top-4.5 -right-4.5 cursor-nesw-resize",
+                handle === "se" && "-right-4.5 -bottom-4.5 cursor-nwse-resize",
+                handle === "sw" && "-bottom-4.5 -left-4.5 cursor-nesw-resize",
               )}
             >
               <span className="size-3.5 rounded-full bg-chalk ring-2 ring-glow/80" />
@@ -245,6 +284,11 @@ function ItemFrame({
   );
 }
 
+/**
+ * Resize around the corner opposite the one being dragged. The pointer delta is
+ * first turned into the item's own axes, so a rotated photo grows the way it
+ * looks like it should instead of along the screen axes.
+ */
 function resize(
   g: Gesture,
   dx: number,
@@ -253,33 +297,46 @@ function resize(
   keepRatio: boolean,
 ): TransformPatch {
   const { origin, handle } = g;
-  let { x, y, width, height } = origin;
+  const rotation = origin.rotation;
 
+  const local = spin(dx, dy, -rotation);
   const west = handle === "nw" || handle === "sw";
   const north = handle === "nw" || handle === "ne";
 
-  width = origin.width + (west ? -dx : dx);
-  height = origin.height + (north ? -dy : dy);
+  let width = origin.width + (west ? -local.x : local.x);
+  let height = origin.height + (north ? -local.y : local.y);
 
   if (keepRatio) {
     const ratio = origin.width / origin.height;
     // Follow whichever axis the pointer committed to hardest.
-    if (Math.abs(dx) > Math.abs(dy)) height = width / ratio;
+    if (Math.abs(local.x) > Math.abs(local.y)) height = width / ratio;
     else width = height * ratio;
   }
 
   const clamped = clampSize(kind, width, height);
 
-  if (west) x = origin.x + (origin.width - clamped.width);
-  if (north) y = origin.y + (origin.height - clamped.height);
+  // Pin the opposite corner: work out where it sits now, then place the new box
+  // so that same corner lands back on it.
+  const ax = west ? 1 : -1;
+  const ay = north ? 1 : -1;
+
+  const cx = origin.x + origin.width / 2;
+  const cy = origin.y + origin.height / 2;
+  const before = spin((ax * origin.width) / 2, (ay * origin.height) / 2, rotation);
+  const anchorX = cx + before.x;
+  const anchorY = cy + before.y;
+
+  const after = spin((ax * clamped.width) / 2, (ay * clamped.height) / 2, rotation);
+  const centerX = anchorX - after.x;
+  const centerY = anchorY - after.y;
 
   return {
     id: origin.id,
-    x: Math.round(x),
-    y: Math.round(y),
+    x: Math.round(centerX - clamped.width / 2),
+    y: Math.round(centerY - clamped.height / 2),
     width: clamped.width,
     height: clamped.height,
-    rotation: origin.rotation,
+    rotation,
   };
 }
 

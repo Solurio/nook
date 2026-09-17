@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { parseYouTubeId, projectedPosition, anchor, formatClock, emptyMedia } from "../src/lib/media.ts";
-import { normalizeSlugInput, generateSlug } from "../src/lib/slug.ts";
+import { normalizeSlugInput, generateSlug, slugifyName, withSuffix } from "../src/lib/slug.ts";
 import {
   evaluateTicTacToe,
   evaluateConnectFour,
@@ -71,6 +71,39 @@ test("generated slugs are well formed and do not repeat a word", () => {
     assert.notEqual(a, b, `slug repeated a word: ${slug}`);
     assert.equal(normalizeSlugInput(slug), slug);
   }
+});
+
+test("a room name becomes the slug in its link", () => {
+  assert.equal(slugifyName("feh lizes"), "feh-lizes");
+  assert.equal(slugifyName("  Cafe da Manha  "), "cafe-da-manha", "accents are folded");
+  assert.equal(slugifyName("Sala do Joao!!"), "sala-do-joao");
+  assert.equal(slugifyName("movie   night"), "movie-night", "runs of junk collapse");
+  assert.equal(slugifyName("A".repeat(80))?.length, 40, "kept to a sane length");
+
+  // Whatever survives has to be a slug the room route would accept.
+  for (const name of ["feh lizes", "Cafe da Manha", "movie night 2"]) {
+    const slug = slugifyName(name);
+    assert.ok(slug);
+    assert.equal(normalizeSlugInput(slug), slug);
+  }
+});
+
+test("names with nothing sluggable fall through to a generated one", () => {
+  assert.equal(slugifyName(""), null);
+  assert.equal(slugifyName("!!!"), null);
+  assert.equal(slugifyName("ab"), null, "too short to be a link");
+});
+
+test("a taken slug gets a short tail rather than failing", () => {
+  const tagged = withSuffix("movie-night");
+  assert.match(tagged, /^movie-night-[a-z0-9]{3}$/);
+  assert.equal(normalizeSlugInput(tagged), tagged);
+  assert.notEqual(withSuffix("movie-night"), withSuffix("movie-night"));
+
+  // A name already at the limit still produces something legal.
+  const long = withSuffix("a".repeat(40));
+  assert.ok(long.length <= 40, `too long: ${long}`);
+  assert.equal(normalizeSlugInput(long), long);
 });
 
 // ---------------------------------------------------------------------------

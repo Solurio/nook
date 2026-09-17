@@ -32,6 +32,33 @@ export function generateSlug(): string {
   return `${a}-${b}-${tail}`;
 }
 
+/**
+ * Turns whatever someone typed as a room name into a slug for the link, so the
+ * address reads like the room instead of like a serial number. Returns null
+ * when nothing usable survives (emoji-only names, punctuation, two letters),
+ * and the caller falls back to a generated slug.
+ */
+export function slugifyName(name: string): string | null {
+  const slug = name
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "") // drop accents, keep the letter
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40)
+    .replace(/-+$/g, "");
+
+  return /^[a-z0-9-]{3,40}$/.test(slug) ? slug : null;
+}
+
+/** A short random tail, for when the slug someone wanted is already taken. */
+export function withSuffix(slug: string, length = 3): string {
+  const r = randomInts(length);
+  let tail = "";
+  for (let i = 0; i < length; i += 1) tail += ALPHABET[r[i] % ALPHABET.length];
+  return `${slug.slice(0, 40 - length - 1)}-${tail}`;
+}
+
 /** Accepts a bare slug or a full room URL and returns just the slug. */
 export function normalizeSlugInput(input: string): string | null {
   const trimmed = input.trim();

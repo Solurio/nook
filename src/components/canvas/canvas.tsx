@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRoom } from "@/realtime/room-provider";
 import {
+  gestureLock,
   orderItems,
   screenToWorld,
   useRoomStore,
@@ -43,6 +44,8 @@ export default function Canvas() {
   const [spaceHeld, setSpaceHeld] = useState(false);
   const [panning, setPanning] = useState(false);
   const panState = useRef<{ pointerId: number; lastX: number; lastY: number } | null>(null);
+  const touches = useRef(new Map<number, { x: number; y: number }>());
+  const pinch = useRef<{ dist: number; cx: number; cy: number } | null>(null);
 
   // ---------------------------------------------------------------------------
   // Pointer: pan the canvas, and tell everyone else where the cursor is.
@@ -68,6 +71,7 @@ export default function Canvas() {
 
   const onPointerMove = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
+      if (gestureLock.pinching) return;
       const pan = panState.current;
       if (pan && pan.pointerId === event.pointerId) {
         panBy(event.clientX - pan.lastX, event.clientY - pan.lastY);
@@ -117,6 +121,78 @@ export default function Canvas() {
 
     node.addEventListener("wheel", onWheel, { passive: false });
     return () => node.removeEventListener("wheel", onWheel);
+  }, [panBy, zoomAt]);
+
+  // Pinch to zoom, two fingers to pan. These listen in the capture phase so the
+  // canvas sees both fingers even when one of them landed on a photo and that
+  // item stopped propagation for its own drag.
+  useEffect(() => {
+    const node = rootRef.current;
+    if (!node) return;
+    const points = touches.current;
+
+    const down = (event: PointerEvent) => {
+      if (event.pointerType !== "touch") return;
+      points.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      if (points.size !== 2) return;
+
+      const [a, b] = [...points.values()];
+      pinch.current = {
+        dist: Math.hypot(a.x - b.x, a.y - b.y),
+        cx: (a.x + b.x) / 2,
+        cy: (a.y + b.y) / 2,
+      };
+      gestureLock.pinching = true;
+      // Hand off cleanly from whatever one finger was doing.
+      panState.current = null;
+      setPanning(false);
+    };
+
+    const move = (event: PointerEvent) => {
+      if (event.pointerType !== "touch") return;
+      if (!points.has(event.pointerId)) return;
+      points.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+      const last = pinch.current;
+      if (!last || points.size < 2) return;
+      event.preventDefault();
+
+      const [a, b] = [...points.values()];
+      const dist = Math.hypot(a.x - b.x, a.y - b.y);
+      const cx = (a.x + b.x) / 2;
+      const cy = (a.y + b.y) / 2;
+      const rect = node.getBoundingClientRect();
+
+      // Zoom about the midpoint, then follow the midpoint as it travels.
+      if (last.dist > 0 && dist > 0) {
+        zoomAt(dist / last.dist, cx - rect.left, cy - rect.top);
+      }
+      panBy(cx - last.cx, cy - last.cy);
+      pinch.current = { dist, cx, cy };
+    };
+
+    const up = (event: PointerEvent) => {
+      if (event.pointerType !== "touch") return;
+      points.delete(event.pointerId);
+      if (points.size >= 2) return;
+      pinch.current = null;
+      gestureLock.pinching = false;
+    };
+
+    const opts = { capture: true } as const;
+    node.addEventListener("pointerdown", down, opts);
+    node.addEventListener("pointermove", move, { capture: true, passive: false });
+    node.addEventListener("pointerup", up, opts);
+    node.addEventListener("pointercancel", up, opts);
+    return () => {
+      node.removeEventListener("pointerdown", down, opts);
+      node.removeEventListener("pointermove", move, { capture: true });
+      node.removeEventListener("pointerup", up, opts);
+      node.removeEventListener("pointercancel", up, opts);
+      points.clear();
+      pinch.current = null;
+      gestureLock.pinching = false;
+    };
   }, [panBy, zoomAt]);
 
   // ---------------------------------------------------------------------------

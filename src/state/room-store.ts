@@ -41,6 +41,14 @@ export interface Viewport {
 export const MIN_SCALE = 0.1;
 export const MAX_SCALE = 2.5;
 
+/**
+ * True while two fingers are working the canvas. Item drags check it and bow
+ * out, so pinching to zoom never drags whatever happened to be under a thumb.
+ * Deliberately outside the store: it changes every frame of a pinch and nothing
+ * should re-render because of it.
+ */
+export const gestureLock = { pinching: false };
+
 export type PanelId = "chat" | "background" | "peers" | "stickers" | null;
 
 interface RoomState {

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, DoorOpen, Loader2, Sparkles, X } from "lucide-react";
 import { hasSupabaseConfig, supabaseBrowser } from "@/lib/supabase/client";
-import { generateSlug, normalizeSlugInput } from "@/lib/slug";
+import { generateSlug, normalizeSlugInput, slugifyName, withSuffix } from "@/lib/slug";
 import {
   forgetRoom,
   loadLocalIdentity,
@@ -20,15 +20,20 @@ export default function Landing() {
   const router = useRouter();
   const [recent, setRecent] = useState<RecentRoom[]>([]);
   const [joinValue, setJoinValue] = useState("");
+  const [roomName, setRoomName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const configured = hasSupabaseConfig();
+
+  const preview = slugifyName(roomName);
 
   // Recent rooms live in localStorage, which only exists after hydration.
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setRecent(loadRecentRooms()), []);
 
-  const createRoom = useCallback(async () => {
+  const createRoom = useCallback(
+    async (event?: React.FormEvent) => {
+    event?.preventDefault();
     if (busy) return;
     setBusy(true);
     setError(null);
@@ -52,13 +57,18 @@ export default function Landing() {
         saveLocalIdentity({ name: randomName(), tint: randomTint() });
       }
 
-      // Slugs are random, but a collision would fail the unique index rather
-      // than silently hand two groups the same room.
-      let slug = generateSlug();
-      for (let attempt = 0; attempt < 4; attempt += 1) {
+      // The name people type becomes the link. If that one is already spoken
+      // for, the same name gets a short tail rather than a different name, so
+      // "movie night" stays recognisable as movie-night-k4p.
+      const typed = roomName.trim();
+      const wanted = slugifyName(typed);
+      const name = typed || "untitled nook";
+
+      let slug = wanted ?? generateSlug();
+      for (let attempt = 0; attempt < 5; attempt += 1) {
         const { data, error: insertError } = await supabase
           .from("rooms")
-          .insert({ slug, name: "untitled nook", owner_id: userId })
+          .insert({ slug, name, owner_id: userId })
           .select("slug")
           .single();
 
@@ -66,15 +76,18 @@ export default function Landing() {
           router.push(`/r/?r=${data.slug}`);
           return;
         }
+        // 23505 is the unique index saying this slug is taken.
         if (insertError && insertError.code !== "23505") throw insertError;
-        slug = generateSlug();
+        slug = wanted ? withSuffix(wanted) : generateSlug();
       }
-      throw new Error("Could not find a free name. Try again.");
+      throw new Error("That name is busy right now. Try another one.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not make a nook.");
       setBusy(false);
     }
-  }, [busy, router]);
+  },
+    [busy, roomName, router],
+  );
 
   const join = useCallback(
     (event: React.FormEvent) => {
@@ -125,38 +138,63 @@ export default function Landing() {
               you left it, and everyone in the room sees it happen live.
             </p>
 
-            <div className="mt-9 flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={createRoom}
-                disabled={busy || !configured}
-                className="group inline-flex items-center gap-2 rounded-2xl bg-chalk px-5 py-3 text-sm font-semibold text-ink-950 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+            <div className="mt-9 space-y-3">
+              <form
+                onSubmit={createRoom}
+                className="flex flex-col gap-2 sm:flex-row sm:items-center"
               >
-                {busy ? (
-                  <Loader2 className="size-4 animate-spin" strokeWidth={2.4} />
-                ) : (
-                  <DoorOpen className="size-4" strokeWidth={2.4} />
-                )}
-                {busy ? "opening" : "make a nook"}
-                {!busy && (
-                  <ArrowRight
-                    className="size-4 transition-transform group-hover:translate-x-0.5"
-                    strokeWidth={2.4}
-                  />
-                )}
-              </button>
-
-              <form onSubmit={join} className="flex items-center gap-2">
                 <input
-                  value={joinValue}
-                  onChange={(e) => setJoinValue(e.target.value)}
-                  placeholder="paste a nook link"
+                  value={roomName}
+                  onChange={(e) => setRoomName(e.target.value)}
+                  placeholder="name your nook"
                   spellCheck={false}
-                  className="w-56 rounded-2xl bg-white/6 px-4 py-3 text-sm ring-1 ring-white/10 outline-none transition placeholder:text-muted/60 focus:bg-white/9 focus:ring-glow/45"
+                  maxLength={48}
+                  aria-label="room name"
+                  className="w-full rounded-2xl bg-white/6 px-4 py-3 text-sm ring-1 ring-white/10 outline-none transition placeholder:text-muted/60 focus:bg-white/9 focus:ring-glow/45 sm:w-64"
                 />
                 <button
                   type="submit"
-                  className="rounded-2xl bg-white/6 px-4 py-3 text-sm font-medium text-muted ring-1 ring-white/10 transition hover:bg-white/10 hover:text-chalk"
+                  disabled={busy || !configured}
+                  className="group inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-chalk px-5 py-3 text-sm font-semibold text-ink-950 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {busy ? (
+                    <Loader2 className="size-4 animate-spin" strokeWidth={2.4} />
+                  ) : (
+                    <DoorOpen className="size-4" strokeWidth={2.4} />
+                  )}
+                  {busy ? "opening" : "make a nook"}
+                  {!busy && (
+                    <ArrowRight
+                      className="size-4 transition-transform group-hover:translate-x-0.5"
+                      strokeWidth={2.4}
+                    />
+                  )}
+                </button>
+              </form>
+
+              <p className="text-xs text-muted/70">
+                {preview ? (
+                  <>
+                    your link will be <span className="text-muted">/r/?r=</span>
+                    <span className="text-glow">{preview}</span>
+                  </>
+                ) : (
+                  "the name becomes the link. leave it blank for a random one."
+                )}
+              </p>
+
+              <form onSubmit={join} className="flex items-center gap-2 pt-2">
+                <input
+                  value={joinValue}
+                  onChange={(e) => setJoinValue(e.target.value)}
+                  placeholder="or paste a nook link"
+                  spellCheck={false}
+                  aria-label="nook link"
+                  className="w-full rounded-2xl bg-white/6 px-4 py-3 text-sm ring-1 ring-white/10 outline-none transition placeholder:text-muted/60 focus:bg-white/9 focus:ring-glow/45 sm:w-64"
+                />
+                <button
+                  type="submit"
+                  className="shrink-0 rounded-2xl bg-white/6 px-4 py-3 text-sm font-medium text-muted ring-1 ring-white/10 transition hover:bg-white/10 hover:text-chalk"
                 >
                   join
                 </button>
