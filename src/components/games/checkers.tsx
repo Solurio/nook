@@ -2,16 +2,21 @@
 
 import { useMemo, useState } from "react";
 import clsx from "clsx";
-import { RotateCcw } from "lucide-react";
 import { useRoom } from "@/realtime/room-provider";
 import { useRoomStore } from "@/state/room-store";
 import { applyMove, initialBoard, movesForPiece, winner } from "@/lib/checkers";
+import { canPlay, seatOf, takeSeat, turnHint } from "@/lib/seats";
+import GameTable from "./table";
 import type { CheckersState, Item } from "@/lib/types";
 
 const DISC = {
   r: "bg-[#e0655c] shadow-[inset_0_-2px_5px_rgba(0,0,0,0.3)]",
   b: "bg-[#3a3448] shadow-[inset_0_-2px_5px_rgba(0,0,0,0.35)]",
 } as const;
+
+const SIDES = ["r", "b"] as const;
+const NAME = { r: "red", b: "black" } as const;
+const TINT = { r: "#e0655c", b: "#3a3448" } as const;
 
 export default function Checkers({ item, state }: { item: Item<"game">; state: CheckersState }) {
   const { updateData, canEdit } = useRoom();
@@ -23,28 +28,7 @@ export default function Checkers({ item, state }: { item: Item<"game">; state: C
 
   const won = winner(state.board, state.turn);
   const over = Boolean(won);
-  const mySeat: "r" | "b" | null =
-    state.seats.r === name ? "r" : state.seats.b === name ? "b" : null;
-  const seatless = !state.seats.r && !state.seats.b;
-
-  const takeSeat = (seat: "r" | "b") => {
-    if (!canEdit) return;
-    const occupant = state.seats[seat];
-    if (occupant === name) {
-      write({ ...state, seats: { ...state.seats, [seat]: null } });
-      return;
-    }
-    if (occupant) return;
-    const other = seat === "r" ? "b" : "r";
-    write({
-      ...state,
-      seats: {
-        ...state.seats,
-        [seat]: name,
-        [other]: state.seats[other] === name ? null : state.seats[other],
-      },
-    });
-  };
+  const mySeat = seatOf(state.seats, name);
 
   const active = state.chain ?? pick;
   const moves = active !== null ? movesForPiece(state.board, active) : [];
@@ -59,7 +43,7 @@ export default function Checkers({ item, state }: { item: Item<"game">; state: C
 
   const onSquare = (i: number) => {
     if (!canEdit || over) return;
-    if (!seatless && mySeat !== state.turn) return;
+    if (!canPlay(state.seats, state.turn, name)) return;
 
     const piece = state.board[i];
 
@@ -104,17 +88,31 @@ export default function Checkers({ item, state }: { item: Item<"game">; state: C
   };
 
   const status = won
-    ? `${won === "r" ? "red" : "black"} wins`
-    : `${state.turn === "r" ? "red" : "black"} to move`;
+    ? `${NAME[won as "r" | "b"]} wins`
+    : turnHint(state.seats, state.turn, name, (s) => NAME[s]);
 
   return (
-    <div className="surface grain flex size-full flex-col overflow-hidden rounded-2xl p-3">
-      <div className="mb-2.5 flex items-center gap-1.5">
-        <Seat disc="r" who={state.seats.r} active={state.turn === "r" && !over} mine={mySeat === "r"} onClick={() => takeSeat("r")} />
-        <Seat disc="b" who={state.seats.b} active={state.turn === "b" && !over} mine={mySeat === "b"} onClick={() => takeSeat("b")} />
-      </div>
-
-      <div className="grid min-h-0 flex-1 grid-cols-8 overflow-hidden rounded-lg">
+    <GameTable
+      seats={state.seats}
+      turn={state.turn}
+      me={name}
+      order={SIDES}
+      label={(s) => NAME[s]}
+      tint={(s) => TINT[s]}
+      onSit={(seat) => {
+        if (!canEdit) return;
+        write({ ...state, seats: takeSeat(state.seats, seat, name) });
+      }}
+      status={status + (state.chain !== null ? " · keep jumping" : "")}
+      score={`${state.wins.r} / ${state.wins.b}`}
+      onRestart={() => {
+        setPick(null);
+        write({ ...state, board: initialBoard(), turn: "r", chain: null });
+      }}
+      canEdit={canEdit}
+      over={over}
+    >
+      <div className="grid aspect-square h-full max-h-full w-full max-w-full grid-cols-8 overflow-hidden rounded-lg">
         {squares.map((i) => {
           const cell = state.board[i];
           const dark = (Math.floor(i / 8) + (i % 8)) % 2 === 1;
@@ -126,12 +124,12 @@ export default function Checkers({ item, state }: { item: Item<"game">; state: C
               type="button"
               onClick={() => onSquare(i)}
               disabled={!canEdit || over || !dark}
+              aria-label={`square ${i}`}
               className={clsx(
                 "relative grid touch-manipulation place-items-center p-[10%] transition",
                 dark ? "bg-[#7c5a3c]" : "bg-[#e9dcc4]",
                 selected && "ring-2 ring-glow ring-inset",
               )}
-              style={{ aspectRatio: "1" }}
             >
               {cell && (
                 <span
@@ -140,7 +138,9 @@ export default function Checkers({ item, state }: { item: Item<"game">; state: C
                     DISC[cell.side],
                   )}
                 >
-                  {cell.king && <span className="text-[clamp(8px,2.4vw,16px)] text-warm">♛</span>}
+                  {cell.king && (
+                    <span className="text-[clamp(8px,2.4vw,16px)] text-warm">♛</span>
+                  )}
                 </span>
               )}
               {target && !cell && (
@@ -150,59 +150,6 @@ export default function Checkers({ item, state }: { item: Item<"game">; state: C
           );
         })}
       </div>
-
-      <div className="mt-2.5 flex items-center justify-between gap-2">
-        <p className="truncate text-xs font-medium text-muted">
-          {status}
-          {state.chain !== null && " (continue jumping)"}
-        </p>
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] tabular-nums text-muted/70">
-            {state.wins.r} / {state.wins.b}
-          </span>
-          <button
-            type="button"
-            disabled={!canEdit}
-            onClick={() => {
-              setPick(null);
-              write({ ...state, board: initialBoard(), turn: "r", chain: null });
-            }}
-            aria-label="new game"
-            className="grid size-6 place-items-center rounded-lg text-muted transition hover:bg-white/8 hover:text-chalk disabled:opacity-40"
-          >
-            <RotateCcw className="size-3.5" strokeWidth={2.2} />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Seat({
-  disc,
-  who,
-  active,
-  mine,
-  onClick,
-}: {
-  disc: "r" | "b";
-  who: string | null;
-  active: boolean;
-  mine: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={clsx(
-        "flex min-w-0 flex-1 items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-left transition",
-        active ? "bg-white/12 ring-1 ring-glow/45" : "bg-white/5 hover:bg-white/9",
-      )}
-    >
-      <span className={clsx("size-3 shrink-0 rounded-full", DISC[disc])} />
-      <span className="min-w-0 flex-1 truncate text-[11px] text-muted">{who ?? "open seat"}</span>
-      {mine && <span className="shrink-0 text-[10px] text-glow">you</span>}
-    </button>
+    </GameTable>
   );
 }

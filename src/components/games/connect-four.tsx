@@ -2,11 +2,16 @@
 
 import { useState } from "react";
 import clsx from "clsx";
-import { RotateCcw } from "lucide-react";
 import { useRoom } from "@/realtime/room-provider";
 import { useRoomStore } from "@/state/room-store";
 import { C4_COLUMNS, C4_ROWS, dropDisc, evaluateConnectFour, resetConnectFour } from "@/lib/games";
+import { canPlay, takeSeat, turnHint } from "@/lib/seats";
+import GameTable from "./table";
 import type { ConnectFourState, Item } from "@/lib/types";
+
+const SIDES = ["r", "y"] as const;
+const NAME = { r: "red", y: "yellow" } as const;
+const TINT = { r: "#f0736a", y: "#f2c14e" } as const;
 
 const DISC_COLOR = {
   r: "bg-[#f0736a] shadow-[inset_0_-3px_8px_rgb(0_0_0/0.28)]",
@@ -28,40 +33,13 @@ export default function ConnectFour({
   const outcome = evaluateConnectFour(state.columns);
   const over = Boolean(outcome.winner) || outcome.draw;
 
-  const mySeat: "r" | "y" | null =
-    state.seats.r === name ? "r" : state.seats.y === name ? "y" : null;
-
   const write = (next: ConnectFourState) => {
     void updateData(item.id, { game: "connectfour", state: next });
   };
 
-  const takeSeat = (seat: "r" | "y") => {
-    if (!canEdit) return;
-
-    const occupant = state.seats[seat];
-    if (occupant === name) {
-      write({ ...state, seats: { ...state.seats, [seat]: null } });
-      return;
-    }
-    if (occupant) return;
-
-    // Claiming one side releases the other, so nobody plays themselves.
-    const other = seat === "r" ? "y" : "r";
-    write({
-      ...state,
-      seats: {
-        ...state.seats,
-        [seat]: name,
-        [other]: state.seats[other] === name ? null : state.seats[other],
-      },
-    });
-  };
-
   const play = (col: number) => {
     if (!canEdit || over) return;
-
-    const seatless = !state.seats.r && !state.seats.y;
-    if (!seatless && mySeat !== state.turn) return;
+    if (!canPlay(state.seats, state.turn, name)) return;
 
     const columns = dropDisc(state.columns, col, state.turn);
     if (!columns) return;
@@ -77,37 +55,34 @@ export default function ConnectFour({
     write({ ...state, columns, turn: state.turn === "r" ? "y" : "r", wins });
   };
 
-  const winningCells = new Set(
-    (outcome.cells ?? []).map(([col, row]) => `${col}:${row}`),
-  );
+  const winningCells = new Set((outcome.cells ?? []).map(([col, row]) => `${col}:${row}`));
 
   const status = outcome.winner
-    ? `${outcome.winner === "r" ? "red" : "yellow"} connects four`
+    ? `${NAME[outcome.winner as "r" | "y"]} connects four`
     : outcome.draw
       ? "the board is full"
-      : `${state.turn === "r" ? "red" : "yellow"} to drop`;
+      : turnHint(state.seats, state.turn, name, (s) => NAME[s]);
 
   return (
-    <div className="surface grain flex size-full flex-col overflow-hidden rounded-2xl p-3">
-      <div className="mb-2.5 flex items-center gap-1.5">
-        <Seat
-          disc="r"
-          who={state.seats.r}
-          active={state.turn === "r" && !over}
-          mine={mySeat === "r"}
-          onClick={() => takeSeat("r")}
-        />
-        <Seat
-          disc="y"
-          who={state.seats.y}
-          active={state.turn === "y" && !over}
-          mine={mySeat === "y"}
-          onClick={() => takeSeat("y")}
-        />
-      </div>
-
+    <GameTable
+      seats={state.seats}
+      turn={state.turn}
+      me={name}
+      order={SIDES}
+      label={(s) => NAME[s]}
+      tint={(s) => TINT[s]}
+      onSit={(seat) => {
+        if (!canEdit) return;
+        write({ ...state, seats: takeSeat(state.seats, seat, name) });
+      }}
+      status={status}
+      score={`${state.wins.r} / ${state.wins.draw} / ${state.wins.y}`}
+      onRestart={() => write(resetConnectFour(state, outcome.winner === "r" ? "y" : "r"))}
+      canEdit={canEdit}
+      over={over}
+    >
       <div
-        className="grid min-h-0 flex-1 gap-1 rounded-xl bg-ink-950/45 p-1.5"
+        className="grid h-full w-full gap-1 rounded-xl bg-ink-950/45 p-1.5"
         style={{ gridTemplateColumns: `repeat(${C4_COLUMNS}, minmax(0, 1fr))` }}
         onPointerLeave={() => setHover(null)}
       >
@@ -122,7 +97,7 @@ export default function ConnectFour({
               onClick={() => play(col)}
               aria-label={`drop in column ${col + 1}`}
               className={clsx(
-                "flex flex-col-reverse gap-1 rounded-lg transition",
+                "flex touch-manipulation flex-col-reverse gap-1 rounded-lg transition",
                 hover === col && !over && !full && "bg-white/8",
               )}
             >
@@ -144,53 +119,6 @@ export default function ConnectFour({
           );
         })}
       </div>
-
-      <div className="mt-2.5 flex items-center justify-between gap-2">
-        <p className="truncate text-xs font-medium text-muted">{status}</p>
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] tabular-nums text-muted/70">
-            {state.wins.r} / {state.wins.draw} / {state.wins.y}
-          </span>
-          <button
-            type="button"
-            disabled={!canEdit}
-            onClick={() => write(resetConnectFour(state, outcome.winner === "r" ? "y" : "r"))}
-            aria-label="new round"
-            className="grid size-6 place-items-center rounded-lg text-muted transition hover:bg-white/8 hover:text-chalk disabled:opacity-40"
-          >
-            <RotateCcw className="size-3.5" strokeWidth={2.2} />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Seat({
-  disc,
-  who,
-  active,
-  mine,
-  onClick,
-}: {
-  disc: "r" | "y";
-  who: string | null;
-  active: boolean;
-  mine: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={clsx(
-        "flex min-w-0 flex-1 items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-left transition",
-        active ? "bg-white/12 ring-1 ring-glow/45" : "bg-white/5 hover:bg-white/9",
-      )}
-    >
-      <span className={clsx("size-3 shrink-0 rounded-full", DISC_COLOR[disc])} />
-      <span className="min-w-0 flex-1 truncate text-[11px] text-muted">{who ?? "open seat"}</span>
-      {mine && <span className="shrink-0 text-[10px] text-glow">you</span>}
-    </button>
+    </GameTable>
   );
 }

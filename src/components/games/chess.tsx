@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import clsx from "clsx";
-import { RotateCcw } from "lucide-react";
 import { useRoom } from "@/realtime/room-provider";
 import { useRoomStore } from "@/state/room-store";
 import {
@@ -16,9 +15,13 @@ import {
   outcome,
 } from "@/lib/chess";
 import type { Board, Castling } from "@/lib/chess";
+import { canPlay, seatOf, takeSeat, turnHint } from "@/lib/seats";
+import GameTable from "./table";
 import type { ChessState, Item } from "@/lib/types";
 
 const FILES = "abcdefgh";
+const SIDES = ["w", "b"] as const;
+const TINT = { w: "#f4efe6", b: "#2b2438" } as const;
 
 export default function Chess({ item, state }: { item: Item<"game">; state: ChessState }) {
   const { updateData, canEdit } = useRoom();
@@ -40,9 +43,7 @@ export default function Chess({ item, state }: { item: Item<"game">; state: Ches
   );
   const over = result.kind === "checkmate" || result.kind === "stalemate" || result.kind === "dead";
 
-  const mySeat: "w" | "b" | null =
-    state.seats.w === name ? "w" : state.seats.b === name ? "b" : null;
-  const seatless = !state.seats.w && !state.seats.b;
+  const mySeat = seatOf(state.seats, name);
 
   // Black sits on the other side of the table, so the board turns around.
   const flipped = mySeat === "b";
@@ -51,31 +52,12 @@ export default function Chess({ item, state }: { item: Item<"game">; state: Ches
     return flipped ? order.reverse() : order;
   }, [flipped]);
 
-  const takeSeat = (seat: "w" | "b") => {
-    if (!canEdit) return;
-    const occupant = state.seats[seat];
-    if (occupant === name) {
-      write({ ...state, seats: { ...state.seats, [seat]: null } });
-      return;
-    }
-    if (occupant) return;
-    const other = seat === "w" ? "b" : "w";
-    write({
-      ...state,
-      seats: {
-        ...state.seats,
-        [seat]: name,
-        [other]: state.seats[other] === name ? null : state.seats[other],
-      },
-    });
-  };
-
   const targets = pick !== null ? legalMoves(board, pick, { castling, ep }) : [];
   const checkedKing = result.kind === "playing" && result.check ? findKing(board, state.turn) : -1;
 
   const onSquare = (i: number) => {
     if (!canEdit || over) return;
-    if (!seatless && mySeat !== state.turn) return;
+    if (!canPlay(state.seats, state.turn, name)) return;
 
     const piece = board[i];
 
@@ -136,28 +118,27 @@ export default function Chess({ item, state }: { item: Item<"game">; state: Ches
           ? "game over"
           : result.check
             ? `${side(state.turn)} is in check`
-            : `${side(state.turn)} to move`;
+            : turnHint(state.seats, state.turn, name, side);
 
   return (
-    <div className="surface grain flex size-full flex-col overflow-hidden rounded-2xl p-3">
-      <div className="mb-2.5 flex items-center gap-1.5">
-        <Seat
-          mark="white"
-          who={state.seats.w}
-          active={state.turn === "w" && !over}
-          mine={mySeat === "w"}
-          onClick={() => takeSeat("w")}
-        />
-        <Seat
-          mark="black"
-          who={state.seats.b}
-          active={state.turn === "b" && !over}
-          mine={mySeat === "b"}
-          onClick={() => takeSeat("b")}
-        />
-      </div>
-
-      <div className="grid min-h-0 flex-1 grid-cols-8 overflow-hidden rounded-lg">
+    <GameTable
+      seats={state.seats}
+      turn={state.turn}
+      me={name}
+      order={SIDES}
+      label={side}
+      tint={(c) => TINT[c]}
+      onSit={(seat) => {
+        if (!canEdit) return;
+        write({ ...state, seats: takeSeat(state.seats, seat, name) });
+      }}
+      status={status}
+      score={`${state.wins.w} / ${state.wins.b}`}
+      onRestart={newGame}
+      canEdit={canEdit}
+      over={over}
+    >
+      <div className="grid aspect-square h-full max-h-full w-full max-w-full grid-cols-8 overflow-hidden rounded-lg">
         {squares.map((i) => {
           const cell = board[i];
           const light = (Math.floor(i / 8) + (i % 8)) % 2 === 0;
@@ -177,7 +158,6 @@ export default function Chess({ item, state }: { item: Item<"game">; state: Ches
                 selected && "ring-2 ring-glow ring-inset",
                 inDanger && "bg-red-500/70",
               )}
-              style={{ aspectRatio: "1" }}
             >
               {cell && (
                 <span
@@ -202,58 +182,6 @@ export default function Chess({ item, state }: { item: Item<"game">; state: Ches
           );
         })}
       </div>
-
-      <div className="mt-2.5 flex items-center justify-between gap-2">
-        <p className="truncate text-xs font-medium text-muted">{status}</p>
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] tabular-nums text-muted/70">
-            {state.wins.w} / {state.wins.b}
-          </span>
-          <button
-            type="button"
-            disabled={!canEdit}
-            onClick={newGame}
-            aria-label="new game"
-            className="grid size-6 place-items-center rounded-lg text-muted transition hover:bg-white/8 hover:text-chalk disabled:opacity-40"
-          >
-            <RotateCcw className="size-3.5" strokeWidth={2.2} />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Seat({
-  mark,
-  who,
-  active,
-  mine,
-  onClick,
-}: {
-  mark: string;
-  who: string | null;
-  active: boolean;
-  mine: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={clsx(
-        "flex min-w-0 flex-1 items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-left transition",
-        active ? "bg-white/12 ring-1 ring-glow/45" : "bg-white/5 hover:bg-white/9",
-      )}
-    >
-      <span
-        className={clsx(
-          "size-3 shrink-0 rounded-full ring-1 ring-white/25",
-          mark === "white" ? "bg-white" : "bg-ink-950",
-        )}
-      />
-      <span className="min-w-0 flex-1 truncate text-[11px] text-muted">{who ?? "open seat"}</span>
-      {mine && <span className="shrink-0 text-[10px] text-glow">you</span>}
-    </button>
+    </GameTable>
   );
 }

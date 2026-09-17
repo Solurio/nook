@@ -35,6 +35,26 @@ import { REACTIONS, REACTION_GLYPHS } from "@/lib/reactions";
 import type { GameKind, ItemKind } from "@/lib/types";
 import BrushPopover from "./brush-popover";
 
+/**
+ * Every game in one list, so the dock and the phone sheet always offer the same
+ * things in the same order rather than two lists drifting apart.
+ */
+const GAMES: Array<{ kind: GameKind; title: string; hint: string; icon: React.ReactNode }> = [
+  { kind: "chess", title: "chess", hint: "check, mate, castling", icon: <Crown /> },
+  { kind: "checkers", title: "checkers", hint: "jump and crown", icon: <CircleDot /> },
+  {
+    kind: "intransitive",
+    title: "intransitive",
+    hint: "rock paper scissors, at war",
+    icon: <Swords />,
+  },
+  { kind: "cards", title: "card table", hint: "any deck, any rules", icon: <Spade /> },
+  { kind: "dominoes", title: "dominoes", hint: "double six, teams optional", icon: <GripVertical /> },
+  { kind: "connectfour", title: "connect four", hint: "four in a row", icon: <Dices /> },
+  { kind: "tictactoe", title: "tic tac toe", hint: "quick and petty", icon: <Grid3x3 /> },
+  { kind: "doodle", title: "paint board", hint: "draw together", icon: <Pencil /> },
+];
+
 export default function Dock() {
   const { createItem, canEdit, sendPing } = useRoom();
   const viewport = useRoomStore((s) => s.viewport);
@@ -218,55 +238,16 @@ export default function Dock() {
           </DockButton>
 
           {gamesOpen && (
-            <div className="surface-raised animate-drift-in absolute right-1.5 bottom-full mb-2 w-48 overflow-hidden rounded-2xl p-1 shadow-2xl">
-              <GameOption
-                icon={<Crown className="size-4" strokeWidth={2} />}
-                title="chess"
-                hint="the real one"
-                onClick={() => add("game", "chess")}
-              />
-              <GameOption
-                icon={<GripVertical className="size-4" strokeWidth={2} />}
-                title="dominoes"
-                hint="double six, teams optional"
-                onClick={() => add("game", "dominoes")}
-              />
-              <GameOption
-                icon={<Spade className="size-4" strokeWidth={2} />}
-                title="card table"
-                hint="any deck, any rules"
-                onClick={() => add("game", "cards")}
-              />
-              <GameOption
-                icon={<Swords className="size-4" strokeWidth={2} />}
-                title="intransitive"
-                hint="rock, paper, scissors at war"
-                onClick={() => add("game", "intransitive")}
-              />
-              <GameOption
-                icon={<CircleDot className="size-4" strokeWidth={2} />}
-                title="checkers"
-                hint="jump and crown"
-                onClick={() => add("game", "checkers")}
-              />
-              <GameOption
-                icon={<Grid3x3 className="size-4" strokeWidth={2} />}
-                title="tic tac toe"
-                hint="quick and petty"
-                onClick={() => add("game", "tictactoe")}
-              />
-              <GameOption
-                icon={<Dices className="size-4" strokeWidth={2} />}
-                title="connect four"
-                hint="slightly less quick"
-                onClick={() => add("game", "connectfour")}
-              />
-              <GameOption
-                icon={<Pencil className="size-4" strokeWidth={2} />}
-                title="doodle board"
-                hint="draw together"
-                onClick={() => add("game", "doodle")}
-              />
+            <div className="surface-raised animate-drift-in absolute right-1.5 bottom-full mb-2 grid w-[24rem] max-w-[90vw] grid-cols-2 gap-1 rounded-2xl p-2 shadow-2xl">
+              {GAMES.map((game) => (
+                <GameOption
+                  key={game.kind}
+                  icon={game.icon}
+                  title={game.title}
+                  hint={game.hint}
+                  onClick={() => add("game", game.kind)}
+                />
+              ))}
             </div>
           )}
         </div>
@@ -342,16 +323,6 @@ function AddSheet({
     { icon: <MonitorPlay className="size-5" strokeWidth={2} />, label: "shared browser", run: () => onAdd("cobrowse") },
   ];
 
-  const games: Array<{ icon: React.ReactNode; label: string; kind: GameKind }> = [
-    { icon: <Crown className="size-5" strokeWidth={2} />, label: "chess", kind: "chess" },
-    { icon: <Swords className="size-5" strokeWidth={2} />, label: "intransitive", kind: "intransitive" },
-    { icon: <Spade className="size-5" strokeWidth={2} />, label: "card table", kind: "cards" },
-    { icon: <GripVertical className="size-5" strokeWidth={2} />, label: "dominoes", kind: "dominoes" },
-    { icon: <CircleDot className="size-5" strokeWidth={2} />, label: "checkers", kind: "checkers" },
-    { icon: <Grid3x3 className="size-5" strokeWidth={2} />, label: "tic tac toe", kind: "tictactoe" },
-    { icon: <Dices className="size-5" strokeWidth={2} />, label: "connect four", kind: "connectfour" },
-    { icon: <Pencil className="size-5" strokeWidth={2} />, label: "paint board", kind: "doodle" },
-  ];
 
   return (
     <div className="pointer-events-auto fixed inset-0 z-60 flex flex-col justify-end sm:hidden">
@@ -387,14 +358,15 @@ function AddSheet({
 
         <h2 className="mt-5 mb-3 text-sm font-semibold">games</h2>
         <div className="grid grid-cols-2 gap-2">
-          {games.map((game) => (
+          {GAMES.map((game) => (
             <SheetTile
               key={game.kind}
               disabled={!canEdit}
               onClick={() => onAdd("game", game.kind)}
               icon={game.icon}
+              hint={game.hint}
             >
-              {game.label}
+              {game.title}
             </SheetTile>
           ))}
         </div>
@@ -413,11 +385,13 @@ function AddSheet({
 function SheetTile({
   children,
   icon,
+  hint,
   onClick,
   disabled,
 }: {
   children: React.ReactNode;
   icon: React.ReactNode;
+  hint?: string;
   onClick: () => void;
   disabled?: boolean;
 }) {
@@ -428,10 +402,13 @@ function SheetTile({
       disabled={disabled}
       className="flex min-h-14 items-center gap-3 rounded-2xl bg-white/6 px-3.5 py-3 text-left text-sm font-medium ring-1 ring-white/10 transition active:bg-white/12 disabled:opacity-35"
     >
-      <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-glow/18 text-glow">
+      <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-glow/18 text-glow [&_svg]:size-5">
         {icon}
       </span>
-      <span className="min-w-0 truncate">{children}</span>
+      <span className="min-w-0">
+        <span className="block truncate">{children}</span>
+        {hint && <span className="block truncate text-[11px] font-normal text-muted/70">{hint}</span>}
+      </span>
     </button>
   );
 }
@@ -482,9 +459,9 @@ function GameOption({
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition hover:bg-white/9"
+      className="flex min-h-12 w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition hover:bg-white/9"
     >
-      <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-glow/18 text-glow">
+      <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-glow/18 text-glow [&_svg]:size-4">
         {icon}
       </span>
       <span className="min-w-0">
