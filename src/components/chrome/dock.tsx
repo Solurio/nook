@@ -12,6 +12,7 @@ import {
   Globe,
   Grid3x3,
   ImagePlus,
+  Maximize2,
   Minus,
   MonitorPlay,
   MonitorUp,
@@ -22,9 +23,10 @@ import {
   Smile,
   StickyNote,
   Type,
+  X,
 } from "lucide-react";
 import { useRoom } from "@/realtime/room-provider";
-import { useRoomStore } from "@/state/room-store";
+import { useRoomStore, viewportForItems } from "@/state/room-store";
 import { draftItem, topZ } from "@/lib/items";
 import { REACTIONS, REACTION_GLYPHS } from "@/lib/reactions";
 import type { GameKind, ItemKind } from "@/lib/types";
@@ -40,6 +42,7 @@ export default function Dock() {
 
   const [gamesOpen, setGamesOpen] = useState(false);
   const [reactionsOpen, setReactionsOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const dockRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -70,9 +73,17 @@ export default function Dock() {
       const jitter = { x: at.x + (Math.random() * 90 - 45), y: at.y + (Math.random() * 90 - 45) };
       await createItem(draftItem(kind, jitter, z, game ? { game } : {}));
       setGamesOpen(false);
+      setSheetOpen(false);
     },
     [canEdit, centerOfView, createItem],
   );
+
+  /** Pull the camera back until everything in the room is on screen. */
+  const fitEverything = useCallback(() => {
+    const items = Object.values(useRoomStore.getState().items);
+    setViewport(viewportForItems(items, window.innerWidth, window.innerHeight));
+    setSheetOpen(false);
+  }, [setViewport]);
 
   const react = useCallback(
     (glyph: string) => {
@@ -88,8 +99,9 @@ export default function Dock() {
       className="pointer-events-none absolute inset-x-0 bottom-0 z-50 flex justify-center p-3"
     >
       <div className="pointer-events-auto flex items-end gap-2">
-        {/* Zoom */}
-        <div className="surface flex items-center gap-0.5 rounded-2xl p-1.5">
+        {/* Zoom. Hidden on a phone, where pinching does the same job and the
+            room is better off with the width. */}
+        <div className="surface hidden items-center gap-0.5 rounded-2xl p-1.5 sm:flex">
           <DockButton
             label="zoom out"
             onClick={() => zoomAt(0.85, window.innerWidth / 2, window.innerHeight / 2)}
@@ -141,8 +153,25 @@ export default function Dock() {
           {tool === "draw" && <BrushPopover />}
         </div>
 
+        {/* One button on a phone: eight of these did not fit, and the ends of
+            the row were sliding off both edges of the screen unreachable. */}
+        <div className="surface flex items-center rounded-2xl p-1.5 sm:hidden">
+          <DockButton
+            label="add something"
+            disabled={!canEdit}
+            active={sheetOpen}
+            onClick={() => {
+              setSheetOpen((v) => !v);
+              setGamesOpen(false);
+              setReactionsOpen(false);
+            }}
+          >
+            <Plus className="size-5" strokeWidth={2.4} />
+          </DockButton>
+        </div>
+
         {/* Add things */}
-        <div className="surface relative flex items-center gap-0.5 rounded-2xl p-1.5">
+        <div className="surface relative hidden items-center gap-0.5 rounded-2xl p-1.5 sm:flex">
           <DockButton label="pin a picture" disabled={!canEdit} onClick={() => add("image")}>
             <ImagePlus className="size-4.5" strokeWidth={2} />
           </DockButton>
@@ -254,7 +283,132 @@ export default function Dock() {
           )}
         </div>
       </div>
+
+      {sheetOpen && (
+        <AddSheet
+          canEdit={canEdit}
+          onClose={() => setSheetOpen(false)}
+          onAdd={add}
+          onFit={fitEverything}
+        />
+      )}
     </div>
+  );
+}
+
+/**
+ * The phone version of the add row. A bottom sheet with room to label things
+ * beats a dock so wide its ends hang off both sides of the screen.
+ */
+function AddSheet({
+  canEdit,
+  onClose,
+  onAdd,
+  onFit,
+}: {
+  canEdit: boolean;
+  onClose: () => void;
+  onAdd: (kind: ItemKind, game?: GameKind) => void;
+  onFit: () => void;
+}) {
+  const things: Array<{ icon: React.ReactNode; label: string; run: () => void }> = [
+    { icon: <ImagePlus className="size-5" strokeWidth={2} />, label: "picture", run: () => onAdd("image") },
+    { icon: <StickyNote className="size-5" strokeWidth={2} />, label: "note", run: () => onAdd("note") },
+    { icon: <Type className="size-5" strokeWidth={2} />, label: "big text", run: () => onAdd("text") },
+    { icon: <Music4 className="size-5" strokeWidth={2} />, label: "music or video", run: () => onAdd("media") },
+    { icon: <Globe className="size-5" strokeWidth={2} />, label: "window", run: () => onAdd("embed") },
+    { icon: <MonitorUp className="size-5" strokeWidth={2} />, label: "share a tab", run: () => onAdd("screencast") },
+    { icon: <MonitorPlay className="size-5" strokeWidth={2} />, label: "shared browser", run: () => onAdd("cobrowse") },
+  ];
+
+  const games: Array<{ icon: React.ReactNode; label: string; kind: GameKind }> = [
+    { icon: <Crown className="size-5" strokeWidth={2} />, label: "chess", kind: "chess" },
+    { icon: <CircleDot className="size-5" strokeWidth={2} />, label: "checkers", kind: "checkers" },
+    { icon: <Grid3x3 className="size-5" strokeWidth={2} />, label: "tic tac toe", kind: "tictactoe" },
+    { icon: <Dices className="size-5" strokeWidth={2} />, label: "connect four", kind: "connectfour" },
+    { icon: <Pencil className="size-5" strokeWidth={2} />, label: "paint board", kind: "doodle" },
+  ];
+
+  return (
+    <div className="pointer-events-auto fixed inset-0 z-60 flex flex-col justify-end sm:hidden">
+      <button
+        type="button"
+        aria-label="close"
+        onClick={onClose}
+        className="absolute inset-0 bg-ink-950/55"
+      />
+
+      <div className="surface-raised animate-drift-in relative max-h-[78dvh] overflow-y-auto rounded-t-3xl px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl">
+        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
+
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold">add to the room</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="close"
+            className="grid size-9 place-items-center rounded-xl text-muted transition hover:bg-white/8 hover:text-chalk"
+          >
+            <X className="size-4" strokeWidth={2.4} />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          {things.map((thing) => (
+            <SheetTile key={thing.label} disabled={!canEdit} onClick={thing.run} icon={thing.icon}>
+              {thing.label}
+            </SheetTile>
+          ))}
+        </div>
+
+        <h2 className="mt-5 mb-3 text-sm font-semibold">games</h2>
+        <div className="grid grid-cols-2 gap-2">
+          {games.map((game) => (
+            <SheetTile
+              key={game.kind}
+              disabled={!canEdit}
+              onClick={() => onAdd("game", game.kind)}
+              icon={game.icon}
+            >
+              {game.label}
+            </SheetTile>
+          ))}
+        </div>
+
+        <h2 className="mt-5 mb-3 text-sm font-semibold">view</h2>
+        <div className="grid grid-cols-2 gap-2">
+          <SheetTile onClick={onFit} icon={<Maximize2 className="size-5" strokeWidth={2} />}>
+            fit everything
+          </SheetTile>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SheetTile({
+  children,
+  icon,
+  onClick,
+  disabled,
+}: {
+  children: React.ReactNode;
+  icon: React.ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="flex min-h-14 items-center gap-3 rounded-2xl bg-white/6 px-3.5 py-3 text-left text-sm font-medium ring-1 ring-white/10 transition active:bg-white/12 disabled:opacity-35"
+    >
+      <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-glow/18 text-glow">
+        {icon}
+      </span>
+      <span className="min-w-0 truncate">{children}</span>
+    </button>
   );
 }
 
@@ -279,7 +433,8 @@ function DockButton({
       title={label}
       aria-label={label}
       className={clsx(
-        "grid size-9 place-items-center rounded-xl transition disabled:opacity-35 disabled:hover:bg-transparent",
+        // 44px on touch, tighter once there is a mouse to aim with.
+        "grid size-11 place-items-center rounded-xl transition select-none disabled:opacity-35 disabled:hover:bg-transparent sm:size-9",
         active ? "bg-glow/22 text-glow" : "text-muted hover:bg-white/8 hover:text-chalk",
       )}
     >
