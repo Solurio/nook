@@ -7,8 +7,8 @@
 // result for any gif/webp with dimensions and pick a small one for the grid and
 // a bigger one for the drop.
 
-import type { Gif } from "./gifs";
-import type { Attempt } from "./giphy";
+import type { Attempt, Gif } from "./gifs";
+
 
 const KEY = process.env.NEXT_PUBLIC_KLIPY_KEY;
 
@@ -82,7 +82,9 @@ async function run(kind: "gifs" | "stickers", term: string, limit: number): Prom
     if (!res.ok) return { gifs: [], state: "failed" };
 
     const body = (await res.json()) as { data?: unknown; error?: string };
-    // The proxy says so in the body when it has no key or cannot reach Klipy.
+    // The proxy reports in the body when it was never given a key, which is a
+    // setup problem rather than something that fixes itself.
+    if (body.error === "not_configured") return { gifs: [], state: "badkey" };
     if (body.error) return { gifs: [], state: "failed" };
 
     // Klipy wraps results as data.data (paginated) or sometimes just data.

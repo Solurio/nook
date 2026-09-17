@@ -102,13 +102,16 @@ export default function StickersPanel() {
           <p>Searching gifs and stickers needs at least one free key.</p>
           <ol className="list-decimal space-y-1 pl-4 text-xs">
             <li>
-              Grab one from <span className="text-chalk">developers.giphy.com</span> and/or{" "}
+              Grab one from <span className="text-chalk">tenor.com</span> (the most generous
+              free allowance), <span className="text-chalk">developers.giphy.com</span> or{" "}
               <span className="text-chalk">partner.klipy.com</span>.
             </li>
             <li>
-              Add <code className="rounded bg-white/8 px-1">NEXT_PUBLIC_GIPHY_KEY</code> and/or{" "}
+              Add <code className="rounded bg-white/8 px-1">NEXT_PUBLIC_TENOR_KEY</code>,{" "}
+              <code className="rounded bg-white/8 px-1">NEXT_PUBLIC_GIPHY_KEY</code> or{" "}
               <code className="rounded bg-white/8 px-1">NEXT_PUBLIC_KLIPY_KEY</code> to your
-              environment variables, then deploy again.
+              environment variables, then deploy again. More than one means a source running
+              dry still leaves you with gifs.
             </li>
           </ol>
         </div>

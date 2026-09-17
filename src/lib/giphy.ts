@@ -3,7 +3,7 @@
 // Giphy source: gifs and (transparent) stickers. Needs a free API key; calls go
 // straight from the browser, which Giphy's CORS allows.
 
-import type { Gif, SourceState } from "./gifs";
+import type { Attempt, Gif } from "./gifs";
 
 const KEY = process.env.NEXT_PUBLIC_GIPHY_KEY;
 const ENDPOINT = "https://api.giphy.com/v1";
@@ -26,12 +26,6 @@ interface GiphyItem {
     downsized_medium?: GiphyImage;
     original?: GiphyImage;
   };
-}
-
-/** One provider call: what came back, and how it went. */
-export interface Attempt {
-  gifs: Gif[];
-  state: SourceState;
 }
 
 function toGif(item: GiphyItem, sticker: boolean): Gif | null {
@@ -61,9 +55,15 @@ async function run(
   try {
     const res = await fetch(`${ENDPOINT}/${kind}/${path}?${query.toString()}`);
 
-    // 429 is the plain rate limit; Giphy also answers 403 once a key is over
-    // its daily allowance. Neither is worth retrying with a different word.
-    if (res.status === 429 || res.status === 403) return { gifs: [], state: "limited" };
+    // 429 is the plain rate limit. A 403 is ambiguous: Giphy uses it both for a
+    // key that is over its allowance and for one it does not accept at all, and
+    // only one of those is worth waiting out -- so the body decides.
+    if (res.status === 429) return { gifs: [], state: "limited" };
+    if (res.status === 403) {
+      const text = await res.text().catch(() => "");
+      const refused = /credential|authenticat|invalid|forbidden key|api_key/i.test(text);
+      return { gifs: [], state: refused ? "badkey" : "limited" };
+    }
     if (!res.ok) return { gifs: [], state: "failed" };
 
     const body = (await res.json()) as { data?: GiphyItem[] };

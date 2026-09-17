@@ -3,25 +3,28 @@
 import {
   explain,
   interleave,
+  type Attempt,
   type Gif,
   type GifResults,
   type SourceName,
   type SourceReport,
   type SourceState,
 } from "./gifs";
-import { giphyEnabled, searchGiphy, trendingGiphy, type Attempt } from "./giphy";
+import { giphyEnabled, searchGiphy, trendingGiphy } from "./giphy";
 import { klipyEnabled, searchKlipy } from "./klipy";
+import { searchTenor, tenorEnabled, trendingTenor } from "./tenor";
 
 export { explain };
 
 export function anyGifSource(): boolean {
-  return giphyEnabled() || klipyEnabled();
+  return giphyEnabled() || klipyEnabled() || tenorEnabled();
 }
 
 export function enabledSources(): string[] {
   const names: string[] = [];
   if (giphyEnabled()) names.push("giphy");
   if (klipyEnabled()) names.push("klipy");
+  if (tenorEnabled()) names.push("tenor");
   return names;
 }
 
@@ -45,15 +48,21 @@ function remember(key: string, results: GifResults) {
 }
 
 /** Rolls the two calls a provider makes into one verdict for that provider. */
-function summarise(source: SourceName, attempts: PromiseSettledResult<Attempt>[]): SourceReport {
+export function summarise(
+  source: SourceName,
+  attempts: PromiseSettledResult<Attempt>[],
+): SourceReport {
   const done = attempts
     .filter((a): a is PromiseFulfilledResult<Attempt> => a.status === "fulfilled")
     .map((a) => a.value);
 
   const count = done.reduce((sum, a) => sum + a.gifs.length, 0);
 
+  // Anything that worked speaks for the provider. Failing that, report the most
+  // actionable reason: a refused key needs a person, a spent one needs a wait.
   let state: SourceState = "failed";
   if (done.some((a) => a.state === "ok")) state = "ok";
+  else if (done.some((a) => a.state === "badkey")) state = "badkey";
   else if (done.some((a) => a.state === "limited")) state = "limited";
 
   return { source, state, count };
@@ -73,17 +82,20 @@ export async function searchGifs(term: string): Promise<GifResults> {
   const has = key.length > 0;
   const giphy = giphyEnabled() ? (has ? searchGiphy(term) : trendingGiphy()) : [];
   const klipy = klipyEnabled() ? searchKlipy(has ? term : "") : [];
+  const tenor = tenorEnabled() ? (has ? searchTenor(term) : trendingTenor()) : [];
 
-  const [giphySettled, klipySettled] = await Promise.all([
+  const [giphySettled, klipySettled, tenorSettled] = await Promise.all([
     Promise.allSettled(giphy),
     Promise.allSettled(klipy),
+    Promise.allSettled(tenor),
   ]);
 
   const reports: SourceReport[] = [];
   if (giphyEnabled()) reports.push(summarise("giphy", giphySettled));
   if (klipyEnabled()) reports.push(summarise("klipy", klipySettled));
+  if (tenorEnabled()) reports.push(summarise("tenor", tenorSettled));
 
-  const lists: Gif[][] = [...giphySettled, ...klipySettled]
+  const lists: Gif[][] = [...giphySettled, ...klipySettled, ...tenorSettled]
     .filter((s): s is PromiseFulfilledResult<Attempt> => s.status === "fulfilled")
     .map((s) => s.value.gifs);
 

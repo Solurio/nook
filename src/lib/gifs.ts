@@ -6,6 +6,12 @@
 
 export type SourceName = "giphy" | "klipy" | "tenor";
 
+/** One provider call: what came back, and how it went. */
+export interface Attempt {
+  gifs: Gif[];
+  state: SourceState;
+}
+
 export interface Gif {
   id: string;
   /** Small looping preview for the grid. */
@@ -28,8 +34,10 @@ export interface Gif {
 export type SourceState =
   /** Answered, whether or not it had anything. */
   | "ok"
-  /** Refused because the key is out of requests for now. */
+  /** Refused because the key is out of requests for now. Waiting fixes it. */
   | "limited"
+  /** Refused the key itself. Waiting will not fix it; the key has to change. */
+  | "badkey"
   /** Broke in some other way. */
   | "failed";
 
@@ -70,8 +78,16 @@ export function explain(reports: SourceReport[]): string | null {
   if (reports.length === 0) return null;
 
   const limited = reports.filter((r) => r.state === "limited");
+  const badkey = reports.filter((r) => r.state === "badkey");
   const failed = reports.filter((r) => r.state === "failed");
   const working = reports.filter((r) => r.state === "ok");
+
+  // A refused key is worth saying first: it is the one that never comes back
+  // on its own, so waiting it out is exactly the wrong thing to do.
+  if (badkey.length > 0) {
+    const names = badkey.map((r) => r.source).join(" and ");
+    return `${names} turned the key down. it needs a new one in the environment variables, not more waiting.`;
+  }
 
   if (limited.length > 0 && working.length === 0) {
     const names = limited.map((r) => r.source).join(" and ");

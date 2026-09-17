@@ -99,7 +99,14 @@ function EmptySlot({
       )}
     >
       {active && canEdit ? (
-        <div className="w-full max-w-[240px] space-y-2">
+        // The frame starts a drag on pointerdown and captures the pointer,
+        // which retargets the click away from the label -- and it is the
+        // label's own activation that opens the file dialog. Keeping these
+        // controls' pointerdown to themselves is what lets the picker open.
+        <div
+          className="w-full max-w-[240px] space-y-2"
+          onPointerDown={(event) => event.stopPropagation()}
+        >
           <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-chalk px-3 py-2 text-xs font-semibold text-ink-950 transition hover:bg-white">
             <ImagePlus className="size-3.5" strokeWidth={2.4} />
             choose a file
