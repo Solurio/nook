@@ -145,6 +145,123 @@ body.is-room {
   animation: pulse-ring 2s ease-out infinite;
 }
 
+/* ---------------------------------------------------------------------------
+   Text effects. Picked per text item; "wave" animates one character at a time,
+   the rest animate the whole block.
+   --------------------------------------------------------------------------- */
+
+@keyframes text-rainbow {
+  0% {
+    color: #ff5c7a;
+  }
+  16% {
+    color: #ffb45c;
+  }
+  33% {
+    color: #f7ef61;
+  }
+  50% {
+    color: #78e08f;
+  }
+  66% {
+    color: #63c7ff;
+  }
+  83% {
+    color: #b78bff;
+  }
+  100% {
+    color: #ff5c7a;
+  }
+}
+
+@keyframes text-shake {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  20% {
+    transform: translate(-1.5px, 1px) rotate(-0.6deg);
+  }
+  40% {
+    transform: translate(1.5px, -1px) rotate(0.6deg);
+  }
+  60% {
+    transform: translate(-1px, -1.5px) rotate(-0.4deg);
+  }
+  80% {
+    transform: translate(1px, 1.5px) rotate(0.4deg);
+  }
+}
+
+@keyframes text-wave {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-0.22em);
+  }
+}
+
+@keyframes text-glow {
+  0%,
+  100% {
+    text-shadow:
+      0 0 6px currentColor,
+      0 2px 18px rgb(0 0 0 / 0.35);
+  }
+  50% {
+    text-shadow:
+      0 0 22px currentColor,
+      0 0 40px currentColor,
+      0 2px 18px rgb(0 0 0 / 0.35);
+  }
+}
+
+@keyframes text-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+.fx-rainbow {
+  animation: text-rainbow 4s linear infinite;
+}
+
+.fx-shake {
+  animation: text-shake 0.35s steps(2, end) infinite;
+}
+
+.fx-glow {
+  animation: text-glow 2.2s ease-in-out infinite;
+}
+
+.fx-pulse {
+  animation: text-pulse 1.9s ease-in-out infinite;
+  transform-origin: center;
+}
+
+/* Each letter gets its own delay, set inline, so the row ripples. */
+.fx-wave > span {
+  display: inline-block;
+  animation: text-wave 1.1s ease-in-out infinite;
+  white-space: pre;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-rainbow,
+  .fx-shake,
+  .fx-glow,
+  .fx-pulse,
+  .fx-wave > span {
+    animation: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-ping-pop,
   .animate-drift-in,

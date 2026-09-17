@@ -17,6 +17,20 @@ import type {
 export interface Brush {
   color: string;
   size: number;
+  /** 0..1. Baked into the stroke colour as an alpha channel when drawing. */
+  opacity: number;
+}
+
+/**
+ * Packs the brush opacity into the colour as #rrggbbaa. Strokes keep their
+ * colour in one text column, so carrying alpha there means translucent ink
+ * needs no new column and older strokes stay fully opaque.
+ */
+export function inkColor(color: string, opacity: number): string {
+  const a = Math.round(Math.max(0, Math.min(1, opacity)) * 255);
+  if (a >= 255) return color;
+  const hex = color.startsWith("#") ? color.slice(0, 7) : color;
+  return `${hex}${a.toString(16).padStart(2, "0")}`;
 }
 
 export const BRUSH_COLORS = [
@@ -130,7 +144,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
   grabbed: new Set<string>(),
 
   tool: "select",
-  brush: { color: "#f2a4b8", size: 4 },
+  brush: { color: "#f2a4b8", size: 4, opacity: 1 },
 
   viewport: { x: 0, y: 0, scale: 1 },
   panel: null,

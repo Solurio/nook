@@ -6,7 +6,7 @@ import { ExternalLink, Hand, MonitorUp, Radio, Volume2, VolumeX } from "lucide-r
 import { useRoom } from "@/realtime/room-provider";
 import { useRoomStore } from "@/state/room-store";
 import { useScreencast } from "@/realtime/use-screencast";
-import VolumeSlider from "@/components/chrome/volume-slider";
+import Slider from "@/components/chrome/slider";
 import type { Item } from "@/lib/types";
 
 /**
@@ -299,7 +299,7 @@ function VolumeControl({
           <Volume2 className="size-4" strokeWidth={2.2} />
         )}
       </button>
-      <VolumeSlider value={muted ? 0 : volume} onChange={onChange} className="min-w-0 flex-1" />
+      <Slider label="volume" value={muted ? 0 : volume} onChange={onChange} className="min-w-0 flex-1" />
     </div>
   );
 }

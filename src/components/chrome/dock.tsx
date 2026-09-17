@@ -150,7 +150,7 @@ export default function Dock() {
             <Eraser className="size-4.5" strokeWidth={2} />
           </DockButton>
 
-          {tool === "draw" && <BrushPopover />}
+          {(tool === "draw" || tool === "erase") && <BrushPopover />}
         </div>
 
         {/* One button on a phone: eight of these did not fit, and the ends of

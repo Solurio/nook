@@ -28,7 +28,15 @@ export interface Room {
 export interface ItemDataMap {
   image: { url: string; alt?: string; radius?: number; frame?: FrameStyle };
   note: { body: string; tint: string };
-  text: { body: string; size: number; color: string; weight: number; align: "left" | "center" | "right" };
+  text: {
+    body: string;
+    size: number;
+    color: string;
+    weight: number;
+    align: "left" | "center" | "right";
+    /** Absent means plain text; the rest animate. */
+    effect?: TextEffect;
+  };
   media: MediaData;
   /**
    * A window onto another page that everyone in the room shares. The address
@@ -93,6 +101,8 @@ export interface MediaData {
   /** Hides the video surface and renders a compact player instead. */
   audioOnly: boolean;
 }
+
+export type TextEffect = "none" | "rainbow" | "shake" | "wave" | "glow" | "pulse";
 
 export type GameKind = "tictactoe" | "connectfour" | "doodle" | "chess" | "checkers";
 

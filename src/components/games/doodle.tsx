@@ -55,6 +55,10 @@ export default function Doodle({ item, state }: { item: Item<"game">; state: Doo
   const dpr = useRef(1);
   const drawing = useRef<DoodleStroke | null>(null);
   const lastSent = useRef(0);
+  /** Only this pointer feeds the stroke; a second finger is not part of it. */
+  const activePointer = useRef<number | null>(null);
+  /** After a stylus shows up, plain touches are the palm resting on the glass. */
+  const penSeen = useRef(false);
 
   // ---------------------------------------------------------------------------
   // Rendering
@@ -157,6 +161,9 @@ export default function Doodle({ item, state }: { item: Item<"game">; state: Doo
   const start = useCallback(
     (event: React.PointerEvent) => {
       if (!canEdit || event.button !== 0) return;
+      if (event.pointerType === "pen") penSeen.current = true;
+      if (penSeen.current && event.pointerType === "touch") return;
+      if (activePointer.current !== null) return;
       const point = toLocal(event);
       if (!point) return;
       event.stopPropagation();
@@ -178,6 +185,7 @@ export default function Doodle({ item, state }: { item: Item<"game">; state: Doo
         return;
       }
 
+      activePointer.current = event.pointerId;
       event.currentTarget.setPointerCapture(event.pointerId);
 
       drawing.current = {
@@ -212,7 +220,14 @@ export default function Doodle({ item, state }: { item: Item<"game">; state: Doo
   const extend = useCallback(
     (event: React.PointerEvent) => {
       const d = drawing.current;
-      if (!d) return;
+      if (!d || activePointer.current !== event.pointerId) return;
+      // A release we never saw must not keep painting a line behind the cursor.
+      if (event.buttons === 0) {
+        activePointer.current = null;
+        drawing.current = null;
+        paint();
+        return;
+      }
       const point = toLocal(event);
       if (!point) return;
       event.stopPropagation();
@@ -233,8 +248,9 @@ export default function Doodle({ item, state }: { item: Item<"game">; state: Doo
   const finish = useCallback(
     (event: React.PointerEvent) => {
       const d = drawing.current;
-      if (!d) return;
+      if (!d || activePointer.current !== event.pointerId) return;
       event.stopPropagation();
+      activePointer.current = null;
       drawing.current = null;
 
       if (d.points.length < 2) {

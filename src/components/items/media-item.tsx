@@ -27,7 +27,7 @@ import {
   projectedPosition,
   trackRef,
 } from "@/lib/media";
-import VolumeSlider from "@/components/chrome/volume-slider";
+import Slider from "@/components/chrome/slider";
 import ProviderPlayer from "./players/provider-player";
 import type { PlayerControl, PlayerState } from "./players/types";
 import type { Item, MediaData, MediaProvider, MediaTrack } from "@/lib/types";
@@ -452,7 +452,8 @@ export default function MediaItem({
                 <Volume2 className="size-4" strokeWidth={2.2} />
               )}
             </IconButton>
-            <VolumeSlider
+            <Slider
+              label="volume"
               value={muted ? 0 : volume}
               onChange={(next) => {
                 setMuted(false);

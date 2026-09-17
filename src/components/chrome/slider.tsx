@@ -3,29 +3,39 @@
 import clsx from "clsx";
 
 /**
- * A volume slider you can actually hit with a thumb. The visible track stays
- * thin, but the input itself is tall, so the touch target is the full height
- * rather than the four pixels of the bar.
+ * A slider you can actually hit with a thumb. The visible track stays thin, but
+ * the input itself is tall, so the touch target is the full height rather than
+ * the few pixels of the bar.
  */
-export default function VolumeSlider({
+export default function Slider({
   value,
   onChange,
+  min = 0,
+  max = 100,
+  step = 1,
+  label,
   className,
 }: {
   value: number;
   onChange: (value: number) => void;
+  min?: number;
+  max?: number;
+  step?: number;
+  label: string;
   className?: string;
 }) {
   return (
     <input
       type="range"
-      min={0}
-      max={100}
+      min={min}
+      max={max}
+      step={step}
       value={value}
       onChange={(event) => onChange(Number(event.target.value))}
       // Sliders live inside draggable items; the canvas must not steal the drag.
       onPointerDown={(event) => event.stopPropagation()}
-      aria-label="volume"
+      aria-label={label}
+      title={label}
       className={clsx(
         "h-7 w-full cursor-pointer appearance-none bg-transparent",
         "[&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-white/15",

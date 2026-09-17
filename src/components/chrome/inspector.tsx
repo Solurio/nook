@@ -13,9 +13,18 @@ import {
 import { useRoom } from "@/realtime/room-provider";
 import { useRoomStore } from "@/state/room-store";
 import { NOTE_TINTS } from "@/lib/items";
-import type { FrameStyle, Item } from "@/lib/types";
+import type { FrameStyle, Item, TextEffect } from "@/lib/types";
 
 const TEXT_COLORS = ["#f4efe6", "#f6c177", "#f2a4b8", "#a6d189", "#8bc7e8", "#c4a7f0"];
+
+const TEXT_EFFECTS: Array<{ id: TextEffect; label: string }> = [
+  { id: "none", label: "plain" },
+  { id: "rainbow", label: "rainbow" },
+  { id: "shake", label: "shake" },
+  { id: "wave", label: "wave" },
+  { id: "glow", label: "glow" },
+  { id: "pulse", label: "pulse" },
+];
 
 /**
  * A floating strip of controls for whatever is selected. Kept off the canvas so
@@ -115,6 +124,24 @@ function TextControls({ item }: { item: Item<"text"> }) {
         active={data.color}
         onPick={(color) => void updateData(item.id, { ...data, color })}
       />
+
+      <Divider />
+
+      <select
+        value={data.effect ?? "none"}
+        onChange={(event) =>
+          void updateData(item.id, { ...data, effect: event.target.value as TextEffect })
+        }
+        aria-label="text effect"
+        title="effect"
+        className="h-8 cursor-pointer rounded-xl bg-white/7 px-2 text-[11px] text-muted ring-1 ring-white/10 outline-none focus:ring-glow/45"
+      >
+        {TEXT_EFFECTS.map((effect) => (
+          <option key={effect.id} value={effect.id} className="bg-ink-900 text-chalk">
+            {effect.label}
+          </option>
+        ))}
+      </select>
     </>
   );
 }
