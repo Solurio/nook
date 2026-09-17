@@ -429,7 +429,7 @@ export default function Doodle({ item, state }: { item: Item<"game">; state: Doo
           <div className="mx-0.5 h-4 w-px bg-white/12" />
 
           <label
-            className="relative size-5 shrink-0 cursor-pointer overflow-hidden rounded-full ring-1 ring-white/25"
+            className="relative size-7 shrink-0 cursor-pointer overflow-hidden rounded-full ring-2 ring-white/30 sm:size-6"
             style={{ background: color }}
             title="pick a colour"
           >
@@ -440,7 +440,7 @@ export default function Doodle({ item, state }: { item: Item<"game">; state: Doo
               className="absolute inset-0 cursor-pointer opacity-0"
             />
           </label>
-          <div className="flex min-w-0 items-center gap-0.5 overflow-x-auto no-scrollbar">
+          <div className="flex min-w-0 flex-wrap items-center gap-1">
             {SWATCHES.map((sw) => (
               <button
                 key={sw}
@@ -448,7 +448,7 @@ export default function Doodle({ item, state }: { item: Item<"game">; state: Doo
                 onClick={() => setColor(sw)}
                 aria-label={`colour ${sw}`}
                 className={clsx(
-                  "size-4 shrink-0 rounded-full transition",
+                  "size-6 shrink-0 rounded-full transition hover:scale-110 sm:size-5",
                   color.toLowerCase() === sw.toLowerCase() && "ring-2 ring-chalk ring-offset-1 ring-offset-ink-800",
                 )}
                 style={{ background: sw }}
@@ -484,6 +484,21 @@ export default function Doodle({ item, state }: { item: Item<"game">; state: Doo
         </div>
 
         <div className="flex items-center gap-2 text-[10px] text-muted">
+          <span
+            aria-hidden
+            title="what you are about to draw with"
+            className="grid size-7 shrink-0 place-items-center rounded-lg bg-white/6"
+          >
+            <span
+              className="rounded-full"
+              style={{
+                width: Math.min(22, Math.max(3, size)),
+                height: Math.min(22, Math.max(3, size)),
+                background: brush === "eraser" ? "#f4efe6" : color,
+                opacity: brush === "eraser" ? 0.6 : opacity,
+              }}
+            />
+          </span>
           <Slider label="size" min={1} max={48} step={1} value={size} onChange={setSize} />
           <Slider label="flow" min={5} max={100} step={5} value={Math.round(opacity * 100)} onChange={(v) => setOpacity(v / 100)} />
           <Slider label="pen" min={0} max={100} step={10} value={Math.round(pressure * 100)} onChange={(v) => setPressure(v / 100)} />
@@ -589,7 +604,7 @@ function Tool({
       aria-label={label}
       title={label}
       className={clsx(
-        "grid size-6 shrink-0 place-items-center rounded-lg transition disabled:opacity-35",
+        "grid size-9 shrink-0 place-items-center rounded-lg transition select-none disabled:opacity-35 sm:size-7",
         active && "bg-glow/25 text-glow",
         !active && danger && "text-muted hover:bg-red-500/15 hover:text-red-300",
         !active && !danger && "text-muted hover:bg-white/8 hover:text-chalk",
