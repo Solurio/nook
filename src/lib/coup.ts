@@ -8,7 +8,10 @@
 export type Card = "duke" | "assassin" | "captain" | "ambassador" | "contessa";
 
 export const CARDS: Card[] = ["duke", "assassin", "captain", "ambassador", "contessa"];
+/** Copies of each character in the base box, which covers up to six players. */
 export const COPIES = 3;
+export const MIN_SEATS = 2;
+export const MAX_SEATS = 12;
 export const COUP_COST = 7;
 export const ASSASSIN_COST = 3;
 /** At ten coins your only move is to knock someone out. */
@@ -37,6 +40,24 @@ export const BLOCKS: Partial<Record<ActionKind, Card[]>> = {
   assassinate: ["contessa"],
   steal: ["captain", "ambassador"],
 };
+
+/**
+ * How many of each character to deal in. Three copies each -- fifteen cards --
+ * carries the box up to six players; beyond that a table of ten would be
+ * holding almost the whole deck between them and nothing would be left to draw
+ * from, so a copy of everyone is added for every two extra chairs.
+ */
+export function copiesFor(players: number): number {
+  if (players <= 6) return 3;
+  if (players <= 8) return 4;
+  if (players <= 10) return 5;
+  return 6;
+}
+
+/** Total cards in play for a table of this size. */
+export function deckSize(players: number): number {
+  return copiesFor(players) * CARDS.length;
+}
 
 export function needsTarget(kind: ActionKind): boolean {
   return kind === "coup" || kind === "assassinate" || kind === "steal";
@@ -79,10 +100,10 @@ export interface CoupState {
   log: string[];
 }
 
-export function fullDeck(): Card[] {
+export function fullDeck(copies: number = COPIES): Card[] {
   const out: Card[] = [];
   for (const card of CARDS) {
-    for (let i = 0; i < COPIES; i += 1) out.push(card);
+    for (let i = 0; i < copies; i += 1) out.push(card);
   }
   return out;
 }
@@ -285,7 +306,7 @@ export function judge(
 
 /** Deals a fresh game: two cards and two coins each. */
 export function newGame(seats: string[], random: () => number = Math.random): CoupState {
-  const deck = fullDeck();
+  const deck = fullDeck(copiesFor(seats.length));
   for (let i = deck.length - 1; i > 0; i -= 1) {
     const j = Math.floor(random() * (i + 1));
     [deck[i], deck[j]] = [deck[j], deck[i]];
@@ -302,4 +323,20 @@ export function newGame(seats: string[], random: () => number = Math.random): Co
   }
 
   return { players, deck: rest, turn: 0, phase: { kind: "act" }, log: [] };
+}
+
+/**
+ * Pulls chairs up to the table or takes them away, and deals again. The size of
+ * the deck follows the number of players, so this cannot happen mid-hand
+ * without changing the game underneath everyone.
+ */
+export function withSeats(
+  state: CoupState,
+  count: number,
+  random: () => number = Math.random,
+): CoupState {
+  const wanted = Math.max(MIN_SEATS, Math.min(MAX_SEATS, count));
+  const seats: string[] = [];
+  for (let i = 0; i < wanted; i += 1) seats.push(state.players[i]?.seat ?? `s${i}`);
+  return newGame(seats, random);
 }

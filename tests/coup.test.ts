@@ -16,6 +16,10 @@ import {
   needsTarget,
   CARDS,
   COPIES,
+  MAX_SEATS,
+  copiesFor,
+  deckSize,
+  withSeats,
   COUP_COST,
   FORCED_COUP,
   type CoupState,
@@ -198,4 +202,67 @@ test("the last one holding a card wins", () => {
   const state = table([["duke"], ["captain"]]);
   const out = loseInfluence(state, 1, 0);
   assert.deepEqual(advance(out).phase, { kind: "over", winner: 0 });
+});
+
+test("the box grows with the table", () => {
+  // Three of each covers the base game; past six players the deck would be
+  // almost entirely in people's hands with nothing left to draw.
+  assert.equal(deckSize(2), 15);
+  assert.equal(deckSize(4), 15);
+  assert.equal(deckSize(6), 15);
+  assert.equal(deckSize(7), 20);
+  assert.equal(deckSize(8), 20);
+  assert.equal(deckSize(9), 25);
+  assert.equal(deckSize(10), 25);
+  assert.equal(deckSize(11), 30);
+  assert.equal(deckSize(12), 30);
+});
+
+test("every character is dealt in equally, whatever the size", () => {
+  for (const players of [4, 7, 9, 12]) {
+    const deck = fullDeck(copiesFor(players));
+    assert.equal(deck.length, deckSize(players));
+    for (const card of CARDS) {
+      assert.equal(
+        deck.filter((c) => c === card).length,
+        copiesFor(players),
+        `${card} at ${players} players`,
+      );
+    }
+  }
+});
+
+test("there is always something left to draw from", () => {
+  for (let players = 2; players <= MAX_SEATS; players += 1) {
+    const seats = Array.from({ length: players }, (_, i) => `s${i}`);
+    const game = newGame(seats);
+    assert.equal(game.players.length, players);
+    assert.ok(
+      game.deck.length > 0,
+      `${players} players left nothing in the middle`,
+    );
+    assert.equal(game.deck.length + players * 2, deckSize(players));
+  }
+});
+
+test("pulling up a chair keeps the people already sitting", () => {
+  const start = newGame(["ana", "s1", "bia"]);
+  const bigger = withSeats(start, 5);
+
+  assert.equal(bigger.players.length, 5);
+  assert.equal(bigger.players[0].seat, "ana");
+  assert.equal(bigger.players[2].seat, "bia");
+  assert.equal(bigger.players[3].seat, "s3", "a new chair is nobody's yet");
+  assert.equal(bigger.deck.length + 10, deckSize(5));
+});
+
+test("the table cannot be pushed past its limits", () => {
+  const start = newGame(["ana", "bia"]);
+  assert.equal(withSeats(start, 1).players.length, 2);
+  assert.equal(withSeats(start, 40).players.length, MAX_SEATS);
+});
+
+test("COPIES still describes the base box", () => {
+  assert.equal(COPIES, copiesFor(4));
+  assert.equal(fullDeck().length, 15);
 });
