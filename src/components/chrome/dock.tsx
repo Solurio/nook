@@ -153,9 +153,9 @@ export default function Dock() {
   return (
     <div
       ref={dockRef}
-      className="pointer-events-none absolute inset-x-0 bottom-0 z-50 flex justify-center p-3"
+      className="pointer-events-none absolute inset-x-0 bottom-0 z-50 flex justify-center p-2 sm:p-3"
     >
-      <div className="pointer-events-auto flex items-end gap-2">
+      <div className="pointer-events-auto flex items-end gap-1.5 sm:gap-2">
         {/* Zoom. Hidden on a phone, where pinching does the same job and the
             room is better off with the width. */}
         <div className="surface hidden items-center gap-0.5 rounded-2xl p-1.5 sm:flex">
@@ -210,9 +210,14 @@ export default function Dock() {
           {(tool === "draw" || tool === "erase") && <BrushPopover />}
         </div>
 
-        {/* One button on a phone: eight of these did not fit, and the ends of
-            the row were sliding off both edges of the screen unreachable. */}
-        <div className="surface flex items-center rounded-2xl p-1.5 sm:hidden">
+        {/* Two on a phone: eight of these did not fit, and the ends of the row
+            were sliding off both edges of the screen unreachable. Getting lost
+            in a big room is the one thing you cannot pinch your way out of, so
+            the way back sits here rather than three taps into a sheet. */}
+        <div className="surface flex items-center gap-0.5 rounded-2xl p-1.5 sm:hidden">
+          <DockButton label="fit everything" onClick={fitEverything}>
+            <Maximize2 className="size-5" strokeWidth={2.2} />
+          </DockButton>
           <DockButton
             label="add something"
             disabled={!canEdit}
@@ -453,9 +458,15 @@ function SheetTile({
       <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-glow/18 text-glow [&_svg]:size-5">
         {icon}
       </span>
+      {/* Two lines rather than an ellipsis. Half these labels did not fit
+          across a phone, and "shared brow..." tells nobody anything. */}
       <span className="min-w-0">
-        <span className="block truncate">{children}</span>
-        {hint && <span className="block truncate text-[11px] font-normal text-muted/70">{hint}</span>}
+        <span className="block leading-tight text-balance">{children}</span>
+        {hint && (
+          <span className="mt-0.5 block text-[11px] leading-tight font-normal text-balance text-muted/70">
+            {hint}
+          </span>
+        )}
       </span>
     </button>
   );

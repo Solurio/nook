@@ -53,6 +53,16 @@ function ItemFrame({
 
   const pinned = Boolean(item.data?.pinned);
 
+  /**
+   * Handles live inside the canvas layer, so they shrink with everything else
+   * -- and a room fitted onto a phone sits at about a third size, which turned
+   * a 36px grab target into 12px of nothing. Counter-scaling keeps them the
+   * size they were drawn at, whatever the zoom.
+   */
+  const scale = useRoomStore((s) => s.viewport.scale);
+  const inv = Math.min(4, Math.max(0.5, 1 / scale));
+  const counter = { transform: `scale(${inv})` };
+
   const current = useCallback((): TransformPatch => {
     const live = useRoomStore.getState().items[item.id] ?? item;
     return {
@@ -209,9 +219,11 @@ function ItemFrame({
       }}
       onPointerDown={(event) => {
         if (event.button !== 0 && event.pointerType === "mouse") return;
-        // A pinned item still answers to a tap -- there has to be a way back to
-        // the button that unpins it -- it just refuses to budge.
-        if (pinned) {
+        // A pinned item still answers to a tap -- there has to be a way back
+        // to the button that unpins it -- it just refuses to budge. So does
+        // everything in a locked room: you cannot change it, but you can still
+        // pick it up to read it, which on a phone means opening it.
+        if (pinned || !canEdit) {
           select(item.id);
           return;
         }
@@ -252,20 +264,28 @@ function ItemFrame({
         <>
           <div
             aria-hidden
-            className="pointer-events-none absolute -inset-1.5 rounded-xl ring-2 ring-glow/70"
+            className="pointer-events-none absolute rounded-xl outline-glow/70"
+            style={{
+              inset: -6 * inv,
+              outlineStyle: "solid",
+              outlineWidth: 2 * inv,
+            }}
           />
 
           {interactive && (
             <div
               onPointerDown={(event) => beginGesture(event, "move", null)}
               {...handleProps}
-              className="absolute -top-9 left-0 flex h-7 w-full cursor-grab touch-none items-center justify-center gap-1 rounded-lg bg-glow/85 active:cursor-grabbing"
+              style={{ height: 28 * inv, top: -36 * inv }}
+              className="absolute left-0 flex w-full cursor-grab touch-none items-center justify-center gap-1 rounded-lg bg-glow/85 active:cursor-grabbing"
               title="Drag to move"
             >
-              <span className="h-1 w-1 rounded-full bg-ink-950/55" />
-              <span className="h-1 w-1 rounded-full bg-ink-950/55" />
-              <span className="h-1 w-1 rounded-full bg-ink-950/55" />
-              <span className="ml-1 text-[10px] font-semibold text-ink-950/70">move</span>
+              <span
+                className="font-semibold text-ink-950/70"
+                style={{ fontSize: 10 * inv }}
+              >
+                drag to move
+              </span>
             </div>
           )}
 
@@ -274,7 +294,8 @@ function ItemFrame({
           <div
             onPointerDown={(event) => beginGesture(event, "rotate", "rotate")}
             {...handleProps}
-            className="absolute -right-12 -bottom-12 grid size-11 cursor-alias touch-none place-items-center"
+            style={{ right: -48 * inv, bottom: -48 * inv, ...counter }}
+            className="absolute grid size-11 cursor-alias touch-none place-items-center"
             title="Drag to rotate"
           >
             <span className="size-5 rounded-full bg-warm ring-2 ring-ink-950/45" />
@@ -285,6 +306,7 @@ function ItemFrame({
               key={handle}
               onPointerDown={(event) => beginGesture(event, "resize", handle)}
               {...handleProps}
+              style={counter}
               className={clsx(
                 "absolute grid size-9 touch-none place-items-center",
                 handle === "nw" && "-top-4.5 -left-4.5 cursor-nwse-resize",

@@ -545,10 +545,10 @@ export default function Canvas() {
         <button
           type="button"
           onClick={() => useRoomStore.getState().setTool("select")}
-          className="surface animate-drift-in pointer-events-auto absolute top-16 left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-medium"
+          className="surface animate-drift-in pointer-events-auto absolute top-16 left-1/2 z-40 flex min-h-9 w-max max-w-[calc(100vw-1.5rem)] -translate-x-1/2 items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-medium sm:top-28"
         >
           <span className="size-1.5 rounded-full bg-glow" />
-          {tool === "draw" ? "drawing" : "erasing"} &mdash; press Esc or tap to stop
+          {tool === "draw" ? "drawing" : "erasing"} &mdash; tap here to stop
         </button>
       )}
 
@@ -556,10 +556,10 @@ export default function Canvas() {
         <button
           type="button"
           onClick={() => useRoomStore.getState().setReaction(null)}
-          className="surface animate-drift-in pointer-events-auto absolute top-16 left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-medium"
+          className="surface animate-drift-in pointer-events-auto absolute top-16 left-1/2 z-40 flex min-h-9 w-max max-w-[calc(100vw-1.5rem)] -translate-x-1/2 items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-medium sm:top-28"
         >
           <span className="text-base leading-none">{reaction}</span>
-          tap the room to drop it &mdash; Esc to stop
+          tap the room to drop it &mdash; tap here to stop
         </button>
       )}
 

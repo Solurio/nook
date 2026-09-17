@@ -97,6 +97,12 @@ interface RoomState {
    * land on the thing it is about.
    */
   reaction: string | null;
+  /**
+   * An item opened to fill the screen. A board drawn for a desk is unreadable
+   * at a third of its size, which is what fitting a room onto a phone does to
+   * it, so one item at a time can have the whole display.
+   */
+  focusedId: string | null;
 
   viewport: Viewport;
   panel: PanelId;
@@ -124,6 +130,7 @@ interface RoomState {
   setTool: (tool: Tool) => void;
   setBrush: (patch: Partial<Brush>) => void;
   setReaction: (glyph: string | null) => void;
+  focus: (id: string | null) => void;
 
   setMe: (me: Identity) => void;
   syncPeers: (peers: Peer[]) => void;
@@ -163,6 +170,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
   tool: "select",
   brush: { color: "#f2a4b8", size: 4, opacity: 1 },
   reaction: null,
+  focusedId: null,
 
   viewport: { x: 0, y: 0, scale: 1 },
   panel: null,
@@ -219,6 +227,9 @@ export const useRoomStore = create<RoomState>((set, get) => ({
         items: next,
         selectedId: s.selectedId === id ? null : s.selectedId,
         editingId: s.editingId === id ? null : s.editingId,
+        // Someone else deleting what you have open should close it, not leave
+        // you staring at a blank screen with no way back.
+        focusedId: s.focusedId === id ? null : s.focusedId,
       };
     }),
 
@@ -306,6 +317,15 @@ export const useRoomStore = create<RoomState>((set, get) => ({
     })),
 
   setReaction: (reaction) => set({ reaction }),
+
+  // Opening something full screen selects it too, so closing again leaves you
+  // looking at the thing you were just using.
+  focus: (focusedId) =>
+    set((s) => ({
+      focusedId,
+      selectedId: focusedId ?? s.selectedId,
+      reaction: focusedId ? null : s.reaction,
+    })),
 
   setBrush: (patch) => set((s) => ({ brush: { ...s.brush, ...patch } })),
 

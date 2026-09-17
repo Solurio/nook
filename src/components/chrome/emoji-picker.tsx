@@ -88,7 +88,7 @@ export default function EmojiPicker({
   };
 
   return (
-    <div className="surface-raised animate-drift-in absolute right-0 bottom-full mb-2 flex max-h-[70dvh] w-[20rem] max-w-[92vw] flex-col overflow-hidden rounded-2xl shadow-2xl">
+    <div className="surface-raised animate-drift-in fixed inset-x-2 bottom-[5.25rem] z-60 flex max-h-[62dvh] flex-col overflow-hidden rounded-2xl shadow-2xl sm:absolute sm:inset-x-auto sm:right-0 sm:bottom-full sm:mb-2 sm:max-h-[70dvh] sm:w-[20rem]">
       <div className="flex items-center gap-1.5 px-2 pt-2">
         <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl bg-white/7 px-2.5 ring-1 ring-white/10 focus-within:ring-glow/45">
           <Search className="size-3.5 shrink-0 text-muted" strokeWidth={2.2} />
@@ -118,12 +118,23 @@ export default function EmojiPicker({
                 searchRef.current?.focus();
               }}
               aria-label="clear the search"
-              className="grid size-5 shrink-0 place-items-center rounded text-muted transition hover:text-chalk"
+              className="grid size-6 shrink-0 place-items-center rounded text-muted transition hover:text-chalk"
             >
-              <X className="size-3" strokeWidth={2.6} />
+              <X className="size-3.5" strokeWidth={2.6} />
             </button>
           )}
         </div>
+
+        {/* A phone has no Escape key, and tapping past a sheet that covers most
+            of the screen is not an obvious way out of it. */}
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="close"
+          className="grid size-9 shrink-0 place-items-center rounded-xl text-muted transition active:bg-white/10 sm:hidden"
+        >
+          <X className="size-4" strokeWidth={2.4} />
+        </button>
       </div>
 
       {!searching && (

@@ -9,6 +9,7 @@ import {
   Link2,
   Lock,
   MessageCircle,
+  MoreHorizontal,
   Palette,
   Unlock,
   Users,
@@ -27,6 +28,7 @@ export default function TopBar() {
 
   const [editingName, setEditingName] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [more, setMore] = useState(false);
 
   const copyLink = async () => {
     try {
@@ -70,7 +72,7 @@ export default function TopBar() {
             disabled={!canEdit}
             onClick={() => setEditingName(true)}
             title={canEdit ? "rename this nook" : undefined}
-            className="max-w-20 truncate rounded-xl px-2.5 py-1.5 text-sm font-medium transition hover:bg-white/8 disabled:hover:bg-transparent sm:max-w-52"
+            className="max-w-[9.5rem] truncate rounded-xl px-2.5 py-1.5 text-sm font-medium transition hover:bg-white/8 disabled:hover:bg-transparent sm:max-w-52"
           >
             {room?.name ?? "a nook"}
           </button>
@@ -124,7 +126,7 @@ export default function TopBar() {
           onClick={() => setPanel(panel === "background" ? null : "background")}
           title="change the walls"
           className={clsx(
-            "grid size-8 place-items-center rounded-xl transition disabled:opacity-40",
+            "hidden size-8 place-items-center rounded-xl transition disabled:opacity-40 sm:grid",
             panel === "background"
               ? "bg-glow/22 text-glow"
               : "text-muted hover:bg-white/8 hover:text-chalk",
@@ -139,7 +141,7 @@ export default function TopBar() {
             onClick={() => void setLocked(!room?.locked)}
             title={room?.locked ? "unlock so others can edit" : "lock so only you can edit"}
             className={clsx(
-              "grid size-8 place-items-center rounded-xl transition",
+              "hidden size-8 place-items-center rounded-xl transition sm:grid",
               room?.locked
                 ? "bg-warm/22 text-warm"
                 : "text-muted hover:bg-white/8 hover:text-chalk",
@@ -153,7 +155,21 @@ export default function TopBar() {
           </button>
         )}
 
-        <div className="mx-0.5 h-5 w-px bg-white/10" />
+        {/* Five buttons and a room name do not fit across a phone. The two
+            that are not reached for mid-conversation move behind one. */}
+        <button
+          type="button"
+          onClick={() => setMore(true)}
+          aria-label="more"
+          className={clsx(
+            "grid size-8 place-items-center rounded-xl transition sm:hidden",
+            room?.locked ? "bg-warm/22 text-warm" : "text-muted active:bg-white/10",
+          )}
+        >
+          <MoreHorizontal className="size-4" strokeWidth={2.4} />
+        </button>
+
+        <div className="mx-0.5 hidden h-5 w-px bg-white/10 sm:block" />
 
         <button
           type="button"
@@ -171,6 +187,23 @@ export default function TopBar() {
           <span className="hidden sm:inline">{copied ? "copied" : "invite"}</span>
         </button>
       </div>
+
+      {more && (
+        <MoreSheet
+          locked={Boolean(room?.locked)}
+          isOwner={isOwner}
+          canEdit={canEdit}
+          onWalls={() => {
+            setPanel("background");
+            setMore(false);
+          }}
+          onLock={() => {
+            void setLocked(!room?.locked);
+            setMore(false);
+          }}
+          onClose={() => setMore(false)}
+        />
+      )}
     </div>
   );
 }
@@ -206,5 +239,76 @@ function NameField({
       maxLength={80}
       className="w-44 rounded-xl bg-white/8 px-2.5 py-1.5 text-sm font-medium ring-1 ring-glow/45 outline-none"
     />
+  );
+}
+
+/**
+ * The bits of the top bar a phone has no room for. A sheet rather than a
+ * dropdown: it comes up where the thumb already is, and the labels say what
+ * the icons could not.
+ */
+function MoreSheet({
+  locked,
+  isOwner,
+  canEdit,
+  onWalls,
+  onLock,
+  onClose,
+}: {
+  locked: boolean;
+  isOwner: boolean;
+  canEdit: boolean;
+  onWalls: () => void;
+  onLock: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="pointer-events-auto fixed inset-0 z-60 flex flex-col justify-end sm:hidden">
+      <button
+        type="button"
+        aria-label="close"
+        onClick={onClose}
+        className="absolute inset-0 bg-ink-950/55"
+      />
+
+      <div className="surface-raised animate-drift-in relative rounded-t-3xl px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl">
+        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
+
+        <button
+          type="button"
+          disabled={!canEdit}
+          onClick={onWalls}
+          className="flex min-h-12 w-full items-center gap-3 rounded-xl px-2 text-left text-sm transition active:bg-white/8 disabled:opacity-40"
+        >
+          <Palette className="size-5 shrink-0 text-glow" strokeWidth={2} />
+          change the walls
+        </button>
+
+        {isOwner && (
+          <button
+            type="button"
+            onClick={onLock}
+            className="flex min-h-12 w-full items-center gap-3 rounded-xl px-2 text-left text-sm transition active:bg-white/8"
+          >
+            {locked ? (
+              <Lock className="size-5 shrink-0 text-warm" strokeWidth={2} />
+            ) : (
+              <Unlock className="size-5 shrink-0 text-glow" strokeWidth={2} />
+            )}
+            <span className="min-w-0">
+              {locked ? "unlock, so others can edit" : "lock, so only you can edit"}
+            </span>
+          </button>
+        )}
+
+        <Link
+          href="/"
+          className="flex min-h-12 w-full items-center gap-3 rounded-xl px-2 text-left text-sm text-muted transition active:bg-white/8"
+        >
+          <DoorOpen className="size-5 shrink-0" strokeWidth={2} />
+          back to the front door
+        </Link>
+      </div>
+    </div>
   );
 }

@@ -15,6 +15,7 @@ import ChatPanel from "@/components/chrome/chat-panel";
 import BackgroundPanel from "@/components/chrome/background-panel";
 import PeersPanel from "@/components/chrome/peers-panel";
 import Inspector from "@/components/chrome/inspector";
+import FocusView from "@/components/room/focus-view";
 
 export default function RoomShell({
   slug,
@@ -101,6 +102,7 @@ function RoomBody() {
       <TopBar />
       <Dock />
       <Inspector />
+      <FocusView />
       {panel === "chat" && <ChatPanel />}
       {panel === "background" && <BackgroundPanel />}
       {panel === "peers" && <PeersPanel />}
