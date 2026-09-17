@@ -8,6 +8,7 @@
 // a bigger one for the drop.
 
 import type { Gif } from "./gifs";
+import type { Attempt } from "./giphy";
 
 const KEY = process.env.NEXT_PUBLIC_KLIPY_KEY;
 
@@ -68,25 +69,35 @@ export function parseKlipyItem(item: unknown, sticker: boolean, index: number): 
   };
 }
 
-async function run(kind: "gifs" | "stickers", term: string, limit: number): Promise<Gif[]> {
-  if (!KEY) return [];
+async function run(kind: "gifs" | "stickers", term: string, limit: number): Promise<Attempt> {
+  if (!KEY) return { gifs: [], state: "failed" };
+
   const params = new URLSearchParams({ type: kind, per_page: String(limit) });
   if (term.trim()) params.set("q", term.trim());
 
-  // Same-origin proxy -> no CORS. The function holds the key and calls Klipy.
-  const res = await fetch(`/api/klipy?${params.toString()}`);
-  if (!res.ok) throw new Error(`klipy ${res.status}`);
-  const body = (await res.json()) as { data?: unknown };
+  try {
+    // Same-origin proxy -> no CORS. The function holds the key and calls Klipy.
+    const res = await fetch(`/api/klipy?${params.toString()}`);
+    if (res.status === 429) return { gifs: [], state: "limited" };
+    if (!res.ok) return { gifs: [], state: "failed" };
 
-  // Klipy wraps results as data.data (paginated) or sometimes just data.
-  const inner = body.data as { data?: unknown[] } | unknown[] | undefined;
-  const items = Array.isArray(inner) ? inner : Array.isArray(inner?.data) ? inner.data : [];
+    const body = (await res.json()) as { data?: unknown; error?: string };
+    // The proxy says so in the body when it has no key or cannot reach Klipy.
+    if (body.error) return { gifs: [], state: "failed" };
 
-  return items
-    .map((item, i) => parseKlipyItem(item, kind === "stickers", i))
-    .filter((g): g is Gif => g !== null);
+    // Klipy wraps results as data.data (paginated) or sometimes just data.
+    const inner = body.data as { data?: unknown[] } | unknown[] | undefined;
+    const items = Array.isArray(inner) ? inner : Array.isArray(inner?.data) ? inner.data : [];
+
+    const gifs = items
+      .map((item, i) => parseKlipyItem(item, kind === "stickers", i))
+      .filter((g): g is Gif => g !== null);
+    return { gifs, state: "ok" };
+  } catch {
+    return { gifs: [], state: "failed" };
+  }
 }
 
-export function searchKlipy(term: string, limit = 20): Promise<Gif[]>[] {
+export function searchKlipy(term: string, limit = 20): Promise<Attempt>[] {
   return [run("gifs", term, limit), run("stickers", term, limit)];
 }

@@ -5,8 +5,8 @@ import { Loader2, Search, Sticker, X } from "lucide-react";
 import { useRoom } from "@/realtime/room-provider";
 import { useRoomStore } from "@/state/room-store";
 import { draftItem, topZ } from "@/lib/items";
-import type { Gif } from "@/lib/gifs";
-import { anyGifSource, enabledSources, searchGifs } from "@/lib/gif-search";
+import type { Gif, SourceReport } from "@/lib/gifs";
+import { anyGifSource, enabledSources, explain, searchGifs } from "@/lib/gif-search";
 
 /**
  * Type a word, get GIFs and stickers, drop one onto the wall -- the Here.fm
@@ -20,20 +20,20 @@ export default function StickersPanel() {
   const [term, setTerm] = useState("");
   const [gifs, setGifs] = useState<Gif[]>([]);
   const [loading, setLoading] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [reports, setReports] = useState<SourceReport[]>([]);
   const enabled = anyGifSource();
   const sources = enabledSources();
+  const note = explain(reports);
 
   const load = useCallback(async (query: string) => {
     setLoading(true);
-    setFailed(false);
     try {
       const results = await searchGifs(query);
-      setGifs(results);
-      setFailed(results.length === 0 && query.trim().length > 0);
+      setGifs(results.gifs);
+      setReports(results.reports);
     } catch {
-      setFailed(true);
       setGifs([]);
+      setReports([]);
     } finally {
       setLoading(false);
     }
@@ -44,7 +44,12 @@ export default function StickersPanel() {
   useEffect(() => {
     if (!enabled) return;
     if (debounce.current) clearTimeout(debounce.current);
-    debounce.current = setTimeout(() => void load(term), term ? 350 : 0);
+    // A single letter matches everything and costs the same as a real search,
+    // so it waits for a second one. The pause is generous on purpose: every
+    // search spends requests from a daily allowance.
+    const trimmed = term.trim();
+    if (trimmed.length === 1) return;
+    debounce.current = setTimeout(() => void load(term), trimmed ? 550 : 0);
     return () => {
       if (debounce.current) clearTimeout(debounce.current);
     };
@@ -126,12 +131,12 @@ export default function StickersPanel() {
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto p-3">
-            {failed ? (
-              <p className="px-2 pt-6 text-center text-xs text-muted/70">
-                nothing turned up for that.
-              </p>
-            ) : gifs.length === 0 && !loading ? (
-              <p className="px-2 pt-6 text-center text-xs text-muted/70">nothing here yet.</p>
+            {gifs.length === 0 && !loading ? (
+              <div className="px-3 pt-6 text-center">
+                <p className="text-xs text-muted/70">
+                  {note ?? (term.trim() ? "nothing turned up for that." : "nothing here yet.")}
+                </p>
+              </div>
             ) : (
               <div className="columns-2 gap-2 [&>*]:mb-2">
                 {gifs.map((gif) => (
@@ -160,8 +165,8 @@ export default function StickersPanel() {
             )}
           </div>
 
-          <p className="border-t border-white/8 px-4 py-2 text-center text-[10px] text-muted/50">
-            {sources.join(" + ")}
+          <p className="border-t border-white/8 px-4 py-2 text-center text-[10px] leading-relaxed text-muted/50">
+            {gifs.length > 0 && note ? note : sources.join(" + ")}
           </p>
         </>
       )}

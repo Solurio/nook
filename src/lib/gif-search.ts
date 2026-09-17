@@ -1,8 +1,18 @@
 "use client";
 
-import { interleave, type Gif } from "./gifs";
-import { giphyEnabled, searchGiphy, trendingGiphy } from "./giphy";
+import {
+  explain,
+  interleave,
+  type Gif,
+  type GifResults,
+  type SourceName,
+  type SourceReport,
+  type SourceState,
+} from "./gifs";
+import { giphyEnabled, searchGiphy, trendingGiphy, type Attempt } from "./giphy";
 import { klipyEnabled, searchKlipy } from "./klipy";
+
+export { explain };
 
 export function anyGifSource(): boolean {
   return giphyEnabled() || klipyEnabled();
@@ -16,20 +26,68 @@ export function enabledSources(): string[] {
 }
 
 /**
- * Search every configured provider at once (gifs and stickers) and interleave
- * the results. A provider that errors or has no key is quietly skipped, so a
- * thin term on one source is backfilled by the others.
+ * Searches already made this visit. Free keys are metered per day, and without
+ * this every reopened panel and every retyped word spent more of the allowance
+ * to show what was already on screen a moment ago.
  */
-export async function searchGifs(term: string): Promise<Gif[]> {
-  const has = term.trim().length > 0;
-  const requests: Promise<Gif[]>[] = has
-    ? [...searchGiphy(term), ...searchKlipy(term)]
-    : [...trendingGiphy(), ...searchKlipy("")];
+const cache = new Map<string, GifResults>();
+const CACHE_LIMIT = 40;
 
-  const settled = await Promise.allSettled(requests);
-  const lists = settled
-    .filter((s): s is PromiseFulfilledResult<Gif[]> => s.status === "fulfilled")
-    .map((s) => s.value);
+function remember(key: string, results: GifResults) {
+  // A provider that was merely out of requests will have more later, so that
+  // answer is not worth keeping.
+  if (results.reports.some((r) => r.state !== "ok")) return;
+  if (cache.size >= CACHE_LIMIT) {
+    const oldest = cache.keys().next().value;
+    if (oldest !== undefined) cache.delete(oldest);
+  }
+  cache.set(key, results);
+}
 
-  return interleave(lists);
+/** Rolls the two calls a provider makes into one verdict for that provider. */
+function summarise(source: SourceName, attempts: PromiseSettledResult<Attempt>[]): SourceReport {
+  const done = attempts
+    .filter((a): a is PromiseFulfilledResult<Attempt> => a.status === "fulfilled")
+    .map((a) => a.value);
+
+  const count = done.reduce((sum, a) => sum + a.gifs.length, 0);
+
+  let state: SourceState = "failed";
+  if (done.some((a) => a.state === "ok")) state = "ok";
+  else if (done.some((a) => a.state === "limited")) state = "limited";
+
+  return { source, state, count };
+}
+
+/**
+ * Asks every configured provider at once and interleaves what comes back. A
+ * provider that is out of requests or unreachable is reported rather than
+ * silently dropped, because an empty grid otherwise looks like the word was the
+ * problem when the quota was.
+ */
+export async function searchGifs(term: string): Promise<GifResults> {
+  const key = term.trim().toLowerCase();
+  const hit = cache.get(key);
+  if (hit) return hit;
+
+  const has = key.length > 0;
+  const giphy = giphyEnabled() ? (has ? searchGiphy(term) : trendingGiphy()) : [];
+  const klipy = klipyEnabled() ? searchKlipy(has ? term : "") : [];
+
+  const [giphySettled, klipySettled] = await Promise.all([
+    Promise.allSettled(giphy),
+    Promise.allSettled(klipy),
+  ]);
+
+  const reports: SourceReport[] = [];
+  if (giphyEnabled()) reports.push(summarise("giphy", giphySettled));
+  if (klipyEnabled()) reports.push(summarise("klipy", klipySettled));
+
+  const lists: Gif[][] = [...giphySettled, ...klipySettled]
+    .filter((s): s is PromiseFulfilledResult<Attempt> => s.status === "fulfilled")
+    .map((s) => s.value.gifs);
+
+  const results: GifResults = { gifs: interleave(lists), reports };
+  remember(key, results);
+  return results;
 }
