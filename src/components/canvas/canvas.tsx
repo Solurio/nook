@@ -55,6 +55,7 @@ export default function Canvas() {
   const tool = useRoomStore((s) => s.tool);
   const panBy = useRoomStore((s) => s.panBy);
   const zoomAt = useRoomStore((s) => s.zoomAt);
+  const pinchTo = useRoomStore((s) => s.pinch);
 
   const { moveCursor, createItem, deleteItem, duplicateItem, uploadFile, canEdit, setNotice } =
     useRoom();
@@ -152,6 +153,11 @@ export default function Canvas() {
 
     const down = (event: PointerEvent) => {
       if (event.pointerType !== "touch") return;
+      // A finger that lifts off the edge of the screen, or a gesture the
+      // browser takes over, never sends its release -- and a leftover pointer
+      // meant the count never came back to two and pinching was dead until the
+      // page was reloaded. A fresh press with stale fingers starts over.
+      if (points.size >= 2 && !points.has(event.pointerId)) points.clear();
       points.set(event.pointerId, { x: event.clientX, y: event.clientY });
       if (points.size !== 2) return;
 
@@ -182,11 +188,9 @@ export default function Canvas() {
       const cy = (a.y + b.y) / 2;
       const rect = node.getBoundingClientRect();
 
-      // Zoom about the midpoint, then follow the midpoint as it travels.
-      if (last.dist > 0 && dist > 0) {
-        zoomAt(dist / last.dist, cx - rect.left, cy - rect.top);
-      }
-      panBy(cx - last.cx, cy - last.cy);
+      // Zoom about the midpoint and follow it, in one write.
+      const factor = last.dist > 0 && dist > 0 ? dist / last.dist : 1;
+      pinchTo(factor, cx - rect.left, cy - rect.top, cx - last.cx, cy - last.cy);
       pinch.current = { dist, cx, cy };
     };
 
@@ -198,21 +202,38 @@ export default function Canvas() {
       gestureLock.pinching = false;
     };
 
+    // Releases are watched on the window as well: a finger lifted past the edge
+    // of the canvas still has to count as gone.
+    const forget = () => {
+      points.clear();
+      pinch.current = null;
+      gestureLock.pinching = false;
+    };
+
     const opts = { capture: true } as const;
     node.addEventListener("pointerdown", down, opts);
     node.addEventListener("pointermove", move, { capture: true, passive: false });
     node.addEventListener("pointerup", up, opts);
     node.addEventListener("pointercancel", up, opts);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+    // Switching apps mid-pinch is the other way fingers go missing.
+    window.addEventListener("blur", forget);
+    document.addEventListener("visibilitychange", forget);
     return () => {
       node.removeEventListener("pointerdown", down, opts);
       node.removeEventListener("pointermove", move, { capture: true });
       node.removeEventListener("pointerup", up, opts);
       node.removeEventListener("pointercancel", up, opts);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+      window.removeEventListener("blur", forget);
+      document.removeEventListener("visibilitychange", forget);
       points.clear();
       pinch.current = null;
       gestureLock.pinching = false;
     };
-  }, [panBy, zoomAt]);
+  }, [pinchTo]);
 
   // ---------------------------------------------------------------------------
   // Keyboard

@@ -47,6 +47,13 @@ body.is-room {
   .surface {
     background: color-mix(in oklab, var(--color-ink-800) 88%, transparent);
     backdrop-filter: blur(18px) saturate(1.3);
+    /* Dozens of these sit on screen at once. Blurring what is behind every one
+       of them is the single most expensive thing a phone GPU gets asked for
+       here, so below tablet width they become plain panels instead. */
+    @media (max-width: 640px) {
+      background: color-mix(in oklab, var(--color-ink-800) 97%, transparent);
+      backdrop-filter: none;
+    }
     border: 1px solid color-mix(in oklab, white 9%, transparent);
     box-shadow:
       0 1px 0 0 color-mix(in oklab, white 6%, transparent) inset,

@@ -62,8 +62,10 @@ export default function ImageItem({
           draggable={false}
           onError={() => setBroken(true)}
           // A plain img (never next/image) keeps animated GIFs and WebPs playing;
-          // the optimizer would flatten them to a single frame.
-          loading="eager"
+          // the optimizer would flatten them to a single frame. Lazy because a
+          // busy room is fifty of these and a phone should not decode them all
+          // to show the handful actually on screen.
+          loading="lazy"
           decoding="async"
           className="size-full object-cover"
           style={{ borderRadius: polaroid ? 2 : radius }}

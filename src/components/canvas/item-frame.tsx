@@ -192,7 +192,7 @@ function ItemFrame({
   return (
     <div
       ref={frameRef}
-      className="absolute will-change-transform"
+      className="absolute"
       style={{
         left: item.x,
         top: item.y,

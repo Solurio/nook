@@ -56,6 +56,14 @@ export const MIN_SCALE = 0.1;
 export const MAX_SCALE = 2.5;
 
 /**
+ * How far out a room is allowed to open. Fitting everything sounds right until
+ * the wall is spread over ten thousand pixels and a phone lands at 0.1, where
+ * the whole room is specks. Better to arrive in the middle of it at a size you
+ * can read and pinch out from there.
+ */
+export const MIN_ENTRY_SCALE = 0.35;
+
+/**
  * True while two fingers are working the canvas. Item drags check it and bow
  * out, so pinching to zoom never drags whatever happened to be under a thumb.
  * Deliberately outside the store: it changes every frame of a pinch and nothing
@@ -122,6 +130,8 @@ interface RoomState {
   setViewport: (viewport: Viewport) => void;
   panBy: (dx: number, dy: number) => void;
   zoomAt: (factor: number, screenX: number, screenY: number) => void;
+  /** Zoom about a point and pan, in a single write. Used by pinch. */
+  pinch: (factor: number, screenX: number, screenY: number, dx: number, dy: number) => void;
 
   setPanel: (panel: PanelId) => void;
   setConnection: (connection: "connecting" | "live" | "offline") => void;
@@ -345,6 +355,25 @@ export const useRoomStore = create<RoomState>((set, get) => ({
     });
   },
 
+  pinch: (factor, screenX, screenY, dx, dy) => {
+    const { viewport } = get();
+    const scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, viewport.scale * factor));
+
+    // Keep whatever is between the fingers pinned while the scale changes, then
+    // follow the fingers. Done as one write: at touch rates, two of them meant
+    // twice the React work for a single frame of the gesture.
+    const worldX = (screenX - viewport.x) / viewport.scale;
+    const worldY = (screenY - viewport.y) / viewport.scale;
+
+    set({
+      viewport: {
+        scale,
+        x: screenX - worldX * scale + dx,
+        y: screenY - worldY * scale + dy,
+      },
+    });
+  },
+
   setPanel: (panel) =>
     set((s) => ({ panel, unreadChat: panel === "chat" ? 0 : s.unreadChat })),
 
@@ -398,7 +427,7 @@ export function viewportForItems(
   const contentW = Math.max(1, maxX - minX);
   const contentH = Math.max(1, maxY - minY);
   const fit = Math.min((screenW - pad * 2) / contentW, (screenH - pad * 2) / contentH);
-  const scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, fit));
+  const scale = Math.min(MAX_SCALE, Math.max(MIN_ENTRY_SCALE, fit));
 
   const cx = (minX + maxX) / 2;
   const cy = (minY + maxY) / 2;
