@@ -2,6 +2,7 @@ import { emptyMedia } from "./media";
 import { initialBoard as initialChess } from "./chess";
 import { initialBoard as initialCheckers } from "./checkers";
 import { initialBoard as initialIntransitive } from "./intransitive";
+import { buildDeck, fullDeckConfig } from "./cards";
 import type { AnyItem, GameKind, ItemDataMap, ItemKind } from "./types";
 
 export const NOTE_TINTS = [
@@ -42,6 +43,7 @@ const GAME_SIZE: Record<GameKind, { width: number; height: number }> = {
   chess: { width: 380, height: 440 },
   checkers: { width: 380, height: 440 },
   intransitive: { width: 420, height: 480 },
+  cards: { width: 440, height: 420 },
 };
 
 function emptyGameData(game: GameKind): ItemDataMap["game"] {
@@ -76,6 +78,21 @@ function emptyGameData(game: GameKind): ItemDataMap["game"] {
           turn: "w",
           seats: { w: null, b: null },
           wins: { w: 0, b: 0, draw: 0 },
+        },
+      };
+    case "cards":
+      return {
+        game: "cards",
+        state: {
+          config: fullDeckConfig(),
+          deck: buildDeck(fullDeckConfig()),
+          hands: {},
+          table: [],
+          discard: [],
+          seats: {},
+          seatCount: 4,
+          teams: 0,
+          dealEach: 5,
         },
       };
     case "intransitive":

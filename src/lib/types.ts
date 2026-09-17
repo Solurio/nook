@@ -110,7 +110,8 @@ export type GameKind =
   | "doodle"
   | "chess"
   | "checkers"
-  | "intransitive";
+  | "intransitive"
+  | "cards";
 
 export type GameData =
   | { game: "tictactoe"; state: TicTacToeState }
@@ -118,7 +119,8 @@ export type GameData =
   | { game: "doodle"; state: DoodleState }
   | { game: "chess"; state: ChessState }
   | { game: "checkers"; state: CheckersState }
-  | { game: "intransitive"; state: IntransitiveState };
+  | { game: "intransitive"; state: IntransitiveState }
+  | { game: "cards"; state: CardTableState };
 
 export interface ChessState {
   /** 64 cells, index = row*8+col, row 0 is black's back rank. */
@@ -130,6 +132,28 @@ export interface ChessState {
   castling?: { wk: boolean; wq: boolean; bk: boolean; bq: boolean };
   /** Square a pawn just skipped, capturable en passant on this turn only. */
   ep?: number | null;
+}
+
+/** A deck on a table, with whatever rules the players agree on. */
+export interface CardTableState {
+  config: {
+    ranks: ("A" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10" | "J" | "Q" | "K")[];
+    suits: ("S" | "H" | "D" | "C")[];
+    jokers: number;
+    copies: number;
+  };
+  /** Face down, top of the deck first. */
+  deck: string[];
+  /** Chair id to the cards held there. */
+  hands: Record<string, string[]>;
+  /** Face up in the middle. */
+  table: { card: string; by: string }[];
+  discard: string[];
+  seats: Record<string, string | null>;
+  seatCount: number;
+  /** 0 is everyone for themselves; 2 or more pairs the chairs up. */
+  teams: number;
+  dealEach: number;
 }
 
 export interface IntransitiveState {

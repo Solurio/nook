@@ -7,6 +7,7 @@ import Doodle from "@/components/games/doodle";
 import Chess from "@/components/games/chess";
 import Checkers from "@/components/games/checkers";
 import Intransitive from "@/components/games/intransitive";
+import CardTable from "@/components/games/card-table";
 
 export default function GameItem({ item }: { item: Item<"game"> }) {
   switch (item.data.game) {
@@ -22,6 +23,8 @@ export default function GameItem({ item }: { item: Item<"game"> }) {
       return <Checkers item={item} state={item.data.state} />;
     case "intransitive":
       return <Intransitive item={item} state={item.data.state} />;
+    case "cards":
+      return <CardTable item={item} state={item.data.state} />;
     default:
       return null;
   }

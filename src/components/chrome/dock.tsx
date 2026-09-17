@@ -21,6 +21,7 @@ import {
   Pencil,
   Plus,
   Smile,
+  Spade,
   StickyNote,
   Swords,
   Type,
@@ -224,6 +225,12 @@ export default function Dock() {
                 onClick={() => add("game", "chess")}
               />
               <GameOption
+                icon={<Spade className="size-4" strokeWidth={2} />}
+                title="card table"
+                hint="any deck, any rules"
+                onClick={() => add("game", "cards")}
+              />
+              <GameOption
                 icon={<Swords className="size-4" strokeWidth={2} />}
                 title="intransitive"
                 hint="rock, paper, scissors at war"
@@ -331,6 +338,7 @@ function AddSheet({
   const games: Array<{ icon: React.ReactNode; label: string; kind: GameKind }> = [
     { icon: <Crown className="size-5" strokeWidth={2} />, label: "chess", kind: "chess" },
     { icon: <Swords className="size-5" strokeWidth={2} />, label: "intransitive", kind: "intransitive" },
+    { icon: <Spade className="size-5" strokeWidth={2} />, label: "card table", kind: "cards" },
     { icon: <CircleDot className="size-5" strokeWidth={2} />, label: "checkers", kind: "checkers" },
     { icon: <Grid3x3 className="size-5" strokeWidth={2} />, label: "tic tac toe", kind: "tictactoe" },
     { icon: <Dices className="size-5" strokeWidth={2} />, label: "connect four", kind: "connectfour" },
