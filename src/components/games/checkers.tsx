@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import clsx from "clsx";
 import { RotateCcw } from "lucide-react";
 import { useRoom } from "@/realtime/room-provider";
@@ -48,6 +48,14 @@ export default function Checkers({ item, state }: { item: Item<"game">; state: C
 
   const active = state.chain ?? pick;
   const moves = active !== null ? movesForPiece(state.board, active) : [];
+
+  // Red starts along the bottom, so black is the side sitting opposite and gets
+  // the board turned around rather than having to read it upside down.
+  const flipped = mySeat === "b";
+  const squares = useMemo(() => {
+    const order = Array.from({ length: 64 }, (_, i) => i);
+    return flipped ? order.reverse() : order;
+  }, [flipped]);
 
   const onSquare = (i: number) => {
     if (!canEdit || over) return;
@@ -107,7 +115,8 @@ export default function Checkers({ item, state }: { item: Item<"game">; state: C
       </div>
 
       <div className="grid min-h-0 flex-1 grid-cols-8 overflow-hidden rounded-lg">
-        {state.board.map((cell, i) => {
+        {squares.map((i) => {
+          const cell = state.board[i];
           const dark = (Math.floor(i / 8) + (i % 8)) % 2 === 1;
           const selected = active === i;
           const target = moves.some((m) => m.to === i);
@@ -118,7 +127,7 @@ export default function Checkers({ item, state }: { item: Item<"game">; state: C
               onClick={() => onSquare(i)}
               disabled={!canEdit || over || !dark}
               className={clsx(
-                "relative grid place-items-center p-[10%] transition",
+                "relative grid touch-manipulation place-items-center p-[10%] transition",
                 dark ? "bg-[#7c5a3c]" : "bg-[#e9dcc4]",
                 selected && "ring-2 ring-glow ring-inset",
               )}

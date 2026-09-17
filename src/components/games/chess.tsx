@@ -1,12 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import clsx from "clsx";
 import { RotateCcw } from "lucide-react";
 import { useRoom } from "@/realtime/room-provider";
 import { useRoomStore } from "@/state/room-store";
-import { applyMove, GLYPHS, initialBoard, kingCaptured, legalMoves } from "@/lib/chess";
+import {
+  applyMove,
+  castlingFromBoard,
+  findKing,
+  GLYPHS,
+  initialBoard,
+  initialCastling,
+  legalMoves,
+  outcome,
+} from "@/lib/chess";
+import type { Board, Castling } from "@/lib/chess";
 import type { ChessState, Item } from "@/lib/types";
+
+const FILES = "abcdefgh";
 
 export default function Chess({ item, state }: { item: Item<"game">; state: ChessState }) {
   const { updateData, canEdit } = useRoom();
@@ -16,11 +28,28 @@ export default function Chess({ item, state }: { item: Item<"game">; state: Ches
 
   const write = (next: ChessState) => void updateData(item.id, { game: "chess", state: next });
 
-  const won = kingCaptured(state.board);
-  const over = Boolean(won);
+  const board = state.board as Board;
+  // Games saved before castling existed carry no rights; infer them from where
+  // the kings and rooks are actually standing.
+  const castling: Castling = state.castling ?? castlingFromBoard(board);
+  const ep = state.ep ?? null;
+
+  const result = useMemo(
+    () => outcome(board, state.turn, { castling, ep }),
+    [board, state.turn, castling, ep],
+  );
+  const over = result.kind === "checkmate" || result.kind === "stalemate" || result.kind === "dead";
+
   const mySeat: "w" | "b" | null =
     state.seats.w === name ? "w" : state.seats.b === name ? "b" : null;
   const seatless = !state.seats.w && !state.seats.b;
+
+  // Black sits on the other side of the table, so the board turns around.
+  const flipped = mySeat === "b";
+  const squares = useMemo(() => {
+    const order = Array.from({ length: 64 }, (_, i) => i);
+    return flipped ? order.reverse() : order;
+  }, [flipped]);
 
   const takeSeat = (seat: "w" | "b") => {
     if (!canEdit) return;
@@ -41,13 +70,14 @@ export default function Chess({ item, state }: { item: Item<"game">; state: Ches
     });
   };
 
-  const targets = pick !== null ? legalMoves(state.board, pick) : [];
+  const targets = pick !== null ? legalMoves(board, pick, { castling, ep }) : [];
+  const checkedKing = result.kind === "playing" && result.check ? findKing(board, state.turn) : -1;
 
   const onSquare = (i: number) => {
     if (!canEdit || over) return;
     if (!seatless && mySeat !== state.turn) return;
 
-    const piece = state.board[i];
+    const piece = board[i];
 
     if (pick === null) {
       if (piece && piece.color === state.turn) setPick(i);
@@ -58,52 +88,105 @@ export default function Chess({ item, state }: { item: Item<"game">; state: Ches
       return;
     }
     if (piece && piece.color === state.turn) {
-      setPick(i); // reselect own piece
+      setPick(i);
       return;
     }
     if (!targets.includes(i)) return;
 
-    const { board, captured } = applyMove(state.board, pick, i);
-    const result = kingCaptured(board);
-    const wins = result
-      ? { ...state.wins, [result]: state.wins[result] + 1 }
-      : state.wins;
-    void captured;
-    write({ ...state, board, turn: state.turn === "w" ? "b" : "w", wins });
+    const move = applyMove(board, pick, i, { castling, ep });
+    const turn = state.turn === "w" ? "b" : "w";
+    const after = outcome(move.board, turn, { castling: move.castling, ep: move.ep });
+
+    const wins =
+      after.kind === "checkmate"
+        ? { ...state.wins, [after.winner]: state.wins[after.winner] + 1 }
+        : after.kind === "stalemate"
+          ? { ...state.wins, draw: state.wins.draw + 1 }
+          : state.wins;
+
+    write({
+      ...state,
+      board: move.board,
+      turn,
+      castling: move.castling,
+      ep: move.ep,
+      wins,
+    });
     setPick(null);
   };
 
-  const status = won
-    ? `${won === "w" ? "white" : "black"} wins`
-    : `${state.turn === "w" ? "white" : "black"} to move`;
+  const newGame = () => {
+    setPick(null);
+    write({
+      ...state,
+      board: initialBoard(),
+      turn: "w",
+      castling: initialCastling(),
+      ep: null,
+    });
+  };
+
+  const side = (c: "w" | "b") => (c === "w" ? "white" : "black");
+  const status =
+    result.kind === "checkmate"
+      ? `checkmate, ${side(result.winner)} wins`
+      : result.kind === "stalemate"
+        ? "stalemate, nobody wins"
+        : result.kind === "dead"
+          ? "game over"
+          : result.check
+            ? `${side(state.turn)} is in check`
+            : `${side(state.turn)} to move`;
 
   return (
     <div className="surface grain flex size-full flex-col overflow-hidden rounded-2xl p-3">
       <div className="mb-2.5 flex items-center gap-1.5">
-        <Seat mark="white" who={state.seats.w} active={state.turn === "w" && !over} mine={mySeat === "w"} onClick={() => takeSeat("w")} />
-        <Seat mark="black" who={state.seats.b} active={state.turn === "b" && !over} mine={mySeat === "b"} onClick={() => takeSeat("b")} />
+        <Seat
+          mark="white"
+          who={state.seats.w}
+          active={state.turn === "w" && !over}
+          mine={mySeat === "w"}
+          onClick={() => takeSeat("w")}
+        />
+        <Seat
+          mark="black"
+          who={state.seats.b}
+          active={state.turn === "b" && !over}
+          mine={mySeat === "b"}
+          onClick={() => takeSeat("b")}
+        />
       </div>
 
       <div className="grid min-h-0 flex-1 grid-cols-8 overflow-hidden rounded-lg">
-        {state.board.map((cell, i) => {
+        {squares.map((i) => {
+          const cell = board[i];
           const light = (Math.floor(i / 8) + (i % 8)) % 2 === 0;
           const selected = pick === i;
           const target = targets.includes(i);
+          const inDanger = i === checkedKing;
           return (
             <button
               key={i}
               type="button"
               onClick={() => onSquare(i)}
               disabled={!canEdit || over}
+              aria-label={`${FILES[i % 8]}${8 - Math.floor(i / 8)}`}
               className={clsx(
-                "relative grid place-items-center text-[clamp(14px,4.2vw,30px)] leading-none transition",
+                "relative grid touch-manipulation place-items-center text-[clamp(14px,4.2vw,30px)] leading-none transition",
                 light ? "bg-[#e9dcc4]" : "bg-[#9a7b57]",
                 selected && "ring-2 ring-glow ring-inset",
+                inDanger && "bg-red-500/70",
               )}
               style={{ aspectRatio: "1" }}
             >
               {cell && (
-                <span className={cell.color === "w" ? "text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]" : "text-ink-950"}>
+                <span
+                  className={
+                    cell.color === "w"
+                      ? "text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]"
+                      : "text-ink-950"
+                  }
+                >
                   {GLYPHS[cell.color][cell.type]}
                 </span>
               )}
@@ -129,10 +212,7 @@ export default function Chess({ item, state }: { item: Item<"game">; state: Ches
           <button
             type="button"
             disabled={!canEdit}
-            onClick={() => {
-              setPick(null);
-              write({ ...state, board: initialBoard(), turn: "w" });
-            }}
+            onClick={newGame}
             aria-label="new game"
             className="grid size-6 place-items-center rounded-lg text-muted transition hover:bg-white/8 hover:text-chalk disabled:opacity-40"
           >

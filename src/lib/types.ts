@@ -104,6 +104,10 @@ export interface ChessState {
   turn: "w" | "b";
   seats: { w: string | null; b: string | null };
   wins: { w: number; b: number; draw: number };
+  /** Castles still available. Absent on games saved before castling existed. */
+  castling?: { wk: boolean; wq: boolean; bk: boolean; bq: boolean };
+  /** Square a pawn just skipped, capturable en passant on this turn only. */
+  ep?: number | null;
 }
 
 export interface CheckersState {
