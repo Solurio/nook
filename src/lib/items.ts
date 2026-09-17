@@ -1,6 +1,7 @@
 import { emptyMedia } from "./media";
 import { initialBoard as initialChess } from "./chess";
 import { initialBoard as initialCheckers } from "./checkers";
+import { initialBoard as initialIntransitive } from "./intransitive";
 import type { AnyItem, GameKind, ItemDataMap, ItemKind } from "./types";
 
 export const NOTE_TINTS = [
@@ -40,6 +41,7 @@ const GAME_SIZE: Record<GameKind, { width: number; height: number }> = {
   doodle: { width: 460, height: 400 },
   chess: { width: 380, height: 440 },
   checkers: { width: 380, height: 440 },
+  intransitive: { width: 420, height: 480 },
 };
 
 function emptyGameData(game: GameKind): ItemDataMap["game"] {
@@ -74,6 +76,16 @@ function emptyGameData(game: GameKind): ItemDataMap["game"] {
           turn: "w",
           seats: { w: null, b: null },
           wins: { w: 0, b: 0, draw: 0 },
+        },
+      };
+    case "intransitive":
+      return {
+        game: "intransitive",
+        state: {
+          board: initialIntransitive(),
+          turn: "blue",
+          seats: { blue: null, red: null },
+          wins: { blue: 0, red: 0, draw: 0 },
         },
       };
     case "checkers":

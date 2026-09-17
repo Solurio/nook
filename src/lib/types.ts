@@ -104,14 +104,21 @@ export interface MediaData {
 
 export type TextEffect = "none" | "rainbow" | "shake" | "wave" | "glow" | "pulse";
 
-export type GameKind = "tictactoe" | "connectfour" | "doodle" | "chess" | "checkers";
+export type GameKind =
+  | "tictactoe"
+  | "connectfour"
+  | "doodle"
+  | "chess"
+  | "checkers"
+  | "intransitive";
 
 export type GameData =
   | { game: "tictactoe"; state: TicTacToeState }
   | { game: "connectfour"; state: ConnectFourState }
   | { game: "doodle"; state: DoodleState }
   | { game: "chess"; state: ChessState }
-  | { game: "checkers"; state: CheckersState };
+  | { game: "checkers"; state: CheckersState }
+  | { game: "intransitive"; state: IntransitiveState };
 
 export interface ChessState {
   /** 64 cells, index = row*8+col, row 0 is black's back rank. */
@@ -123,6 +130,14 @@ export interface ChessState {
   castling?: { wk: boolean; wq: boolean; bk: boolean; bq: boolean };
   /** Square a pawn just skipped, capturable en passant on this turn only. */
   ep?: number | null;
+}
+
+export interface IntransitiveState {
+  /** 81 cells, index = row*9+col, row 0 is red's back rank. */
+  board: ({ side: "blue" | "red"; shape: "R" | "P" | "S" } | null)[];
+  turn: "blue" | "red";
+  seats: { blue: string | null; red: string | null };
+  wins: { blue: number; red: number; draw: number };
 }
 
 export interface CheckersState {

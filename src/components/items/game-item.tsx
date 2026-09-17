@@ -6,6 +6,7 @@ import ConnectFour from "@/components/games/connect-four";
 import Doodle from "@/components/games/doodle";
 import Chess from "@/components/games/chess";
 import Checkers from "@/components/games/checkers";
+import Intransitive from "@/components/games/intransitive";
 
 export default function GameItem({ item }: { item: Item<"game"> }) {
   switch (item.data.game) {
@@ -19,6 +20,8 @@ export default function GameItem({ item }: { item: Item<"game"> }) {
       return <Chess item={item} state={item.data.state} />;
     case "checkers":
       return <Checkers item={item} state={item.data.state} />;
+    case "intransitive":
+      return <Intransitive item={item} state={item.data.state} />;
     default:
       return null;
   }
