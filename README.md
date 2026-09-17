@@ -181,6 +181,14 @@ Put them in `.env.local` locally, or in your host's environment variables for
 the deploy. With no key at all the panel just shows a note and everything else
 works normally.
 
+These keys are metered. A free Giphy key is roughly 100 requests an hour and
+1000 a day, and one search spends two of them per provider (gifs and stickers
+are separate calls). Run out and Giphy answers 429, or 403 once the day is
+gone; the panel says so in those words rather than pretending the search found
+nothing, and it comes back on its own. Searches are remembered for the visit so
+reopening the panel costs nothing. Two providers configured means one running
+dry still leaves you with gifs.
+
 A note on Klipy: their API sends no CORS headers, so the search goes through a
 small proxy of our own (`functions/api/klipy.js`, a Pages Function at
 `/api/klipy`) instead of calling `api.klipy.com` directly. It reuses the same
