@@ -112,7 +112,8 @@ export type GameKind =
   | "checkers"
   | "intransitive"
   | "cards"
-  | "dominoes";
+  | "dominoes"
+  | "codenames";
 
 export type GameData =
   | { game: "tictactoe"; state: TicTacToeState }
@@ -122,7 +123,8 @@ export type GameData =
   | { game: "checkers"; state: CheckersState }
   | { game: "intransitive"; state: IntransitiveState }
   | { game: "cards"; state: CardTableState }
-  | { game: "dominoes"; state: DominoesState };
+  | { game: "dominoes"; state: DominoesState }
+  | { game: "codenames"; state: CodenamesState };
 
 export interface ChessState {
   /** 64 cells, index = row*8+col, row 0 is black's back rank. */
@@ -134,6 +136,18 @@ export interface ChessState {
   castling?: { wk: boolean; wq: boolean; bk: boolean; bq: boolean };
   /** Square a pawn just skipped, capturable en passant on this turn only. */
   ep?: number | null;
+}
+
+/** Codenames: the words, and the key only the spymasters look at. */
+export interface CodenamesState {
+  words: string[];
+  key: ("red" | "blue" | "neutral" | "assassin")[];
+  revealed: boolean[];
+  turn: "red" | "blue";
+  seats: { redMaster: string | null; blueMaster: string | null };
+  clue: { word: string; count: number } | null;
+  wins: { red: number; blue: number };
+  pack: "en" | "pt";
 }
 
 /** Dominoes on a double-six set, on your own or in pairs. */

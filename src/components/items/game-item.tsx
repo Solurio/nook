@@ -9,6 +9,7 @@ import Checkers from "@/components/games/checkers";
 import Intransitive from "@/components/games/intransitive";
 import CardTable from "@/components/games/card-table";
 import Dominoes from "@/components/games/dominoes";
+import Codenames from "@/components/games/codenames";
 
 export default function GameItem({ item }: { item: Item<"game"> }) {
   switch (item.data.game) {
@@ -28,6 +29,8 @@ export default function GameItem({ item }: { item: Item<"game"> }) {
       return <CardTable item={item} state={item.data.state} />;
     case "dominoes":
       return <Dominoes item={item} state={item.data.state} />;
+    case "codenames":
+      return <Codenames item={item} state={item.data.state} />;
     default:
       return null;
   }

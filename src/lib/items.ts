@@ -3,6 +3,7 @@ import { initialBoard as initialChess } from "./chess";
 import { initialBoard as initialCheckers } from "./checkers";
 import { initialBoard as initialIntransitive } from "./intransitive";
 import { buildDeck, fullDeckConfig } from "./cards";
+import { newSetup as newCodenames } from "./codenames";
 import type { AnyItem, GameKind, ItemDataMap, ItemKind } from "./types";
 
 export const NOTE_TINTS = [
@@ -45,6 +46,7 @@ const GAME_SIZE: Record<GameKind, { width: number; height: number }> = {
   intransitive: { width: 420, height: 480 },
   cards: { width: 440, height: 420 },
   dominoes: { width: 440, height: 400 },
+  codenames: { width: 480, height: 440 },
 };
 
 function emptyGameData(game: GameKind): ItemDataMap["game"] {
@@ -81,6 +83,22 @@ function emptyGameData(game: GameKind): ItemDataMap["game"] {
           wins: { w: 0, b: 0, draw: 0 },
         },
       };
+    case "codenames": {
+      const setup = newCodenames("en");
+      return {
+        game: "codenames",
+        state: {
+          pack: "en",
+          words: setup.words,
+          key: setup.key,
+          revealed: Array(25).fill(false),
+          turn: setup.first,
+          seats: { redMaster: null, blueMaster: null },
+          clue: null,
+          wins: { red: 0, blue: 0 },
+        },
+      };
+    }
     case "dominoes":
       return {
         game: "dominoes",
