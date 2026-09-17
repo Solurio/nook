@@ -113,6 +113,10 @@ const CURSOR_INTERVAL_MS = 45;
 const TRANSFORM_INTERVAL_MS = 33;
 const PING_LIFETIME_MS = 1800;
 
+/** Matches the storage bucket's own limit, so the message beats the error. */
+const MAX_UPLOAD_MB = 50;
+const MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024;
+
 export function RoomProvider({
   slug,
   initialRoom,
@@ -639,6 +643,17 @@ export function RoomProvider({
     async (file: File): Promise<string | null> => {
       const roomId = roomIdRef.current;
       if (!roomId) return null;
+
+      // Storage refuses anything past this, and a raw server error is a poor
+      // way to find that out. Photos are shrunk before they get here; a long
+      // video is the one that actually runs into it.
+      if (file.size > MAX_UPLOAD_BYTES) {
+        const mb = Math.round(file.size / 1048576);
+        setError(
+          `that one is ${mb}MB, and uploads stop at ${MAX_UPLOAD_MB}MB. a shorter clip, or a smaller export, will go up fine.`,
+        );
+        return null;
+      }
 
       const extension = file.name.includes(".") ? file.name.split(".").pop() : "bin";
       const path = `${roomId}/${newId()}.${extension}`;
