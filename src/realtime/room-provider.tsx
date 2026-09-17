@@ -44,6 +44,8 @@ export interface Ping {
   y: number;
   glyph: string;
   tint: string;
+  /** Who dropped it. A reaction nobody can attribute is only decoration. */
+  by: string;
 }
 
 interface RoomApi {
@@ -438,8 +440,8 @@ export function RoomProvider({
     (x: number, y: number, glyph: string) => {
       const identity = identityRef.current;
       if (!identity) return;
-      broadcast("ping", { x, y, glyph, tint: identity.tint });
-      pushPing({ id: newId(), x, y, glyph, tint: identity.tint });
+      broadcast("ping", { x, y, glyph, tint: identity.tint, by: identity.name });
+      pushPing({ id: newId(), x, y, glyph, tint: identity.tint, by: identity.name });
     },
     [broadcast, pushPing],
   );

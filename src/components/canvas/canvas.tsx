@@ -53,11 +53,12 @@ export default function Canvas() {
   const selectedId = useRoomStore((s) => s.selectedId);
   const editingId = useRoomStore((s) => s.editingId);
   const tool = useRoomStore((s) => s.tool);
+  const reaction = useRoomStore((s) => s.reaction);
   const panBy = useRoomStore((s) => s.panBy);
   const zoomAt = useRoomStore((s) => s.zoomAt);
   const pinchTo = useRoomStore((s) => s.pinch);
 
-  const { moveCursor, createItem, deleteItem, duplicateItem, uploadFile, canEdit, setNotice } =
+  const { moveCursor, createItem, deleteItem, duplicateItem, uploadFile, canEdit, sendPing, setNotice } =
     useRoom();
 
   const [dropping, setDropping] = useState(false);
@@ -87,6 +88,32 @@ export default function Canvas() {
       event.currentTarget.setPointerCapture(event.pointerId);
     },
     [select, setEditing, spaceHeld],
+  );
+
+  /**
+   * A loaded reaction claims the press before anything else sees it. Capture
+   * phase rather than bubble, because an item would otherwise swallow the
+   * press and start dragging itself -- and a reaction is usually about the
+   * thing you are pointing at, so landing one on a photo has to work.
+   */
+  const stamp = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      const glyph = useRoomStore.getState().reaction;
+      if (!glyph) return;
+      if (event.button !== 0 && event.pointerType === "mouse") return;
+
+      const rect = rootRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const world = screenToWorld(
+        useRoomStore.getState().viewport,
+        event.clientX - rect.left,
+        event.clientY - rect.top,
+      );
+      sendPing(world.x, world.y, glyph);
+      event.stopPropagation();
+      event.preventDefault();
+    },
+    [sendPing],
   );
 
   const onPointerMove = useCallback(
@@ -267,6 +294,7 @@ export default function Canvas() {
         useRoomStore.getState().setEditing(null);
         useRoomStore.getState().setPanel(null);
         useRoomStore.getState().setTool("select");
+        useRoomStore.getState().setReaction(null);
         return;
       }
 
@@ -469,6 +497,7 @@ export default function Canvas() {
       ref={rootRef}
       className="absolute inset-0 touch-none select-none"
       style={{ cursor, ...backgroundStyle(room?.background, viewport) }}
+      onPointerDownCapture={stamp}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={endPan}
@@ -520,6 +549,17 @@ export default function Canvas() {
         >
           <span className="size-1.5 rounded-full bg-glow" />
           {tool === "draw" ? "drawing" : "erasing"} &mdash; press Esc or tap to stop
+        </button>
+      )}
+
+      {reaction && tool === "select" && (
+        <button
+          type="button"
+          onClick={() => useRoomStore.getState().setReaction(null)}
+          className="surface animate-drift-in pointer-events-auto absolute top-16 left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-medium"
+        >
+          <span className="text-base leading-none">{reaction}</span>
+          tap the room to drop it &mdash; Esc to stop
         </button>
       )}
 

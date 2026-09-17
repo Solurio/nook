@@ -7,15 +7,56 @@ import { useRoomStore } from "@/state/room-store";
 import { draftItem, topZ } from "@/lib/items";
 import type { Gif, SourceReport } from "@/lib/gifs";
 import { anyGifSource, enabledSources, explain, searchGifs } from "@/lib/gif-search";
+import clsx from "clsx";
+
+/**
+ * Where to hang the panel so it sits above the button that opened it, without
+ * running off either edge of the screen. Returns null when there is no button
+ * on screen to point at -- on a phone the gif button lives in the add sheet,
+ * so the panel falls back to a sheet of its own.
+ */
+function useAnchored(anchor?: React.RefObject<HTMLButtonElement | null>) {
+  const [place, setPlace] = useState<{ left: number; bottom: number } | null>(null);
+
+  useEffect(() => {
+    const measure = () => {
+      const button = anchor?.current;
+      const rect = button?.getBoundingClientRect();
+      if (!rect || rect.width === 0) {
+        setPlace(null);
+        return;
+      }
+
+      const width = Math.min(336, window.innerWidth - 16);
+      const wanted = rect.left + rect.width / 2 - width / 2;
+      setPlace({
+        left: Math.max(8, Math.min(wanted, window.innerWidth - width - 8)),
+        bottom: window.innerHeight - rect.top + 8,
+      });
+    };
+
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [anchor]);
+
+  return place;
+}
 
 /**
  * Type a word, get GIFs and stickers, drop one onto the wall -- the Here.fm
  * move. Searches every configured provider (Giphy + Klipy) at once so the
  * variety is wide; if one is thin on a term the others fill in.
  */
-export default function StickersPanel() {
+export default function StickersPanel({
+  anchor,
+}: {
+  /** The dock button this hangs off. Absent on a phone, where it is a sheet. */
+  anchor?: React.RefObject<HTMLButtonElement | null>;
+}) {
   const { createItem, canEdit } = useRoom();
   const setPanel = useRoomStore((s) => s.setPanel);
+  const place = useAnchored(anchor);
 
   const [term, setTerm] = useState("");
   const [gifs, setGifs] = useState<Gif[]>([]);
@@ -81,7 +122,17 @@ export default function StickersPanel() {
   );
 
   return (
-    <aside className="surface animate-drift-in absolute inset-x-2 bottom-20 z-40 flex max-h-[68dvh] flex-col overflow-hidden rounded-3xl sm:inset-x-auto sm:top-16 sm:right-3 sm:max-h-none sm:w-[21rem]">
+    <aside
+      style={place ?? undefined}
+      className={clsx(
+        "surface animate-drift-in pointer-events-auto z-60 flex flex-col overflow-hidden",
+        place
+          ? // Hung off the button, growing upwards from it.
+            "fixed w-[21rem] max-w-[92vw] rounded-2xl shadow-2xl"
+          : // No button to point at: a sheet across the bottom instead.
+            "fixed inset-x-2 bottom-20 max-h-[68dvh] rounded-3xl",
+      )}
+    >
       <header className="flex items-center justify-between border-b border-white/8 px-4 py-3">
         <h2 className="flex items-center gap-1.5 text-sm font-semibold">
           <Sticker className="size-4 text-glow" strokeWidth={2.2} />

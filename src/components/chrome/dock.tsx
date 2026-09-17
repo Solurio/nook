@@ -36,9 +36,10 @@ import {
 import { useRoom } from "@/realtime/room-provider";
 import { useRoomStore, viewportForItems } from "@/state/room-store";
 import { draftItem, topZ } from "@/lib/items";
-import { REACTIONS, REACTION_GLYPHS } from "@/lib/reactions";
+import EmojiPicker from "./emoji-picker";
 import type { GameKind, ItemKind } from "@/lib/types";
 import BrushPopover from "./brush-popover";
+import StickersPanel from "./stickers-panel";
 
 /**
  * Every game in one list, so the dock and the phone sheet always offer the same
@@ -83,11 +84,15 @@ export default function Dock() {
   const setTool = useRoomStore((s) => s.setTool);
   const panel = useRoomStore((s) => s.panel);
   const setPanel = useRoomStore((s) => s.setPanel);
+  const reaction = useRoomStore((s) => s.reaction);
+  const setReaction = useRoomStore((s) => s.setReaction);
 
   const [gamesOpen, setGamesOpen] = useState(false);
   const [reactionsOpen, setReactionsOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const dockRef = useRef<HTMLDivElement>(null);
+  // The gif panel hangs off this button rather than off a corner of the screen.
+  const stickerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const onDown = (event: PointerEvent) => {
@@ -129,12 +134,20 @@ export default function Dock() {
     setSheetOpen(false);
   }, [setViewport]);
 
+  /**
+   * One goes off straight away so picking feels like doing something, and the
+   * same emoji stays loaded so the next few can be put exactly where they
+   * belong -- on the photo, on the note, on whoever said it.
+   */
   const react = useCallback(
     (glyph: string) => {
       const at = centerOfView();
-      sendPing(at.x + (Math.random() * 160 - 80), at.y + (Math.random() * 100 - 50), glyph);
+      sendPing(at.x, at.y, glyph);
+      setReaction(glyph);
+      setTool("select");
+      setReactionsOpen(false);
     },
-    [centerOfView, sendPing],
+    [centerOfView, sendPing, setReaction, setTool],
   );
 
   return (
@@ -220,6 +233,7 @@ export default function Dock() {
             <ImagePlus className="size-4.5" strokeWidth={2} />
           </DockButton>
           <DockButton
+            ref={stickerRef}
             label="gifs and stickers"
             disabled={!canEdit}
             active={panel === "stickers"}
@@ -284,36 +298,34 @@ export default function Dock() {
         {/* Reactions */}
         <div className="surface relative flex items-center rounded-2xl p-1.5">
           <DockButton
-            label="react"
-            active={reactionsOpen}
+            label={reaction ? `${reaction} loaded -- tap the room, or tap here to put it down` : "react"}
+            active={reactionsOpen || Boolean(reaction)}
             onClick={() => {
+              // While one is loaded the button unloads it; that is what you
+              // want from it at that moment, not the picker again.
+              if (reaction) {
+                setReaction(null);
+                setReactionsOpen(false);
+                return;
+              }
               setReactionsOpen((v) => !v);
               setGamesOpen(false);
             }}
           >
-            <Smile className="size-4.5" strokeWidth={2} />
+            {reaction ? (
+              <span className="text-lg leading-none">{reaction}</span>
+            ) : (
+              <Smile className="size-4.5" strokeWidth={2} />
+            )}
           </DockButton>
 
           {reactionsOpen && (
-            <div className="surface-raised animate-drift-in absolute right-0 bottom-full mb-2 grid w-[17.5rem] max-w-[92vw] grid-cols-8 gap-1 rounded-2xl p-2 shadow-2xl">
-              {REACTIONS.map((key) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => {
-                    react(REACTION_GLYPHS[key]);
-                    setReactionsOpen(false);
-                  }}
-                  aria-label={`react ${key}`}
-                  className="grid aspect-square place-items-center rounded-xl text-xl transition hover:scale-110 hover:bg-white/10"
-                >
-                  {REACTION_GLYPHS[key]}
-                </button>
-              ))}
-            </div>
+            <EmojiPicker onPick={react} onClose={() => setReactionsOpen(false)} />
           )}
         </div>
       </div>
+
+      {panel === "stickers" && <StickersPanel anchor={stickerRef} />}
 
       {sheetOpen && (
         <AddSheet
@@ -455,15 +467,18 @@ function DockButton({
   onClick,
   disabled,
   active,
+  ref,
 }: {
   children: React.ReactNode;
   label: string;
   onClick: () => void;
   disabled?: boolean;
   active?: boolean;
+  ref?: React.Ref<HTMLButtonElement>;
 }) {
   return (
     <button
+      ref={ref}
       type="button"
       onClick={onClick}
       disabled={disabled}

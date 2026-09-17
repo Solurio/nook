@@ -91,6 +91,12 @@ interface RoomState {
 
   tool: Tool;
   brush: Brush;
+  /**
+   * An emoji picked from the dock and not yet placed. While one is loaded a
+   * click on the room drops it there instead of selecting, so a reaction can
+   * land on the thing it is about.
+   */
+  reaction: string | null;
 
   viewport: Viewport;
   panel: PanelId;
@@ -117,6 +123,7 @@ interface RoomState {
 
   setTool: (tool: Tool) => void;
   setBrush: (patch: Partial<Brush>) => void;
+  setReaction: (glyph: string | null) => void;
 
   setMe: (me: Identity) => void;
   syncPeers: (peers: Peer[]) => void;
@@ -155,6 +162,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
 
   tool: "select",
   brush: { color: "#f2a4b8", size: 4, opacity: 1 },
+  reaction: null,
 
   viewport: { x: 0, y: 0, scale: 1 },
   panel: null,
@@ -293,7 +301,11 @@ export const useRoomStore = create<RoomState>((set, get) => ({
       // Leaving select mode drops any selection so the frame does not linger.
       selectedId: tool === "select" ? s.selectedId : null,
       editingId: tool === "select" ? s.editingId : null,
+      // Drawing and reacting both want the next click; one of them has to go.
+      reaction: tool === "select" ? s.reaction : null,
     })),
+
+  setReaction: (reaction) => set({ reaction }),
 
   setBrush: (patch) => set((s) => ({ brush: { ...s.brush, ...patch } })),
 

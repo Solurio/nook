@@ -14,7 +14,6 @@ import Dock from "@/components/chrome/dock";
 import ChatPanel from "@/components/chrome/chat-panel";
 import BackgroundPanel from "@/components/chrome/background-panel";
 import PeersPanel from "@/components/chrome/peers-panel";
-import StickersPanel from "@/components/chrome/stickers-panel";
 import Inspector from "@/components/chrome/inspector";
 
 export default function RoomShell({
@@ -105,7 +104,6 @@ function RoomBody() {
       {panel === "chat" && <ChatPanel />}
       {panel === "background" && <BackgroundPanel />}
       {panel === "peers" && <PeersPanel />}
-      {panel === "stickers" && <StickersPanel />}
       <ActionToast error={error} />
     </main>
   );
