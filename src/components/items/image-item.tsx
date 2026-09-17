@@ -4,6 +4,7 @@ import { useState } from "react";
 import clsx from "clsx";
 import { ImagePlus } from "lucide-react";
 import { useRoom } from "@/realtime/room-provider";
+import { prepareImage } from "@/lib/image-upload";
 import type { Item } from "@/lib/types";
 
 export default function ImageItem({
@@ -13,7 +14,7 @@ export default function ImageItem({
   item: Item<"image">;
   selected: boolean;
 }) {
-  const { canEdit, updateData, uploadFile } = useRoom();
+  const { canEdit, updateData, uploadFile, setNotice } = useRoom();
   const [broken, setBroken] = useState(false);
   const { url, frame = "shadow", radius = 10, alt } = item.data;
 
@@ -22,7 +23,12 @@ export default function ImageItem({
       <EmptySlot
         active={selected}
         onPick={async (file) => {
-          const uploaded = await uploadFile(file);
+          const ready = await prepareImage(file);
+          if ("error" in ready) {
+            setNotice(ready.error);
+            return;
+          }
+          const uploaded = await uploadFile(ready.file);
           if (uploaded) await updateData(item.id, { ...item.data, url: uploaded });
         }}
         onUrl={async (value) => {

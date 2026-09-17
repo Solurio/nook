@@ -12,6 +12,7 @@ import {
 import { draftItem, topZ } from "@/lib/items";
 import { resolveLink } from "@/lib/embeds";
 import { parseMediaLink } from "@/lib/media";
+import { prepareImage } from "@/lib/image-upload";
 import type { Background, MediaData, MediaProvider } from "@/lib/types";
 import ItemFrame from "./item-frame";
 import Cursors from "./cursors";
@@ -55,7 +56,8 @@ export default function Canvas() {
   const panBy = useRoomStore((s) => s.panBy);
   const zoomAt = useRoomStore((s) => s.zoomAt);
 
-  const { moveCursor, createItem, deleteItem, duplicateItem, uploadFile, canEdit } = useRoom();
+  const { moveCursor, createItem, deleteItem, duplicateItem, uploadFile, canEdit, setNotice } =
+    useRoom();
 
   const [dropping, setDropping] = useState(false);
   const [spaceHeld, setSpaceHeld] = useState(false);
@@ -305,7 +307,19 @@ export default function Canvas() {
       );
       let offset = 0;
 
-      for (const file of usable) {
+      for (const original of usable) {
+        // Phone photos arrive in formats browsers will not draw, and at sizes
+        // no wall needs; this hands back something storable either way.
+        let file = original;
+        if (IMAGE_TYPES.test(original.type)) {
+          const ready = await prepareImage(original);
+          if ("error" in ready) {
+            setNotice(ready.error);
+            continue;
+          }
+          file = ready.file;
+        }
+
         const url = await uploadFile(file);
         if (!url) continue;
         const z = topZ(Object.values(useRoomStore.getState().items));
@@ -332,7 +346,7 @@ export default function Canvas() {
         offset += 26;
       }
     },
-    [createItem, uploadFile],
+    [createItem, setNotice, uploadFile],
   );
 
   const acceptText = useCallback(

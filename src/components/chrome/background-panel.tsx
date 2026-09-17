@@ -4,6 +4,7 @@ import { useState } from "react";
 import clsx from "clsx";
 import { Loader2, Upload, X } from "lucide-react";
 import { useRoom } from "@/realtime/room-provider";
+import { prepareImage } from "@/lib/image-upload";
 import { useRoomStore } from "@/state/room-store";
 import type { Background } from "@/lib/types";
 
@@ -22,7 +23,7 @@ const GRADIENTS: Array<{ from: string; to: string; angle: number }> = [
 ];
 
 export default function BackgroundPanel() {
-  const { updateBackground, uploadFile } = useRoom();
+  const { updateBackground, uploadFile, setNotice } = useRoom();
   const room = useRoomStore((s) => s.room);
   const setPanel = useRoomStore((s) => s.setPanel);
 
@@ -128,9 +129,17 @@ export default function BackgroundPanel() {
                   const file = event.target.files?.[0];
                   if (!file) return;
                   setUploading(true);
-                  const url = await uploadFile(file);
-                  setUploading(false);
-                  if (url) apply({ kind: "image", url, fit: "cover", dim: 25 });
+                  try {
+                    const ready = await prepareImage(file);
+                    if ("error" in ready) {
+                      setNotice(ready.error);
+                      return;
+                    }
+                    const url = await uploadFile(ready.file);
+                    if (url) apply({ kind: "image", url, fit: "cover", dim: 25 });
+                  } finally {
+                    setUploading(false);
+                  }
                 }}
               />
             </label>

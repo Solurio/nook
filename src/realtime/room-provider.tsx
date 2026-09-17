@@ -50,6 +50,8 @@ interface RoomApi {
   status: "loading" | "ready" | "error";
   error: string | null;
   clearError: () => void;
+  /** Puts a line in the toast, for problems that are not a failed write. */
+  setNotice: (message: string) => void;
   canEdit: boolean;
   isOwner: boolean;
 
@@ -475,6 +477,7 @@ export function RoomProvider({
   );
 
   const clearError = useCallback(() => setError(null), []);
+  const setNotice = useCallback((message: string) => setError(message), []);
 
   const deleteRoom = useCallback(async (): Promise<boolean> => {
     const roomId = roomIdRef.current;
@@ -809,6 +812,7 @@ export function RoomProvider({
     status,
     error,
     clearError,
+    setNotice,
     deleteRoom,
     canEdit,
     isOwner,
