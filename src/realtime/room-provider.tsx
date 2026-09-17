@@ -227,8 +227,6 @@ export function RoomProvider({
 
         if (cancelled) return;
 
-        // Open your console (F12) to see exactly what the room returned.
-        console.log("Itens vindos do Supabase:", itemsResult.data);
         if (itemsResult.error) {
           // A failed items read should not blank the whole room -- load the
           // chrome + realtime anyway so items can still stream in live.

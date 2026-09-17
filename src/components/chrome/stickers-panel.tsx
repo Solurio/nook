@@ -94,16 +94,16 @@ export default function StickersPanel() {
 
       {!enabled ? (
         <div className="flex-1 space-y-2 px-5 py-6 text-sm leading-relaxed text-muted">
-          <p>Pra buscar gifs e stickers, o app precisa de pelo menos uma chave gratuita.</p>
+          <p>Searching gifs and stickers needs at least one free key.</p>
           <ol className="list-decimal space-y-1 pl-4 text-xs">
             <li>
-              <span className="text-chalk">developers.giphy.com</span> (Giphy) e/ou{" "}
-              <span className="text-chalk">partner.klipy.com</span> (Klipy).
+              Grab one from <span className="text-chalk">developers.giphy.com</span> and/or{" "}
+              <span className="text-chalk">partner.klipy.com</span>.
             </li>
             <li>
-              Adiciona <code className="rounded bg-white/8 px-1">NEXT_PUBLIC_GIPHY_KEY</code> e/ou{" "}
-              <code className="rounded bg-white/8 px-1">NEXT_PUBLIC_KLIPY_KEY</code> nas variaveis
-              de ambiente (Cloudflare) e re-deploya.
+              Add <code className="rounded bg-white/8 px-1">NEXT_PUBLIC_GIPHY_KEY</code> and/or{" "}
+              <code className="rounded bg-white/8 px-1">NEXT_PUBLIC_KLIPY_KEY</code> to your
+              environment variables, then deploy again.
             </li>
           </ol>
         </div>
@@ -116,7 +116,7 @@ export default function StickersPanel() {
                 value={term}
                 onChange={(event) => setTerm(event.target.value)}
                 onKeyDown={(event) => event.stopPropagation()}
-                placeholder="busca gifs e stickers"
+                placeholder="search gifs and stickers"
                 spellCheck={false}
                 autoFocus
                 className="min-w-0 flex-1 bg-transparent py-2.5 text-sm outline-none placeholder:text-muted/55"
@@ -128,10 +128,10 @@ export default function StickersPanel() {
           <div className="min-h-0 flex-1 overflow-y-auto p-3">
             {failed ? (
               <p className="px-2 pt-6 text-center text-xs text-muted/70">
-                nada encontrado pra isso.
+                nothing turned up for that.
               </p>
             ) : gifs.length === 0 && !loading ? (
-              <p className="px-2 pt-6 text-center text-xs text-muted/70">nada por aqui ainda.</p>
+              <p className="px-2 pt-6 text-center text-xs text-muted/70">nothing here yet.</p>
             ) : (
               <div className="columns-2 gap-2 [&>*]:mb-2">
                 {gifs.map((gif) => (

@@ -103,7 +103,7 @@ export default function ScreencastItem({ item }: { item: Item<"screencast"> }) {
           />
           {!amBroadcaster && !remoteStream && (
             <div className="absolute inset-0 grid place-items-center text-xs text-muted">
-              conectando ao stream…
+              connecting to the stream...
             </div>
           )}
           {!amBroadcaster && muted && remoteStream && (
@@ -113,7 +113,7 @@ export default function ScreencastItem({ item }: { item: Item<"screencast"> }) {
               className="absolute bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-chalk/95 px-3 py-1.5 text-xs font-semibold text-ink-950 shadow-lg transition hover:bg-white"
             >
               <VolumeX className="size-3.5" strokeWidth={2.4} />
-              tocar com som
+              play with sound
             </button>
           )}
         </div>
@@ -125,7 +125,7 @@ export default function ScreencastItem({ item }: { item: Item<"screencast"> }) {
               onClick={() => void end()}
               className="flex-1 rounded-lg bg-red-500/20 py-1.5 text-xs font-semibold text-red-200 transition hover:bg-red-500/30"
             >
-              parar de transmitir
+              stop sharing
             </button>
           ) : (
             canEdit && (
@@ -135,7 +135,7 @@ export default function ScreencastItem({ item }: { item: Item<"screencast"> }) {
                 className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-white/8 py-1.5 text-xs font-semibold text-chalk transition hover:bg-white/12"
               >
                 <Hand className="size-3.5" strokeWidth={2.2} />
-                assumir (transmitir eu)
+                take over (share mine)
               </button>
             )
           )}
@@ -151,14 +151,14 @@ export default function ScreencastItem({ item }: { item: Item<"screencast"> }) {
         <div className="w-full max-w-[320px] space-y-2.5">
           <div className="flex items-center justify-center gap-1.5 text-muted">
             <MonitorUp className="size-4" strokeWidth={2} />
-            <span className="text-xs font-medium">transmitir uma aba</span>
+            <span className="text-xs font-medium">share a tab</span>
           </div>
           <div className="flex gap-1.5">
             <input
               value={urlDraft}
               onChange={(event) => setUrlDraft(event.target.value)}
               onKeyDown={(event) => event.stopPropagation()}
-              placeholder="link (opcional)"
+              placeholder="link (optional)"
               spellCheck={false}
               className="min-w-0 flex-1 rounded-xl bg-white/8 px-3 py-2 text-xs ring-1 ring-white/12 outline-none placeholder:text-muted/60 focus:ring-glow/50"
             />
@@ -166,7 +166,7 @@ export default function ScreencastItem({ item }: { item: Item<"screencast"> }) {
               <button
                 type="button"
                 onClick={() => window.open(normalize(urlDraft), "_blank", "noopener")}
-                title="abrir numa aba pra depois compartilhar"
+                title="open it in a tab first, then share"
                 className="grid size-9 shrink-0 place-items-center rounded-xl bg-white/8 text-muted transition hover:bg-white/12 hover:text-chalk"
               >
                 <ExternalLink className="size-3.5" strokeWidth={2.2} />
@@ -179,29 +179,29 @@ export default function ScreencastItem({ item }: { item: Item<"screencast"> }) {
             className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-chalk py-2 text-xs font-semibold text-ink-950 transition hover:bg-white"
           >
             <MonitorUp className="size-3.5" strokeWidth={2.4} />
-            escolher aba e transmitir
+            pick a tab and share
           </button>
           {notice === "unsupported" && (
             <p className="rounded-lg bg-warm/10 px-2.5 py-1.5 text-[11px] leading-relaxed text-warm ring-1 ring-warm/25">
-              este navegador não deixa compartilhar a tela. no celular quase nenhum deixa — usa um
-              computador no Chrome, Edge ou Firefox, e no site (não numa janela em http).
+              this browser will not share a screen. most phones cannot -- use a
+              desktop on Chrome, Edge or Firefox, over https.
             </p>
           )}
           {notice === "denied" && (
             <p className="rounded-lg bg-white/6 px-2.5 py-1.5 text-[11px] leading-relaxed text-muted">
-              compartilhamento cancelado ou bloqueado. clica de novo e, no seletor do navegador,
-              escolhe a aba/tela e confirma.
+              sharing was cancelled or blocked. click again and, in the browser picker,
+              choose the tab or screen and confirm.
             </p>
           )}
           <p className="text-[10px] leading-relaxed text-muted/60">
-            você escolhe uma aba do seu navegador (com seus logins), e todo mundo vê ao vivo. quem
-            quiser jogar/usar, clica em assumir.
+            you pick a tab from your own browser, with your own logins, and everyone watches it
+            live. whoever wants a turn takes over.
           </p>
         </div>
       ) : (
         <div className="text-muted">
           <MonitorUp className="mx-auto mb-2 size-5" strokeWidth={1.8} />
-          <p className="text-xs">ninguém transmitindo</p>
+          <p className="text-xs">nobody is sharing</p>
         </div>
       )}
     </div>

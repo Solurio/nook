@@ -55,10 +55,10 @@ export default function CobrowseItem({
         result.error === "not_configured"
           ? "not-configured"
           : result.error === "unauthorized"
-            ? "Entra na sala de novo e tenta outra vez."
+            ? "Step back into the room and try again."
             : result.detail
-              ? `Hyperbeam recusou: ${result.detail}`
-              : "Não consegui abrir a sessão. Provável limite do plano do Hyperbeam (sessões simultâneas ou minutos). Fecha as sessões abertas e confere o painel deles.",
+              ? `Hyperbeam said no: ${result.detail}`
+              : "Could not open the session. Most likely the Hyperbeam plan limit (concurrent sessions or minutes). Close any open sessions and check their dashboard.",
       );
     }
   };
@@ -91,7 +91,7 @@ export default function CobrowseItem({
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
                 onKeyDown={(event) => event.stopPropagation()}
-                placeholder="novo link"
+                placeholder="new link"
                 spellCheck={false}
                 autoFocus
                 className="min-w-0 flex-1 rounded-lg bg-white/8 px-2 py-1 text-[11px] ring-1 ring-white/12 outline-none focus:ring-glow/50"
@@ -101,7 +101,7 @@ export default function CobrowseItem({
                 disabled={busy}
                 className="shrink-0 rounded-lg bg-glow/25 px-2 py-1 text-[11px] font-medium text-glow"
               >
-                ir
+                go
               </button>
             </form>
           ) : (
@@ -115,7 +115,7 @@ export default function CobrowseItem({
                 setDraft(data.url);
                 setChanging(true);
               }}
-              title="trocar link"
+              title="change link"
               className="shrink-0 text-muted transition hover:text-chalk"
             >
               <Repeat className="size-3.5" strokeWidth={2.2} />
@@ -125,7 +125,7 @@ export default function CobrowseItem({
             <button
               type="button"
               onClick={() => void close()}
-              title="fechar sessão"
+              title="close session"
               className="shrink-0 text-muted transition hover:text-red-300"
             >
               <X className="size-3.5" strokeWidth={2.4} />
@@ -153,8 +153,8 @@ export default function CobrowseItem({
         <div className="max-w-[300px] space-y-2 text-muted">
           <Monitor className="mx-auto size-5" strokeWidth={1.8} />
           <p className="text-xs leading-relaxed">
-            O navegador compartilhado precisa da chave do Hyperbeam configurada na
-            Cloudflare. Veja <span className="text-chalk">COBROWSE.md</span>.
+            The shared browser needs a Hyperbeam key set in your hosting
+            environment. See <span className="text-chalk">COBROWSE.md</span>.
           </p>
         </div>
       ) : selected && canEdit ? (
@@ -167,7 +167,7 @@ export default function CobrowseItem({
         >
           <div className="flex items-center justify-center gap-1.5 text-muted">
             <Monitor className="size-4" strokeWidth={2} />
-            <span className="text-xs font-medium">navegador compartilhado</span>
+            <span className="text-xs font-medium">shared browser</span>
           </div>
           <input
             value={draft}
@@ -195,7 +195,7 @@ export default function CobrowseItem({
         <div className="text-muted">
           <Monitor className="mx-auto mb-2 size-5" strokeWidth={1.8} />
           <p className="text-xs">
-            {data.status === "ended" ? "sessão encerrada" : "navegador compartilhado"}
+            {data.status === "ended" ? "session ended" : "shared browser"}
           </p>
           {data.url && (
             <a
@@ -205,7 +205,7 @@ export default function CobrowseItem({
               className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-glow hover:underline"
             >
               <ExternalLink className="size-3" strokeWidth={2.2} />
-              abrir numa aba
+              open in a tab
             </a>
           )}
         </div>

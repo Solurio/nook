@@ -1,84 +1,86 @@
-# Navegador compartilhado ao vivo (Hyperbeam)
+# Live shared browser (Hyperbeam)
 
-Isto liga o item "shared browser" da dock: você cola um link, e **todo mundo na
-sala controla o mesmo navegador ao mesmo tempo** — clicar, rolar, digitar juntos,
-pela internet. É o co-browsing de verdade que um iframe normal não consegue
-fazer.
+This turns on the "shared browser" item in the dock: you paste a link, and
+**everyone in the room drives the same browser at the same time**, clicking,
+scrolling and typing together over the internet. It's the real co-browsing a
+plain iframe can't do.
 
-Isso usa o [Hyperbeam](https://hyperbeam.com), que roda um navegador na nuvem e
-transmite pra sala. É a **única parte paga** do Nook. Todo o resto continua de
-graça.
+It runs on [Hyperbeam](https://hyperbeam.com), which keeps a browser in the
+cloud and streams it to the room. This is the **only paid part** of nook.
+Everything else stays free.
 
-## O que já está pronto no código
+## What's already in the code
 
-- O item, o botão na dock, "trocar link" e "fechar sessão".
-- A função serverless (`functions/api/cobrowse.js`) que cria e encerra a sessão.
-  Ela guarda a chave do Hyperbeam **no servidor** — a chave nunca chega no
-  navegador nem fica no repositório.
-- Freios de custo: a sessão se encerra sozinha **3 minutos** depois que todo
-  mundo sai (`OFFLINE_TIMEOUT` no arquivo da função), e o botão "fechar" mata a
-  sessão na hora.
+- The item itself, the dock button, "change link" and "close session".
+- The serverless function (`functions/api/cobrowse.js`) that opens and ends the
+  session. It keeps the Hyperbeam key **on the server**, so the key never
+  reaches the browser and never lands in the repository.
+- Cost brakes: the session ends by itself **3 minutes** after everyone leaves
+  (`OFFLINE_TIMEOUT` in the function file), and the close button kills it
+  immediately.
 
-Falta só você criar a conta e colar a chave. Uns 10 minutos.
+All that's left is creating the account and pasting the key in. About ten
+minutes.
 
-## Passo a passo
+## Step by step
 
-**1. Crie a conta e pegue a chave.**
-Em [hyperbeam.com](https://hyperbeam.com), cria a conta e vai no dashboard pegar
-a **API key** (fica em algo como Settings / API Keys). Guarda ela — é secreta.
+**1. Create the account and get the key.**
+At [hyperbeam.com](https://hyperbeam.com), make an account and grab the **API
+key** from the dashboard (usually under Settings / API Keys). Keep it secret.
 
-**2. Coloque a chave na Cloudflare (não no código).**
-No painel da Cloudflare Pages → seu projeto `nook` → **Settings → Environment
-variables → Production**. Adiciona:
+**2. Put the key in your host, not in the code.**
+In the Cloudflare Pages dashboard, go to your project → **Settings →
+Environment variables → Production** and add:
 
-- `HYPERBEAM_API_KEY` = a chave que você pegou. **Marca como "secret"** (encrypt).
+- `HYPERBEAM_API_KEY` is the key you just copied. **Mark it as a secret**
+  (encrypted).
 
-E, pra deixar só quem está na sala poder abrir sessão (protege o bolso de
-abuso), adiciona também estas duas (os mesmos valores do Supabase que você já
-usa, mas **sem** o prefixo `NEXT_PUBLIC_`):
+Then, so only people actually in the room can open a session (which protects
+your wallet from abuse), add these two as well. Same Supabase values you
+already use, but **without** the `NEXT_PUBLIC_` prefix:
 
-- `SUPABASE_URL` = a URL do seu Supabase
-- `SUPABASE_ANON_KEY` = a chave anon do Supabase
+- `SUPABASE_URL` is your Supabase URL
+- `SUPABASE_ANON_KEY` is the Supabase anon key
 
-> Se você pular essas duas, o navegador compartilhado ainda funciona, mas
-> qualquer um que abrir o site poderia disparar uma sessão. Com elas, só quem
-> entrou na sala consegue. Recomendo colocar.
+> Skip those two and the shared browser still works, but anyone who opens the
+> site could start a session. With them, only people who joined the room can.
+> Worth adding.
 
-**3. Rode a migração do banco.**
-No SQL Editor do Supabase, roda `supabase/migrations/0003_cobrowse.sql` (deixa o
-banco aceitar o novo tipo de item).
+**3. Run the database migration.**
+In Supabase's SQL Editor, run `supabase/migrations/0003_cobrowse.sql` so the
+database accepts the new item kind. If you've already run a later migration,
+run the newest one last instead, since they redefine the same constraint.
 
-**4. Re-deploya.**
-Um `git push` (ou "Retry deployment" na Cloudflare) e pronto. As variáveis novas
-entram no próximo build.
+**4. Deploy again.**
+A `git push` is enough. The new variables get picked up on the next build.
 
-## Como usar
+## Using it
 
-1. Na sala, clica no botão de **monitor** (shared browser) na dock.
-2. Seleciona o item, cola um link, "abrir juntos".
-3. A sessão sobe e todo mundo na sala passa a controlar o mesmo navegador.
-4. "Trocar link" (o ícone de setas) troca o site sem abrir sessão nova à toa.
-5. "Fechar" (o X) encerra a sessão — **use quando terminar, pra não gastar à
-   toa.**
+1. In the room, click the **monitor** button (shared browser) in the dock.
+2. Select the item, paste a link, open it together.
+3. The session comes up and everyone in the room can drive the same browser.
+4. "Change link" (the arrows icon) switches sites without wasting a new session.
+5. "Close" (the X) ends the session. **Use it when you're done so it doesn't
+   bill for nothing.**
 
-## Custo e como não tomar susto
+## Cost, and not getting a surprise
 
-- O Hyperbeam cobra **por hora de sessão ativa**, não assinatura fixa. Confere o
-  preço atual no painel deles.
-- Pro seu teto de ~R$50/mês, o que segura é: fechar a sessão quando acabar, e o
-  timeout de 3 min que mata sessão abandonada. Se quiser ainda mais apertado,
-  baixa o `OFFLINE_TIMEOUT` em `functions/api/cobrowse.js` (ex.: 60 segundos).
-- Cada item "shared browser" aberto = uma sessão. Não deixa vários abertos.
+- Hyperbeam charges **per hour of active session**, not a flat subscription.
+  Check their dashboard for current pricing.
+- What keeps it cheap: closing the session when you're finished, and the
+  3-minute timeout that kills an abandoned one. For something tighter, lower
+  `OFFLINE_TIMEOUT` in `functions/api/cobrowse.js` (60 seconds, say).
+- Each open "shared browser" item is one session. Don't leave several around.
 
-## Detalhe importante
+## One thing worth knowing
 
-O navegador compartilhado é uma sessão **ao vivo**, não um objeto permanente.
-Foto e bilhete ficam pra sempre; a sessão de co-browse encerra quando todo mundo
-sai (ou no "fechar"). Quando isso acontece, o item mostra "sessão encerrada" com
-um botão pra abrir de novo. Isso é da natureza da coisa, não é bug.
+The shared browser is a **live session**, not a permanent object. A photo or a
+note stays forever; a co-browse session ends when everyone leaves (or when you
+close it). When that happens the item shows "session ended" with a button to
+open it again. That's the nature of it, not a bug.
 
-## Local
+## Locally
 
-A função `/api/cobrowse` só existe no deploy da Cloudflare. Rodando `npm run dev`
-local, o botão vai dizer que não está configurado — normal. Testa no site
-publicado.
+The `/api/cobrowse` function only exists on the deployed site. Running
+`npm run dev` locally, the button will say it isn't configured. That's expected.
+Test it on the published site.

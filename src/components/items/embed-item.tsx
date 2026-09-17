@@ -89,9 +89,9 @@ export default function EmbedItem({
           <div className="max-w-[280px] space-y-2 text-muted">
             <ShieldAlert className="mx-auto size-5 text-warm" strokeWidth={1.8} />
             <p className="text-xs leading-relaxed">
-              <span className="text-chalk">{safeHost(url)}</span> não deixa ser aberto dentro de
-              outra página (trava do próprio site). Abre numa aba nova, ou usa o{" "}
-              <span className="text-chalk">navegador compartilhado</span> pra ver junto.
+              <span className="text-chalk">{safeHost(url)}</span> will not open inside
+              another page (the site blocks it). Open it in a new tab, or use the{" "}
+              <span className="text-chalk">shared browser</span> to watch it together.
             </p>
             <a
               href={url}
@@ -100,7 +100,7 @@ export default function EmbedItem({
               className="inline-flex items-center gap-1 rounded-lg bg-white/8 px-2.5 py-1 text-[11px] text-chalk transition hover:bg-white/12"
             >
               <ExternalLink className="size-3" strokeWidth={2.2} />
-              abrir numa aba
+              open in a tab
             </a>
           </div>
         </div>

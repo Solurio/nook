@@ -129,8 +129,8 @@ function ActionToast({ error }: { error: string | null }) {
 
   const needsMigration = /check constraint|items_kind_check/i.test(error);
   const message = needsMigration
-    ? "Não consegui adicionar isso. O banco precisa das migrações mais novas (0003 e 0004) pra aceitar transmissão de aba e navegador compartilhado."
-    : `Algo não salvou: ${error}`;
+    ? "Could not add that. The database needs the newer migrations (0003 and 0004) before it will accept shared browsers and tab sharing."
+    : `That did not save: ${error}`;
 
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-24 z-50 flex justify-center px-4">
@@ -140,7 +140,7 @@ function ActionToast({ error }: { error: string | null }) {
           type="button"
           onClick={clearError}
           className="shrink-0 text-muted transition hover:text-chalk"
-          title="fechar"
+          title="dismiss"
         >
           <X className="size-4" strokeWidth={2.4} />
         </button>

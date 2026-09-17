@@ -1,71 +1,74 @@
-# Colocando o Nook no ar
+# Putting nook online
 
-O site é exportado como um monte de arquivos estáticos (`out/`), sem servidor.
-Isso quer dizer que dá pra hospedar em qualquer lugar que sirva arquivo estático,
-de graça, e o link funciona pra sempre sem ninguém precisar rodar nada. Seus
-amigos só digitam o endereço.
+The site exports as a pile of static files (`out/`), with no server. That means
+it hosts anywhere that serves static files, for free, and the link keeps working
+forever without anyone having to run anything. Your friends just type the
+address.
 
-O repositório continua **privado**. Nenhum segredo mora nele: as duas variáveis
-de ambiente ficam no painel do host, não no código. A chave `anon` do Supabase é
-pública por natureza (vai embutida no JavaScript de qualquer jeito) e quem
-protege os dados é o RLS, não o segredo dela.
+No secrets live in the repository. The two environment variables are set in your
+host's dashboard, not in the code. Supabase's `anon` key is public by nature (it
+ends up embedded in the JavaScript either way), and what protects the data is
+RLS, not keeping that key quiet.
 
-Antes de qualquer coisa, rode as migrações do banco (veja o README): sem a tabela
-`strokes` da migração `0002`, o desenho na sala não salva.
+Before anything else, run the database migrations (see the README). Without the
+`strokes` table from migration `0002`, drawing on the room doesn't save.
 
-## Opção A — Cloudflare Pages (recomendada)
+## Option A: Cloudflare Pages (recommended)
 
-De graça, repo privado, e um domínio fixo tipo `nook.pages.dev`.
+Free, with a fixed address like `nook.pages.dev`.
 
-1. Em [dash.cloudflare.com](https://dash.cloudflare.com) → **Workers & Pages** →
-   **Create** → **Pages** → **Connect to Git**. Autorize e escolha o repo
-   `Solurio/nook`.
-2. Nas configurações de build:
-   - **Framework preset:** Next.js (Static HTML Export). Se não tiver esse preset,
-     use "None" e preencha à mão.
+1. In [dash.cloudflare.com](https://dash.cloudflare.com) go to **Workers & Pages**
+   → **Create** → **Pages** → **Connect to Git**. Authorise, then pick the repo.
+2. Build settings:
+   - **Framework preset:** Next.js (Static HTML Export). If that preset isn't
+     there, use "None" and fill it in by hand.
    - **Build command:** `npm run build`
    - **Build output directory:** `out`
-3. Em **Environment variables** (Production), adicione as duas:
-   - `NEXT_PUBLIC_SUPABASE_URL` = a URL do seu projeto Supabase
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` = a chave anon/publishable
+3. Under **Environment variables** (Production), add both:
+   - `NEXT_PUBLIC_SUPABASE_URL` is your Supabase project URL
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` is the anon/publishable key
 4. **Save and Deploy.**
 
-Pronto. Cada `git push` na branch `main` faz um deploy novo sozinho. O endereço
-é o `nook.pages.dev` (ou o nome que você escolher).
+That's it. Every `git push` to `main` deploys on its own.
 
-## Opção B — Vercel
+If a deploy seems to not pick up your latest commit, check the Deployments tab:
+the card on top should show the newest commit hash. Hitting "Retry deployment"
+on an older card republishes *that* old commit over the new one, which looks
+exactly like a build that silently failed.
 
-Também de graça e com repo privado. O domínio sai como `nook-xxxx.vercel.app`.
+## Option B: Vercel
 
-1. Em [vercel.com/new](https://vercel.com/new), importe o repo `Solurio/nook`.
-2. A Vercel detecta Next.js. Não precisa mexer no build; o `output: "export"` do
-   `next.config.ts` faz ela servir os arquivos estáticos.
-3. Em **Environment Variables**, adicione `NEXT_PUBLIC_SUPABASE_URL` e
+Also free. The address comes out as `nook-xxxx.vercel.app`.
+
+1. At [vercel.com/new](https://vercel.com/new), import the repo.
+2. Vercel detects Next.js. You don't need to touch the build; `output: "export"`
+   in `next.config.ts` makes it serve the static files.
+3. Under **Environment Variables**, add `NEXT_PUBLIC_SUPABASE_URL` and
    `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 4. **Deploy.**
 
-## Sobre "privado"
+## What "private" means here
 
-O *endereço* do site é acessível por qualquer um que o tenha — não dá pra deixar
-a página em si trancada num plano gratuito. Mas isso não vaza nada: a página é só
-a casca do app. O que importa são as **salas**, e cada sala tem um slug
-impossível de adivinhar (tipo `cocoa-willow-7fk2`) protegido por RLS no banco.
-Ninguém entra numa sala sem o link dela. É o mesmo modelo do Here.fm: o link é a
-chave.
+The site's *address* is reachable by anyone who has it. You can't lock the page
+itself behind a free plan. That leaks nothing, though: the page is only the
+shell of the app. What matters are the **rooms**, and each room has a slug you
+can't guess (something like `cocoa-willow-7fk2`) protected by RLS in the
+database. Nobody gets into a room without its link. Same model as Here.fm: the
+link is the key.
 
-Se um dia quiser trancar de vez, o dono da sala tem o cadeado no topo — com ele
-fechado, só o dono edita.
+If you want to lock one down for good, the room's owner has a padlock at the
+top. With it closed, only the owner edits.
 
-## Domínio próprio (opcional)
+## Your own domain (optional)
 
-Tanto a Cloudflare quanto a Vercel deixam apontar um domínio seu de graça
-(você só paga o registro do domínio, se quiser um). Nas duas é em
-**Custom domains** dentro do projeto.
+Cloudflare and Vercel both let you point a domain at it for free (you only pay
+to register the domain, if you want one). On both it's under **Custom domains**
+inside the project.
 
-## Rodando local pra desenvolver
+## Running locally
 
 ```bash
-cp .env.example .env.local   # e preencha as duas chaves
+cp .env.example .env.local   # then fill in the two keys
 npm install
 npm run dev                  # http://localhost:3000
 ```

@@ -1,246 +1,239 @@
 # nook
 
-Uma sala pequena na internet. Você abre, joga umas fotos na parede, cola bilhetes,
-bota uma música pra tocar, e manda o link pra alguém. Quem entra vê tudo do jeito
-que você deixou, e vê acontecer ao vivo.
+A small room on the internet. You open it, throw some photos on the wall, stick
+notes up, put music on, and send the link to someone. Whoever walks in sees it
+exactly how you left it, and watches it happen live.
 
-Foi feito por saudade do Here.fm.
+Built out of missing Here.fm.
 
-## O que dá pra fazer lá dentro
+## What you can do in there
 
-Uma sala é uma tela infinita. Você arrasta, gira e redimensiona qualquer coisa
-que colocar nela, e tudo fica salvo onde você largou.
+A room is an infinite canvas. You drag, rotate and resize anything you put on
+it, and it all stays where you dropped it.
 
-- **Fotos e GIFs** — arrasta do desktop, cola do clipboard (Ctrl+V) ou joga uma
-  URL. GIFs animam normalmente. Tem quatro molduras: lisa, com sombra, polaroid
-  e adesivo.
-- **Bilhetes** e **texto grande** — dois cliques pra escrever. O que você digita
-  aparece pros outros enquanto digita.
-- **Desenhar na sala** — um pincel que pinta direto na tela infinita, com
-  paleta de cores, cor personalizada e espessura. Tem borracha (arrasta em cima
-  de um traço pra apagar). Todo traço é compartilhado ao vivo e fica salvo.
-- **Música e vídeo em sincronia** — cola um link do **YouTube**, um arquivo de
-  áudio direto (**.mp3/.ogg/.wav/.m4a/...**) ou do **SoundCloud** e todo mundo
-  ouve/assiste junto. Quem der play, pausar ou arrastar a barra move pra todo
-  mundo. Como o navegador não deixa dar autoplay com som sem um clique, quem
-  chega entra tocando **mudo** e em sincronia, e clica pra ativar o som. Tem
-  fila e um modo só-áudio. (Cada tipo usa a API de controle do próprio provedor
-  — por isso sincroniza de verdade. Spotify/Twitch/sites que não expõem controle
-  livre vão pra janela de site ou pra transmissão de aba.)
-- **Stickers/GIFs** — uma janela de busca de GIFs (Giphy) que solta o GIF na
-  parede como objeto, igual o Here.fm. Precisa de uma chave gratuita do Giphy
-  (veja abaixo); sem ela o resto do app funciona normal.
-- **Janelas** — um iframe pra sites que aceitam ser embedados. Links de Twitch,
-  Vimeo, SoundCloud e Spotify são convertidos automaticamente pro player certo.
-- **Jogos** — xadrez, damas, velha, lig-4. Dá pra "sentar" numa cadeira pra
-  marcar de quem é a vez, ou deixar solto e qualquer um joga. (O xadrez move as
-  peças pelas regras de cada peça, mas não policia xeque/roque/en passant —
-  vocês se acertam, como num tabuleiro de verdade.)
-- **Lousa de pintura** — não é mais um rabisco: é um app de pintura raster, todo
-  mundo desenhando ao mesmo tempo. Pincéis (caneta, marcador, spray, borracha),
-  tamanho e opacidade, **pressão de mesa digitalizadora** com sensibilidade
-  ajustável, seletor de cor completo, **camadas** (adicionar, esconder,
-  opacidade, hue) e **export em PNG**.
-- **Decoração** — fundo sólido, degradê, ou uma imagem sua (esticada ou repetida
-  em ladrilho, com controle de escurecimento).
-- **Chat**, cursores com nome de todo mundo que está online, e reações que
-  sobem na tela.
+- **Photos and GIFs.** Drag from your desktop, paste from the clipboard
+  (Ctrl+V), or drop in a URL. GIFs animate. Four frames to choose from: plain,
+  shadowed, polaroid, sticker.
+- **Notes** and **big text.** Double click to write. What you type shows up for
+  everyone else as you type it.
+- **Drawing on the room.** A brush that paints straight onto the infinite
+  canvas, with a colour palette, a custom colour and adjustable width. There's
+  an eraser too (drag over a stroke to remove it). Every stroke is shared live
+  and saved.
+- **Music and video in sync.** Paste a **YouTube** link, a direct audio file
+  (**.mp3/.ogg/.wav/.m4a/...**) or a **SoundCloud** track, and everyone listens
+  together. Play, pause or scrub and it moves for the whole room. Browsers
+  won't autoplay audio without a click, so anyone arriving starts **muted** but
+  already in sync, then clicks to turn sound on. There's a queue and an
+  audio-only mode. Each provider is driven through its own control API, which
+  is why the sync is real rather than approximate.
+- **Stickers and GIFs.** A search panel that drops the GIF onto the wall as an
+  object, the way Here.fm did it. Needs a free key (see below); without one the
+  rest of the app works fine.
+- **Windows.** An iframe for sites that allow embedding. Twitch, Vimeo,
+  SoundCloud and Spotify links are converted to the right player automatically.
+- **Games.** Chess, checkers, tic-tac-toe, connect four. You can take a seat to
+  mark whose turn it is, or leave it open and let anyone play.
+- **Paint board.** Not a doodle pad: a raster painting app with everyone drawing
+  at once. Brushes (pen, marker, spray, eraser), size and opacity, **graphics
+  tablet pressure** with adjustable sensitivity, a full colour picker,
+  **layers** (add, hide, opacity, hue) and **PNG export**.
+- **Decorating.** A solid colour, a gradient, or your own image, either
+  stretched or tiled, with a dimmer.
+- **Chat**, named cursors for everyone online, and reactions that float up the
+  screen.
 
-Quando alguém abre o link, primeiro escolhe um apelido e uma cor, e só então
-entra na sala. O apelido fica salvo pra próxima vez.
+When someone opens the link they pick a nickname and a colour first, then walk
+in. The nickname is remembered for next time.
 
-Atalhos: `V` volta pro cursor, `B` pega o pincel, `E` a borracha, espaço arrasta
-a tela, Ctrl+scroll dá zoom, Delete apaga o que está selecionado, Ctrl+D
-duplica, Ctrl+0 volta pro centro, Esc larga tudo.
+Shortcuts: `V` back to the cursor, `B` brush, `E` eraser, space to drag the
+canvas, Ctrl+scroll to zoom, Delete to remove the selection, Ctrl+D to
+duplicate, Ctrl+0 to recentre, Esc to drop everything.
 
-## Como isso funciona
+## How it works
 
-O único serviço de verdade é o Supabase, e ele faz três papéis ao mesmo tempo:
-banco (Postgres), tempo real, e storage das imagens que você sobe. Isso é de
-propósito — dá pra ter persistência e tempo real sem manter servidor nenhum
-rodando, e cabe folgado no plano gratuito pra um punhado de pessoas.
+The only real service behind this is Supabase, and it plays three parts at
+once: the database (Postgres), realtime, and storage for the images you upload.
+That's deliberate. It buys persistence and realtime without keeping a server
+running anywhere, and it fits comfortably inside the free tier for a handful of
+people.
 
-O tempo real é dividido em duas faixas, porque as duas coisas têm exigências
-opostas:
+Realtime is split into two lanes, because the two kinds of traffic want
+opposite things:
 
-- **Coisas que precisam sobreviver** (um item criado, movido pro lugar final,
-  uma mensagem, o estado de um jogo) vão pro Postgres. O Supabase reemite essas
-  mudanças via `postgres_changes` pra todo mundo na sala. É mais lento, mas quem
-  chegar depois vê exatamente o mesmo que os outros — não existe estado que só
-  vive na memória de alguém.
-- **Coisas descartáveis** (posição do cursor, o item enquanto ainda está sendo
-  arrastado, o traço do rabisco em andamento) vão por `broadcast`, que não toca
-  no banco. São dezenas de mensagens por segundo que não têm valor nenhum cinco
-  segundos depois, e gravar isso só queimaria cota.
+- **Things that have to survive** (an item created, moved to its final spot, a
+  message, the state of a game) go to Postgres. Supabase re-emits those changes
+  over `postgres_changes` to everyone in the room. It's slower, but anyone
+  arriving later sees exactly what the others see. No state lives only in
+  somebody's memory.
+- **Disposable things** (cursor position, an item mid-drag, a brush stroke still
+  being drawn) go over `broadcast`, which never touches the database. That's
+  dozens of messages a second worth nothing five seconds later, and writing them
+  down would only burn quota.
 
-Na prática você arrasta uma foto: durante o arrasto os outros veem ela deslizar
-por broadcast; quando você solta, uma linha do Postgres é atualizada e essa
-é a versão que fica. Se alguém entrar no meio do arrasto, pega a posição final.
+In practice: you drag a photo, and while you're dragging everyone sees it glide
+via broadcast. When you let go, one Postgres row is updated and that's the
+version that sticks. Someone joining mid-drag gets the final position.
 
-Vídeo sincronizado não fica mandando "estou no segundo 43" de tempo em tempo.
-O que fica salvo é um par: a posição do vídeo e o instante em que ela foi
-medida. Cada cliente extrapola dali sozinho, e a cada segundo e meio compara
-com o próprio player — se a diferença passar de 1,4s, corrige. Isso segura a
-sincronia mesmo com gente entrando e saindo, e sobrevive a uma aba que ficou
-em segundo plano.
+Synced video doesn't ping "I'm at second 43" on a timer. What gets saved is a
+pair: the playhead position and the instant it was measured. Each client
+extrapolates from there on its own and, every second and a half, compares
+against its own player. If the gap passes 1.4s it corrects. That holds sync
+through people coming and going, and survives a tab sitting in the background.
 
 ### Stack
 
-Next.js 16 (App Router) com React 19, TypeScript, Tailwind v4 e Zustand pro
-estado da sala. Supabase pro resto. É exportado como site estático
-(`output: "export"`), então o app inteiro roda no navegador e hospeda em
-qualquer lugar — a sala a abrir vem no parâmetro `?r=` do endereço
-(`/r/?r=cocoa-willow-7fk2`), então não existe rota dinâmica pra um host estático
-tropeçar.
+Next.js 16 (App Router) with React 19, TypeScript, Tailwind v4, and Zustand for
+room state. Supabase for the rest. It's exported as a static site
+(`output: "export"`), so the whole app runs in the browser and hosts anywhere.
+The room to open arrives in the `?r=` query parameter (`/r/?r=cocoa-willow-7fk2`),
+so there's no dynamic route for a static host to trip over.
 
-### Permissões
+### Permissions
 
-A sala é *unlisted*, não secreta: o link é a chave. Quem tem o link entra e
-mexe. Se você quiser congelar, o dono da sala tem um cadeado no topo — com ele
-fechado, só o dono edita, e o resto vira somente leitura. Isso é aplicado por
-RLS no Postgres, não só escondendo botão na interface.
+A room is *unlisted*, not secret: the link is the key. Anyone with it walks in
+and can edit. If you want to freeze it, the owner gets a padlock at the top.
+With it closed only the owner edits and everyone else is read-only. That's
+enforced by RLS in Postgres, not just by hiding a button.
 
-Ninguém cria conta. Na primeira visita o Supabase emite uma sessão anônima e
-o apelido/cor ficam no localStorage.
+Nobody makes an account. On the first visit Supabase issues an anonymous
+session, and the nickname and colour live in localStorage.
 
-## Rodando
+## Running it
 
-Precisa de Node 20+ e de um projeto Supabase (o plano gratuito serve).
+You need Node 20+ and a Supabase project (the free plan is enough).
 
-**1. Crie o projeto no Supabase.** Em [supabase.com](https://supabase.com),
-crie um projeto novo. Escolha a região mais perto de vocês, isso mexe direto na
-latência do tempo real.
+**1. Create the Supabase project.** At [supabase.com](https://supabase.com),
+create a new project. Pick the region closest to you, it feeds straight into
+realtime latency.
 
-**2. Rode as migrações.** Abra o SQL Editor do projeto e execute, em ordem, o
-conteúdo de `supabase/migrations/0001_init.sql` e depois
-`supabase/migrations/0002_strokes.sql`. A primeira cria as tabelas, as policies
-de RLS, liga a replicação de tempo real e cria o bucket de imagens. A segunda
-adiciona a tabela `strokes`, que guarda os desenhos feitos direto na sala — sem
-ela, o pincel não salva. Rode também `0003_cobrowse.sql` e `0004_screencast.sql`
-(liberam os tipos de item do navegador compartilhado e da transmissão de aba).
+**2. Run the migrations.** Open the project's SQL Editor and run the contents of
+`supabase/migrations/` in order. The first creates the tables, the RLS policies,
+turns on realtime replication and creates the image bucket. The rest add the
+`strokes` table (without it the brush doesn't save) and widen the allowed item
+kinds. Run them in numeric order, and if you ever re-run an older one, run the
+newest one last, since they redefine the same constraint.
 
-**3. Ligue o login anônimo.** Em *Authentication → Sign In / Providers*,
-habilite **Anonymous sign-ins**. Sem isso ninguém consegue entrar, porque toda
-escrita depende de ter uma sessão.
+**3. Turn on anonymous sign-in.** Under *Authentication → Sign In / Providers*,
+enable **Anonymous sign-ins**. Without it nobody can get in, because every write
+depends on having a session.
 
-**4. Configure as chaves.**
+**4. Set the keys.**
 
 ```bash
 cp .env.example .env.local
 ```
 
-Preencha com a URL do projeto e a chave anon/publishable (ficam em
-*Project Settings → API*). São chaves públicas, podem ir pro navegador — quem
-protege os dados é o RLS.
+Fill in the project URL and the anon/publishable key (both under
+*Project Settings → API*). These are public keys and are meant to reach the
+browser. RLS is what protects the data.
 
-**5. Suba.**
+**5. Start it.**
 
 ```bash
 npm install
 npm run dev
 ```
 
-Abre em `http://localhost:3000`.
+Opens at `http://localhost:3000`.
 
-### Publicando
+### Publishing
 
-O site é exportado estático (`npm run build` gera a pasta `out/`), então sobe em
-qualquer host de arquivo estático de graça, com o repositório continuando
-privado. O passo a passo pra Cloudflare Pages e pra Vercel está em
-[DEPLOY.md](DEPLOY.md). Não tem servidor de socket, nem cron, nem worker — o
-Supabase faz tudo pelo navegador.
+The site exports statically (`npm run build` produces `out/`), so it goes up on
+any free static host. Step by step for Cloudflare Pages and Vercel is in
+[DEPLOY.md](DEPLOY.md). There's no socket server, no cron, no worker. Supabase
+handles all of it from the browser.
 
-O plano gratuito do Supabase dá 500MB de banco, 1GB de storage, 200 conexões
-simultâneas de tempo real e 2 milhões de mensagens por mês. Pra três pessoas
-isso não chega nem perto de encostar no teto. O que acaba primeiro, se acabar,
-é o storage — cada imagem que vocês sobem fica lá pra sempre.
+The Supabase free plan gives 500MB of database, 1GB of storage, 200 concurrent
+realtime connections and 2 million messages a month. For three people that
+doesn't come close to the ceiling. The thing that runs out first, if anything
+does, is storage, since every image you upload stays forever.
 
-Um detalhe do plano gratuito: projetos Supabase sem nenhum acesso por uma
-semana entram em pausa e precisam ser reativados no painel. Se a sala for
-ficar meses parada, vale saber disso antes de mandar o link pra alguém.
+One free-plan detail worth knowing: Supabase projects with no access for a week
+get paused and need waking up from the dashboard. If a room is going to sit
+untouched for months, know that before you send the link to someone.
 
-## Comandos
+## Commands
 
 ```bash
-npm run dev        # desenvolvimento
-npm run build      # build de produção
-npm run test       # testes da lógica pura (jogos, parsers, sincronia)
-npm run check      # typecheck + lint + testes
+npm run dev        # development
+npm run build      # production build
+npm run test       # pure logic tests (games, parsers, sync)
+npm run check      # typecheck + lint + tests
 ```
 
-Os testes cobrem o que dá pra testar sem navegador: detecção de vitória nos
-jogos, o parser de links do YouTube, a projeção do playhead e a normalização de
-slug. O resto (arrastar, o player, a sincronia de verdade entre duas abas) é
-teste na mão, com duas janelas abertas lado a lado.
+The tests cover what can be tested without a browser: win detection in the
+games, the YouTube link parser, playhead projection, slug normalisation. The
+rest (dragging, the player, real sync between two tabs) is tested by hand, with
+two windows open side by side.
 
-### Chaves de gif/sticker (opcional)
+### GIF and sticker keys (optional)
 
-O painel de gifs/stickers busca em vários provedores ao mesmo tempo — se um não
-tem o que você procurou, os outros preenchem. Configura pelo menos um:
+The gif/sticker panel searches several providers at once, so when one doesn't
+have what you're after the others fill in. Set up at least one:
 
-- **Giphy** (gifs + stickers transparentes): chave gratuita em
+- **Giphy** (gifs plus transparent stickers): free key at
   [developers.giphy.com](https://developers.giphy.com) → `NEXT_PUBLIC_GIPHY_KEY`.
-- **Klipy** (gifs + stickers, tipo o Discord): chave em
+- **Klipy** (gifs and stickers, Discord style): key at
   [partner.klipy.com](https://partner.klipy.com) → `NEXT_PUBLIC_KLIPY_KEY`.
 
-Coloca no `.env.local` (local) ou nas variáveis de ambiente da Cloudflare
-(deploy). Sem nenhuma chave, o painel só mostra um aviso e o resto funciona
-normal.
+Put them in `.env.local` locally, or in your host's environment variables for
+the deploy. With no key at all the panel just shows a note and everything else
+works normally.
 
-Obs. sobre o Klipy: a API dele não manda cabeçalhos de CORS, então a busca passa
-por um proxy próprio (`functions/api/klipy.js`, uma Cloudflare Pages Function em
-`/api/klipy`) em vez de chamar `api.klipy.com` direto. Ele usa a mesma
-`NEXT_PUBLIC_KLIPY_KEY` (ou uma `KLIPY_KEY` só de servidor, se preferir) — não
-precisa configurar nada novo. Como é uma Function da Cloudflare, o Klipy só
-funciona no site publicado, não no `npm run dev` local.
+A note on Klipy: their API sends no CORS headers, so the search goes through a
+small proxy of our own (`functions/api/klipy.js`, a Pages Function at
+`/api/klipy`) instead of calling `api.klipy.com` directly. It reuses the same
+`NEXT_PUBLIC_KLIPY_KEY` (or a server-only `KLIPY_KEY` if you prefer), so there's
+nothing new to configure. Because it's a Pages Function, Klipy only works on the
+published site, not in local `npm run dev`.
 
-## Transmitir uma aba ao vivo (WebRTC)
+## Sharing a tab live (WebRTC)
 
-O item "transmitir uma aba" (botão de monitor com seta pra cima na dock) é o
-jeito grátis e em tempo real de compartilhar um site/jogo/música com a sala:
+The "share a tab" item (the monitor-with-an-arrow button in the dock) is the
+free, realtime way to show a site, game or song to the room:
 
-- Quem clica em "escolher aba e transmitir" escolhe uma aba do **próprio
-  navegador** (com os próprios logins) no seletor do navegador. Isso resolve o
-  problema do YouTube/Spotify: como roda na aba da pessoa, os logins e o player
-  funcionam.
-- O vídeo e o som vão ao vivo, peer-to-peer (WebRTC), pra todo mundo na sala. A
-  sinalização passa pelo canal do Supabase; nada de vídeo toca no banco.
-- É um de cada vez, tipo fliperama: quem está "sentado" transmite; os outros
-  veem. "Assumir" passa a vez (o anterior para sozinho).
+- Whoever clicks "pick a tab and share" chooses a tab from **their own browser**,
+  with their own logins, in the browser's picker. That solves the
+  YouTube/Spotify problem: it runs in that person's tab, so logins and players
+  just work.
+- Video and sound go out live, peer to peer (WebRTC), to everyone in the room.
+  Signalling rides the Supabase channel; no video ever touches the database.
+- One at a time, arcade style: whoever is sitting there shares, everyone else
+  watches. "Take over" passes the turn, and the previous sharer stops on its own.
 
-Uma ressalva honesta: a conexão P2P usa só servidores **STUN** públicos, que
-conectam a maioria das redes domésticas direto. Uma minoria de redes mais
-fechadas precisa de um **TURN** (relay), que não é grátis de forma confiável. Se
-a imagem não subir entre duas pessoas, é isso -- dá pra plugar um TURN (ex.:
-Cloudflare Calls, Metered) depois. E o compartilhamento é da aba inteira: quem
-transmite controla na aba real dele, os outros veem o vídeo dentro do app.
+One honest caveat: the P2P connection uses public **STUN** servers only, which
+connect most home networks directly. A minority of stricter networks need a
+**TURN** relay, which isn't reliably free. If the picture never arrives between
+two people, that's why, and a TURN (Cloudflare Calls, Metered) can be plugged in
+later.
 
-Diferença pro navegador compartilhado (Hyperbeam): ali **os dois controlam** o
-mesmo navegador na nuvem (pago); aqui **um transmite** a própria aba e os outros
-veem (grátis). Os dois convivem.
+The difference from the shared browser (Hyperbeam): there **both people control**
+the same cloud browser (paid); here **one person shares** their own tab and the
+others watch (free). Both exist side by side.
 
-## Sobre "compartilhar um site" em tempo real
+## On "sharing a website" in realtime
 
-Dá pra colar um link e todo mundo ver a mesma janela, e dá pra **assistir junto**
-com sincronia de verdade (YouTube, Twitch, Vimeo — play/pause/seek batem pra
-todos). O que **não** dá pra fazer de graça é duas pessoas *controlarem o mesmo
-site qualquer ao mesmo tempo* (rolar, clicar, digitar juntas num site de
-terceiros). Isso é uma trava de segurança do navegador: a página não consegue
-ler nem controlar o que acontece dentro de um iframe de outro domínio.
+You can paste a link and have everyone see the same window, and you can **watch
+together** with real sync (YouTube, Twitch, Vimeo: play, pause and seek land for
+everyone). What you **can't** do for free is have two people *control the same
+arbitrary site at once*, scrolling, clicking and typing together on someone
+else's page. That's a browser security boundary: a page can't read or drive what
+happens inside a cross-origin iframe.
 
-Apps que fazem isso (o próprio Here.fm) rodam um navegador **num servidor** e
-transmitem os pixels por streaming.
+Apps that do it (Here.fm included) run a browser **on a server** and stream the
+pixels.
 
-Isso já está implementado como um item opcional ("shared browser" na dock),
-usando o [Hyperbeam](https://hyperbeam.com) — é a única parte paga, e vem
-desligada até você colar a sua chave. O passo a passo (com os freios de custo)
-está em [COBROWSE.md](COBROWSE.md). Sem a chave, o resto do app funciona normal.
+That's implemented here as an optional item ("shared browser" in the dock) using
+[Hyperbeam](https://hyperbeam.com). It's the only paid part, and it stays off
+until you paste your own key in. The walkthrough, including the cost brakes, is
+in [COBROWSE.md](COBROWSE.md). Without a key the rest of the app is unaffected.
 
-## Coisas que ficaram de fora
+## Things left out
 
-- Dois traços desenhados no mesmo instante (lousa ou parede): o último a salvar
-  ganha. Com três pessoas é raro e barato de aceitar.
-- Não tem histórico nem desfazer que atravesse sessões. Apagou, foi.
-- Sites que mandam `X-Frame-Options: DENY` não abrem na janela de iframe. Não
-  tem jeito pelo lado do cliente; por isso todo embed tem um botão de abrir
-  numa aba nova.
+- Two strokes drawn at the same instant (board or wall): last save wins. With
+  three people that's rare and cheap to live with.
+- No history and no undo that crosses sessions. Once it's gone, it's gone.
+- Sites sending `X-Frame-Options: DENY` won't open in the iframe window. Nothing
+  can be done about that from the client side, which is why every embed has a
+  button to open it in a new tab.
