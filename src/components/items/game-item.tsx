@@ -19,6 +19,7 @@ import Coin from "@/components/games/coin";
 import Wheel from "@/components/games/wheel";
 import Buckshot from "@/components/games/buckshot";
 import Rps from "@/components/games/rps";
+import Bang from "@/components/games/bang";
 
 export default function GameItem({ item }: { item: Item<"game"> }) {
   switch (item.data.game) {
@@ -58,6 +59,8 @@ export default function GameItem({ item }: { item: Item<"game"> }) {
       return <Buckshot item={item} state={item.data.state} />;
     case "rps":
       return <Rps item={item} state={item.data.state} />;
+    case "bang":
+      return <Bang item={item} state={item.data.state} />;
     default:
       return null;
   }
