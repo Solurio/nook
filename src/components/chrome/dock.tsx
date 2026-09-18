@@ -6,6 +6,7 @@ import {
   BookOpen,
   Brush,
   CircleDot,
+  CircleUser,
   Coins,
   Columns3,
   Crosshair,
@@ -16,6 +17,7 @@ import {
   Gamepad2,
   Globe,
   GripVertical,
+  Hexagon,
   Hand,
   Grid3x3,
   ImagePlus,
@@ -33,6 +35,7 @@ import {
   Radio,
   Smile,
   Spade,
+  Sparkles,
   Sticker,
   StickyNote,
   Swords,
@@ -44,7 +47,8 @@ import { useRoom } from "@/realtime/room-provider";
 import { useRoomStore, viewportForItems } from "@/state/room-store";
 import { draftItem, topZ } from "@/lib/items";
 import EmojiPicker from "./emoji-picker";
-import type { GameKind, ItemKind } from "@/lib/types";
+import type { GameKind, ItemDataMap, ItemKind } from "@/lib/types";
+import { emptyTable } from "@/lib/table";
 import BrushPopover from "./brush-popover";
 import StickersPanel from "./stickers-panel";
 
@@ -60,11 +64,30 @@ const GROUP_TITLE: Record<GameGroup, string> = {
  * Every game in one list, so the dock and the phone sheet always offer the same
  * things in the same order rather than two lists drifting apart.
  */
-const GAMES: Array<{ kind: GameKind; group: GameGroup; title: string; hint: string; icon: React.ReactNode }> = [
+const GAMES: Array<{
+  /** A game, or -- for pieces and grids -- a kind of thing of its own. */
+  kind: GameKind | "token" | "grid";
+  group: GameGroup;
+  title: string;
+  hint: string;
+  icon: React.ReactNode;
+  /** A game laid out a particular way, rather than its blank default. */
+  setup?: () => ItemDataMap["game"];
+}> = [
   { kind: "dice", group: "table", title: "dice", hint: "2d6+3, 4d6kh3, any of it", icon: <Dices /> },
   { kind: "coin", group: "table", title: "coin", hint: "heads or tails, or your own", icon: <Coins /> },
   { kind: "wheel", group: "table", title: "wheel", hint: "weighted, spun for everyone", icon: <Disc3 /> },
   { kind: "cards", group: "table", title: "card table", hint: "any deck, any rules", icon: <Spade /> },
+  {
+    kind: "cards",
+    group: "table",
+    title: "tarot",
+    hint: "all 78, reversals and all",
+    icon: <Sparkles />,
+    setup: () => ({ game: "cards", state: emptyTable("tarot") }),
+  },
+  { kind: "token", group: "table", title: "piece", hint: "a mini, a marker, a counter", icon: <CircleUser /> },
+  { kind: "grid", group: "table", title: "grid", hint: "squares or hexes, over a map", icon: <Hexagon /> },
   { kind: "doodle", group: "table", title: "paint board", hint: "draw together", icon: <Pencil /> },
   { kind: "uno", group: "secrets", title: "uno", hint: "match the colour, empty your hand", icon: <Layers /> },
   { kind: "coup", group: "secrets", title: "coup", hint: "lie well, or lose a card", icon: <VenetianMask /> },
@@ -126,13 +149,13 @@ export default function Dock() {
   }, []);
 
   const add = useCallback(
-    async (kind: ItemKind, game?: GameKind) => {
+    async (kind: ItemKind, game?: GameKind, data?: ItemDataMap["game"]) => {
       if (!canEdit) return;
       const z = topZ(Object.values(useRoomStore.getState().items));
       const at = centerOfView();
       // Scatter a little so repeated clicks do not stack perfectly.
       const jitter = { x: at.x + (Math.random() * 90 - 45), y: at.y + (Math.random() * 90 - 45) };
-      await createItem(draftItem(kind, jitter, z, game ? { game } : {}));
+      await createItem(draftItem(kind, jitter, z, game ? { game, ...(data ? { data } : {}) } : {}));
       setGamesOpen(false);
       setSheetOpen(false);
     },
@@ -308,11 +331,15 @@ export default function Dock() {
                   <div className="grid grid-cols-2 gap-1">
                     {games.map((game) => (
                       <GameOption
-                        key={game.kind}
+                        key={game.title}
                         icon={game.icon}
                         title={game.title}
                         hint={game.hint}
-                        onClick={() => add("game", game.kind)}
+                        onClick={() =>
+                          game.kind === "token" || game.kind === "grid"
+                            ? add(game.kind)
+                            : add("game", game.kind, game.setup?.())
+                        }
                       />
                     ))}
                   </div>
@@ -383,7 +410,7 @@ function AddSheet({
 }: {
   canEdit: boolean;
   onClose: () => void;
-  onAdd: (kind: ItemKind, game?: GameKind) => void;
+  onAdd: (kind: ItemKind, game?: GameKind, data?: ItemDataMap["game"]) => void;
   onFit: () => void;
   onStickers: () => void;
 }) {
@@ -438,9 +465,13 @@ function AddSheet({
             <div className="grid grid-cols-2 gap-2">
               {games.map((game) => (
                 <SheetTile
-                  key={game.kind}
+                  key={game.title}
                   disabled={!canEdit}
-                  onClick={() => onAdd("game", game.kind)}
+                  onClick={() =>
+                    game.kind === "token" || game.kind === "grid"
+                      ? onAdd(game.kind)
+                      : onAdd("game", game.kind, game.setup?.())
+                  }
                   icon={game.icon}
                   hint={game.hint}
                 >

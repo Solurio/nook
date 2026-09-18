@@ -10,6 +10,8 @@ import GameItem from "./game-item";
 import CobrowseItem from "./cobrowse-item";
 import ScreencastItem from "./screencast-item";
 import PdfItem from "./pdf-item";
+import TokenItem from "./token-item";
+import GridItem from "./grid-item";
 
 export default function ItemRenderer({
   item,
@@ -39,6 +41,10 @@ export default function ItemRenderer({
       return <ScreencastItem item={item as Item<"screencast">} />;
     case "pdf":
       return <PdfItem item={item as Item<"pdf">} />;
+    case "token":
+      return <TokenItem item={item as Item<"token">} />;
+    case "grid":
+      return <GridItem item={item as Item<"grid">} />;
     default:
       return null;
   }

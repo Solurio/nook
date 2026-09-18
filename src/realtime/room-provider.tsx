@@ -528,7 +528,9 @@ export function RoomProvider({
         height: source.height,
         rotation: source.rotation,
         z,
-        data: source.data,
+        // A copy starts out on its own rather than tied to whatever the
+        // original was tied to.
+        data: { ...source.data, group: undefined },
       });
     },
     [createItem, store],

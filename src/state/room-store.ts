@@ -103,6 +103,11 @@ interface RoomState {
    * it, so one item at a time can have the whole display.
    */
   focusedId: string | null;
+  /**
+   * An item waiting to be tied to another. While set, the next item tapped is
+   * linked to it instead of selected.
+   */
+  linking: string | null;
 
   viewport: Viewport;
   panel: PanelId;
@@ -131,6 +136,7 @@ interface RoomState {
   setBrush: (patch: Partial<Brush>) => void;
   setReaction: (glyph: string | null) => void;
   focus: (id: string | null) => void;
+  setLinking: (id: string | null) => void;
 
   setMe: (me: Identity) => void;
   syncPeers: (peers: Peer[]) => void;
@@ -174,6 +180,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
 
   viewport: { x: 0, y: 0, scale: 1 },
   panel: null,
+  linking: null,
   connection: "connecting",
   unreadChat: 0,
 
@@ -351,6 +358,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
     }),
 
   select: (id) => set((s) => ({ selectedId: id, editingId: s.editingId === id ? id : null })),
+  setLinking: (id) => set({ linking: id }),
   setEditing: (id) => set({ editingId: id, ...(id ? { selectedId: id } : {}) }),
 
   grab: (id) =>

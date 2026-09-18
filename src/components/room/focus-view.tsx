@@ -18,6 +18,8 @@ const KIND_NAME: Record<AnyItem["kind"], string> = {
   cobrowse: "shared browser",
   screencast: "shared tab",
   pdf: "document",
+  token: "piece",
+  grid: "grid",
 };
 
 /**

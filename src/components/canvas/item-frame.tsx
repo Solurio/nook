@@ -5,6 +5,8 @@ import clsx from "clsx";
 import { useRoom } from "@/realtime/room-provider";
 import { gestureLock, useRoomStore } from "@/state/room-store";
 import { clampSize } from "@/lib/items";
+import { linkGroups, snap } from "@/lib/grid";
+import { newId } from "@/lib/slug";
 import type { AnyItem, TransformPatch } from "@/lib/types";
 import ItemRenderer from "@/components/items/item-renderer";
 import ItemErrorBoundary from "./item-error-boundary";
@@ -23,6 +25,11 @@ interface Gesture {
   pivotX: number;
   pivotY: number;
   startAngle: number;
+  /** Where everything tied to this item started, so a drag moves the bundle. */
+  followers: TransformPatch[];
+  /** How far the pointer has taken things so far, in room pixels. */
+  dx: number;
+  dy: number;
 }
 
 /** Rotate a vector by `deg`. */
@@ -42,7 +49,7 @@ function ItemFrame({
   selected: boolean;
   editing: boolean;
 }) {
-  const { canEdit, broadcastTransform, commitTransform } = useRoom();
+  const { canEdit, broadcastTransform, commitTransform, updateData, setNotice } = useRoom();
   const select = useRoomStore((s) => s.select);
   const setEditing = useRoomStore((s) => s.setEditing);
   const grab = useRoomStore((s) => s.grab);
@@ -52,6 +59,11 @@ function ItemFrame({
   const frameRef = useRef<HTMLDivElement>(null);
 
   const pinned = Boolean(item.data?.pinned);
+  const group = item.data?.group;
+  // Whatever is tied to the selected thing is outlined along with it.
+  const mate = useRoomStore((s) =>
+    Boolean(group && s.selectedId && s.selectedId !== item.id && s.items[s.selectedId]?.data?.group === group),
+  );
 
   /**
    * Handles live inside the canvas layer, so they shrink with everything else
@@ -99,7 +111,18 @@ function ItemFrame({
         pivotX,
         pivotY,
         startAngle: Math.atan2(event.clientY - pivotY, event.clientX - pivotX),
+        followers:
+          mode === "move" && group
+            ? Object.values(useRoomStore.getState().items)
+                .filter((other) => other.id !== item.id && other.data?.group === group && !other.data?.pinned)
+                .map((other) => ({ id: other.id, x: other.x, y: other.y, width: other.width, height: other.height, rotation: other.rotation }))
+            : [],
+        dx: 0,
+        dy: 0,
       };
+      // Held like the item itself, so a save landing from elsewhere mid-drag
+      // cannot put one of them back where it was.
+      for (const follower of gesture.current.followers) grab(follower.id);
 
       grab(item.id);
       select(item.id);
@@ -113,7 +136,23 @@ function ItemFrame({
       // landed, and the item kept trailing the cursor with no button held.
       event.currentTarget.setPointerCapture(event.pointerId);
     },
-    [canEdit, current, editing, grab, item.id, pinned, select],
+    [canEdit, current, editing, grab, group, item.id, pinned, select],
+  );
+
+  /** Moves things to where they are now, for this screen and everyone else's. */
+  const place = useCallback(
+    (patches: TransformPatch[]) => {
+      useRoomStore.setState((state) => {
+        const items = { ...state.items };
+        for (const patch of patches) {
+          const live = items[patch.id];
+          if (live) items[patch.id] = { ...live, ...patch };
+        }
+        return { items };
+      });
+      for (const patch of patches) broadcastTransform(patch);
+    },
+    [broadcastTransform],
   );
 
   const finish = useCallback(() => {
@@ -121,8 +160,9 @@ function ItemFrame({
     if (!g) return;
     gesture.current = null;
 
-    const patch = current();
+    let patch = current();
     release(item.id);
+    for (const follower of g.followers) release(follower.id);
 
     const moved =
       patch.x !== g.origin.x ||
@@ -130,9 +170,48 @@ function ItemFrame({
       patch.width !== g.origin.width ||
       patch.height !== g.origin.height ||
       patch.rotation !== g.origin.rotation;
+    if (!moved) return;
 
-    if (moved) void commitTransform(patch);
-  }, [commitTransform, current, item.id, release]);
+    // A piece let go over a grid settles into the cell it landed in. Grids
+    // tied to the piece move with it, so those do not count.
+    let shift = { x: 0, y: 0 };
+    if (g.mode === "move" && item.kind === "token") {
+      const cx = patch.x + patch.width / 2;
+      const cy = patch.y + patch.height / 2;
+      const board = Object.values(useRoomStore.getState().items)
+        .filter(
+          (other) =>
+            other.kind === "grid" &&
+            other.rotation === 0 &&
+            (!group || other.data?.group !== group) &&
+            cx >= other.x &&
+            cx <= other.x + other.width &&
+            cy >= other.y &&
+            cy <= other.y + other.height,
+        )
+        .sort((a, b) => b.z - a.z)[0];
+      if (board && board.kind === "grid") {
+        const grid = board.data as { shape?: "square" | "hex"; cell?: number };
+        const at = snap(grid.shape ?? "square", cx - board.x, cy - board.y, Math.max(8, grid.cell ?? 48));
+        shift = {
+          x: Math.round(board.x + at.x - patch.width / 2) - patch.x,
+          y: Math.round(board.y + at.y - patch.height / 2) - patch.y,
+        };
+      }
+    }
+
+    // Worked out from the drag itself rather than read back, so they land
+    // exactly as far as the item did.
+    const followers = g.followers.map((f) => ({
+      ...f,
+      x: Math.round(f.x + g.dx) + shift.x,
+      y: Math.round(f.y + g.dy) + shift.y,
+    }));
+    patch = { ...patch, x: patch.x + shift.x, y: patch.y + shift.y };
+    place([patch, ...followers]);
+    void commitTransform(patch);
+    for (const follower of followers) void commitTransform(follower);
+  }, [commitTransform, current, group, item.id, item.kind, place, release]);
 
   const onPointerMove = useCallback(
     (event: React.PointerEvent) => {
@@ -155,6 +234,8 @@ function ItemFrame({
       const scale = useRoomStore.getState().viewport.scale;
       const dx = (event.clientX - g.startX) / scale;
       const dy = (event.clientY - g.startY) / scale;
+      g.dx = dx;
+      g.dy = dy;
 
       let patch: TransformPatch;
 
@@ -170,15 +251,29 @@ function ItemFrame({
         patch = resize(g, dx, dy, item.kind, event.shiftKey);
       }
 
-      useRoomStore.setState((state) => {
-        const live = state.items[patch.id];
-        if (!live) return {};
-        return { items: { ...state.items, [patch.id]: { ...live, ...patch } } };
-      });
-
-      broadcastTransform(patch);
+      const followers =
+        g.mode === "move"
+          ? g.followers.map((f) => ({ ...f, x: Math.round(f.x + dx), y: Math.round(f.y + dy) }))
+          : [];
+      place([patch, ...followers]);
     },
-    [broadcastTransform, finish, item.kind],
+    [finish, item.kind, place],
+  );
+
+  /** Ties this item to the one waiting to be linked. */
+  const linkTo = useCallback(
+    (source: string) => {
+      const items = useRoomStore.getState().items;
+      const groups = Object.fromEntries(Object.values(items).map((other) => [other.id, other.data?.group]));
+      const joined = linkGroups(groups, source, item.id, newId());
+      for (const [id, next] of Object.entries(joined)) {
+        const live = items[id];
+        if (live && live.data?.group !== next) void updateData(live.id, { ...live.data, group: next } as never);
+      }
+      useRoomStore.getState().setLinking(null);
+      setNotice("linked: they move together now");
+    },
+    [item.id, setNotice, updateData],
   );
 
   const endGesture = useCallback(
@@ -220,6 +315,15 @@ function ItemFrame({
       }}
       onPointerDown={(event) => {
         if (event.button !== 0 && event.pointerType === "mouse") return;
+        // Waiting to link something: this tap is the other end.
+        const linking = useRoomStore.getState().linking;
+        if (linking && canEdit) {
+          event.stopPropagation();
+          if (linking === item.id) useRoomStore.getState().setLinking(null);
+          else linkTo(linking);
+          select(item.id);
+          return;
+        }
         // A pinned item still answers to a tap -- there has to be a way back
         // to the button that unpins it -- it just refuses to budge. So does
         // everything in a locked room: you cannot change it, but you can still
@@ -253,6 +357,14 @@ function ItemFrame({
           <ItemRenderer item={item} editing={editing} selected={selected} />
         </ItemErrorBoundary>
       </div>
+
+      {mate && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute rounded-xl border-dashed border-glow/60"
+          style={{ inset: -5 * inv, borderWidth: 2 * inv }}
+        />
+      )}
 
       {selected && canEdit && pinned && (
         <div

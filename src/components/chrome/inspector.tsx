@@ -11,12 +11,22 @@ import {
   ChevronUp,
   Copy,
   Frame,
+  Hexagon,
+  ImagePlus,
+  Link2,
   Maximize2,
+  Minus,
+  Plus,
+  Square,
   Pencil,
   Pin,
   SendToBack,
   Trash2,
+  Unlink2,
 } from "lucide-react";
+import { useRef } from "react";
+import { prepareImage } from "@/lib/image-upload";
+import { MAX_CELL, MIN_CELL, TOKEN_COLORS, unlink, type GridData, type TokenData } from "@/lib/grid";
 import { useRoom } from "@/realtime/room-provider";
 import { useRoomStore } from "@/state/room-store";
 import { NOTE_TINTS } from "@/lib/items";
@@ -44,6 +54,8 @@ const KIND_NAME: Record<AnyItem["kind"], string> = {
   cobrowse: "shared browser",
   screencast: "shared tab",
   pdf: "document",
+  token: "piece",
+  grid: "grid",
 };
 
 /**
@@ -64,6 +76,27 @@ export default function Inspector() {
   const item = useRoomStore((s) => (s.selectedId ? s.items[s.selectedId] : undefined));
   const editingId = useRoomStore((s) => s.editingId);
   const focusedId = useRoomStore((s) => s.focusedId);
+
+  const linking = useRoomStore((s) => s.linking);
+  const setLinking = useRoomStore((s) => s.setLinking);
+
+  if (linking) {
+    return (
+      <div className="pointer-events-none absolute inset-x-0 top-16 z-50 flex justify-center px-3">
+        <div className="surface animate-drift-in pointer-events-auto flex items-center gap-2 rounded-2xl py-1.5 pr-1.5 pl-3 text-[12px] text-chalk">
+          <Link2 className="size-4 text-glow" strokeWidth={2.2} />
+          tap the thing to tie it to
+          <button
+            type="button"
+            onClick={() => setLinking(null)}
+            className="min-h-9 rounded-xl px-3 text-[11px] text-muted hover:bg-white/8 hover:text-chalk"
+          >
+            never mind
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!item || !selectedId || editingId === selectedId) return null;
   // The item is already filling the screen; it does not need a bar about it.
@@ -131,6 +164,8 @@ function DeskStrip({ item, readOnly }: { item: AnyItem; readOnly: boolean }) {
         )}
 
         {!pinned && item.kind === "image" && <ImageControls item={item as Item<"image">} />}
+        {!pinned && item.kind === "token" && <TokenControls item={item as Item<"token">} />}
+        {!pinned && item.kind === "grid" && <GridControls item={item as Item<"grid">} />}
 
         {pinned && <span className="px-2.5 text-[11px] text-warm">stuck to the wall</span>}
 
@@ -167,6 +202,7 @@ function DeskStrip({ item, readOnly }: { item: AnyItem; readOnly: boolean }) {
         >
           <Pin className="size-4" strokeWidth={2.2} />
         </Action>
+        <LinkActions item={item} />
 
         <Action label="duplicate" onClick={() => void duplicateItem(item.id)}>
           <Copy className="size-4" strokeWidth={2.2} />
@@ -190,7 +226,8 @@ function ThumbBar({ item, readOnly }: { item: AnyItem; readOnly: boolean }) {
   const focus = useRoomStore((s) => s.focus);
   const pinned = Boolean(item.data.pinned);
 
-  const hasOptions = item.kind === "note" || item.kind === "text" || item.kind === "image";
+  const hasOptions =
+    item.kind === "note" || item.kind === "text" || item.kind === "image" || item.kind === "token" || item.kind === "grid";
 
   return (
     <div className="animate-drift-in pointer-events-none absolute inset-x-0 bottom-[5.25rem] z-40 px-2 sm:hidden">
@@ -237,6 +274,8 @@ function ThumbBar({ item, readOnly }: { item: AnyItem; readOnly: boolean }) {
                 <Pin className="size-4.5" strokeWidth={2.2} />
               </ThumbAction>
 
+              <LinkActions item={item} thumb />
+
               <ThumbAction label="copy" onClick={() => void duplicateItem(item.id)}>
                 <Copy className="size-4.5" strokeWidth={2.2} />
               </ThumbAction>
@@ -280,6 +319,8 @@ function ThumbBar({ item, readOnly }: { item: AnyItem; readOnly: boolean }) {
                 )}
                 {item.kind === "text" && <TextControls item={item as Item<"text">} />}
                 {item.kind === "image" && <ImageControls item={item as Item<"image">} />}
+                {item.kind === "token" && <TokenControls item={item as Item<"token">} />}
+                {item.kind === "grid" && <GridControls item={item as Item<"grid">} />}
               </>
             )}
           </div>
@@ -421,6 +462,147 @@ function ImageControls({ item }: { item: Item<"image"> }) {
           {frame.label}
         </button>
       ))}
+    </>
+  );
+}
+
+/** Tying this to something else, so they move as one; or letting it go. */
+function LinkActions({ item, thumb }: { item: AnyItem; thumb?: boolean }) {
+  const { updateData } = useRoom();
+  const setLinking = useRoomStore((s) => s.setLinking);
+  const group = item.data.group;
+
+  const letGo = () => {
+    const items = useRoomStore.getState().items;
+    const groups = Object.fromEntries(Object.values(items).map((other) => [other.id, other.data?.group]));
+    for (const id of unlink(groups, item.id)) {
+      const live = items[id];
+      if (!live) continue;
+      const data = { ...live.data } as Record<string, unknown>;
+      delete data.group;
+      void updateData(id, data as never);
+    }
+  };
+
+  const size = thumb ? "size-4.5" : "size-4";
+  const icon = group ? <Unlink2 className={size} strokeWidth={2.2} /> : <Link2 className={size} strokeWidth={2.2} />;
+  const run = () => (group ? letGo() : setLinking(item.id));
+  return thumb ? (
+    <ThumbAction label={group ? "untie" : "tie to"} onClick={run}>
+      {icon}
+    </ThumbAction>
+  ) : (
+    <Action label={group ? "untie it from the others" : "tie it to something, so they move together"} active={Boolean(group)} onClick={run}>
+      {icon}
+    </Action>
+  );
+}
+
+/** A picture for a piece or a map, from the device. */
+function PicturePick({ label, onPicked }: { label: string; onPicked: (url: string) => void }) {
+  const { uploadFile, setNotice } = useRoom();
+  const input = useRef<HTMLInputElement>(null);
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => input.current?.click()}
+        title={label}
+        aria-label={label}
+        className="grid size-8 shrink-0 place-items-center rounded-xl text-muted transition hover:bg-white/8 hover:text-chalk"
+      >
+        <ImagePlus className="size-4" strokeWidth={2.2} />
+      </button>
+      <input
+        ref={input}
+        type="file"
+        accept="image/*"
+        hidden
+        onChange={async (event) => {
+          const file = event.target.files?.[0];
+          event.target.value = "";
+          if (!file) return;
+          const ready = await prepareImage(file);
+          if ("error" in ready) {
+            setNotice(ready.error);
+            return;
+          }
+          const url = await uploadFile(ready.file);
+          if (url) onPicked(url);
+        }}
+      />
+    </>
+  );
+}
+
+function TokenControls({ item }: { item: Item<"token"> }) {
+  const { updateData } = useRoom();
+  const data = item.data as TokenData;
+  const save = (patch: Partial<TokenData>) => void updateData(item.id, { ...data, ...patch });
+  return (
+    <>
+      <input
+        key={data.label}
+        defaultValue={data.label}
+        maxLength={24}
+        placeholder="name"
+        onBlur={(event) => event.target.value !== data.label && save({ label: event.target.value.trim() })}
+        onKeyDown={(event) => event.key === "Enter" && (event.target as HTMLInputElement).blur()}
+        className="h-8 w-24 shrink-0 rounded-lg bg-white/8 px-2 text-[12px] text-chalk outline-none placeholder:text-muted/50"
+      />
+      <Swatches values={TOKEN_COLORS} active={data.color} onPick={(color) => save({ color })} />
+      <Action label={data.shape === "round" ? "make it square" : "make it round"} onClick={() => save({ shape: data.shape === "round" ? "square" : "round" })}>
+        <Square className="size-4" strokeWidth={2.2} />
+      </Action>
+      <PicturePick label="put a picture on it" onPicked={(image) => save({ image })} />
+      {data.image && (
+        <Action label="take the picture off" onClick={() => save({ image: undefined })}>
+          <Trash2 className="size-4" strokeWidth={2.2} />
+        </Action>
+      )}
+    </>
+  );
+}
+
+function GridControls({ item }: { item: Item<"grid"> }) {
+  const { updateData } = useRoom();
+  const data = item.data as GridData;
+  const save = (patch: Partial<GridData>) => void updateData(item.id, { ...data, ...patch });
+  const cell = data.cell ?? 48;
+  return (
+    <>
+      <Action label="squares" active={data.shape !== "hex"} onClick={() => save({ shape: "square" })}>
+        <Square className="size-4" strokeWidth={2.2} />
+      </Action>
+      <Action label="hexes" active={data.shape === "hex"} onClick={() => save({ shape: "hex" })}>
+        <Hexagon className="size-4" strokeWidth={2.2} />
+      </Action>
+      <Action label="smaller cells" onClick={() => save({ cell: Math.max(MIN_CELL, cell - 4) })}>
+        <Minus className="size-4" strokeWidth={2.2} />
+      </Action>
+      <span className="w-7 shrink-0 text-center text-[11px] tabular-nums text-muted">{cell}</span>
+      <Action label="bigger cells" onClick={() => save({ cell: Math.min(MAX_CELL, cell + 4) })}>
+        <Plus className="size-4" strokeWidth={2.2} />
+      </Action>
+      {data.shape !== "hex" && (
+        <button
+          type="button"
+          onClick={() => save({ labels: !data.labels })}
+          className={clsx(
+            "shrink-0 rounded-xl px-2.5 py-1.5 text-[11px] font-medium transition",
+            data.labels ? "bg-glow/22 text-glow" : "text-muted hover:bg-white/8 hover:text-chalk",
+          )}
+        >
+          A1
+        </button>
+      )}
+      <Swatches values={["#f4efe6", "#100d16", "#f6c177", "#8bc7e8"]} active={data.color} onPick={(color) => save({ color })} />
+      <PicturePick label="put a map under it" onPicked={(image) => save({ image })} />
+      {data.image && (
+        <Action label="take the map away" onClick={() => save({ image: undefined })}>
+          <Trash2 className="size-4" strokeWidth={2.2} />
+        </Action>
+      )}
     </>
   );
 }

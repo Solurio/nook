@@ -7,7 +7,9 @@ export type ItemKind =
   | "game"
   | "cobrowse"
   | "screencast"
-  | "pdf";
+  | "pdf"
+  | "token"
+  | "grid";
 
 export type Background =
   | { kind: "solid"; color: string }
@@ -33,6 +35,11 @@ export interface CommonItemData {
    * backdrop pieces you arranged once and keep catching by accident.
    */
   pinned?: boolean;
+  /**
+   * Things tied together move together: a map and the pieces on it, a note
+   * and the picture it is about. Anything sharing this id is one bundle.
+   */
+  group?: string;
 }
 
 /** Kind-specific payloads. Anything not listed is ignored by the renderer. */
@@ -60,6 +67,10 @@ interface ItemPayloads {
   screencast: ScreencastData;
   /** A document on the table, read as a book or on a clipboard. */
   pdf: import("./pdf").PdfData;
+  /** A piece for the table: a mini, a marker, a counter. */
+  token: import("./grid").TokenData;
+  /** Squares or hexes to play on, over a map or bare. */
+  grid: import("./grid").GridData;
 }
 
 /** Every payload, plus the fields shared across all of them. */
