@@ -85,3 +85,73 @@ test("the clock reads the way a clock reads", () => {
   assert.equal(clock(9), "0:09");
   assert.equal(clock(0), "0:00");
 });
+
+// ---------------------------------------------------------------------------
+// Private briefings
+// ---------------------------------------------------------------------------
+
+import { before } from "node:test";
+import type { PGlite } from "@electric-sql/pglite";
+import { as, freshDatabase, newUser, tableFor } from "./support/database.ts";
+import { BRIEFINGS, SPY_CARD, briefingChoices, readBriefing, roleSlot, unmasked } from "../src/lib/spyfall.ts";
+
+test("every possible deck has one spy and a job for everyone else, at one place", () => {
+  const choices = briefingChoices("en", 5);
+  assert.equal(choices.length, PLACES.en.length);
+  choices.forEach((deck, p) => {
+    assert.equal(deck.length, 5);
+    assert.equal(deck.filter((c) => c === SPY_CARD).length, 1);
+    for (const card of deck.filter((c) => c !== SPY_CARD)) {
+      assert.equal(readBriefing(card, "en")?.spy, false);
+      assert.equal((readBriefing(card, "en") as { place: number }).place, p);
+    }
+  });
+});
+
+test("the end of a round is read from the cards turned over", () => {
+  const chairs = ["s0", "s1", "s2"];
+  const shown = { [roleSlot("s0")]: ["3:1"], [roleSlot("s1")]: [SPY_CARD], [roleSlot("s2")]: ["3:0"] };
+  const end = unmasked(shown, chairs, "en");
+  assert.equal(end.spy, "s1");
+  assert.equal(end.place, PLACES.en[3].name);
+  assert.deepEqual(end.waitingOn, []);
+  assert.deepEqual(unmasked({ [roleSlot("s0")]: ["3:1"] }, chairs, "en").waitingOn, ["s1", "s2"]);
+});
+
+let db: PGlite;
+before(async () => {
+  db = await freshDatabase();
+});
+
+test("a dealt round: everyone reads their own card, and nobody knows the answer", async () => {
+  const people = [await newUser(db), await newUser(db), await newUser(db), await newUser(db)];
+  const chairs = ["s0", "s1", "s2", "s3"];
+  const { itemId } = await tableFor(db, people[0], "spyfall");
+
+  const run = (user: string, sql: string, params: unknown[]) => as(db, user, (tx) => tx.query(sql, params));
+  await run(people[0], "select public.pile_setup(p_item => $1, p_piles => $2::jsonb)", [
+    itemId,
+    JSON.stringify([{ slot: BRIEFINGS, choices: briefingChoices("en", 4), shuffle: true }]),
+  ]);
+  await run(people[0], "select public.pile_deal(p_item => $1, p_from => $2, p_targets => $3::jsonb)", [
+    itemId,
+    BRIEFINGS,
+    JSON.stringify(chairs.map((c, i) => ({ slot: roleSlot(c), owner: people[i], count: 1 }))),
+  ]);
+
+  const cards: string[] = [];
+  for (const [i, person] of people.entries()) {
+    const { rows } = await run(person, "select slot, cards from public.secrets where item_id = $1", [itemId]);
+    const readable = rows as Array<{ slot: string; cards: string[] }>;
+    assert.deepEqual(readable.map((r) => r.slot), [roleSlot(chairs[i])], "each reads their own card, and only that");
+    cards.push(readable[0].cards[0]);
+  }
+
+  assert.equal(cards.filter((c) => c === SPY_CARD).length, 1, "exactly one spy");
+  const places = new Set(cards.filter((c) => c !== SPY_CARD).map((c) => readBriefing(c, "en")?.spy === false && (readBriefing(c, "en") as { place: number }).place));
+  assert.equal(places.size, 1, "every agent is at the same place");
+
+  const { rows } = await db.query<{ data: unknown }>("select data from public.items where id = $1", [itemId]);
+  const shared = JSON.stringify(rows[0].data);
+  for (const card of cards) assert.ok(!shared.includes(`"${card}"`), "a card turned up in the shared state");
+});

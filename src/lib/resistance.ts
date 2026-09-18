@@ -90,3 +90,78 @@ export function voteCarries(votes: Record<string, boolean>, chairs: string[]): b
   const yes = chairs.filter((chair) => votes[chair] === true).length;
   return yes * 2 > chairs.length;
 }
+
+// ---------------------------------------------------------------------------
+// Private roles, sealed votes, anonymous missions
+//
+// Who is a spy is a secret pile per chair, dealt by the database from a pool
+// nobody sees shuffled; the spies are then told about each other and nobody
+// else is. A vote is a sealed pile per chair: nobody can turn any of them over
+// until everyone has voted, and then they all turn over together, by name --
+// the vote is public in this game. Mission cards are sealed the same way but
+// turned over pooled and shuffled, so the table learns how many failed and
+// never who failed it.
+//
+// Each vote and each mission gets piles of its own, numbered, so a card turned
+// over last time can never be mistaken for one turned over now.
+// ---------------------------------------------------------------------------
+
+export const ROLES = "roles";
+export const SPY = "spy";
+export const REBEL = "rebel";
+
+export const roleSlot = (chair: string) => `role:${chair}`;
+export const teamSlot = (chair: string) => `team:${chair}`;
+export const voteSlot = (vote: number, chair: string) => `vote:${vote}:${chair}`;
+export const playSlot = (mission: number, chair: string) => `play:${mission}:${chair}`;
+export const missionPool = (mission: number) => `mission:${mission}`;
+
+/** The cards the roles are dealt from: so many spies, the rest rebels. */
+export function rolePool(players: number): string[] {
+  const spies = spyCount(players);
+  return [...Array(spies).fill(SPY), ...Array(Math.max(0, players - spies)).fill(REBEL)];
+}
+
+type Sizes = Record<string, { size: number } | undefined> | undefined;
+
+/** Everyone listed has something in their pile. */
+export function allCommitted(piles: Sizes, slots: string[]): boolean {
+  return slots.length > 0 && slots.every((slot) => (piles?.[slot]?.size ?? 0) > 0);
+}
+
+/** The votes, once turned over: chair to approve. Null until every one is showing. */
+export function readVotes(
+  revealed: Record<string, unknown[]> | undefined,
+  vote: number,
+  chairs: string[],
+): Record<string, boolean> | null {
+  const out: Record<string, boolean> = {};
+  for (const chair of chairs) {
+    const card = revealed?.[voteSlot(vote, chair)]?.[0];
+    if (typeof card !== "boolean") return null;
+    out[chair] = card;
+  }
+  return out;
+}
+
+/** How many sabotaged a mission, once its cards are turned over. */
+export function readFails(revealed: Record<string, unknown[]> | undefined, mission: number): number | null {
+  const cards = revealed?.[missionPool(mission)];
+  if (!Array.isArray(cards)) return null;
+  return cards.filter((card) => card === "fail").length;
+}
+
+/** Spies, once everyone has turned their role over at the end. */
+export function readSpies(
+  revealed: Record<string, unknown[]> | undefined,
+  chairs: string[],
+): { spies: string[]; waitingOn: string[] } {
+  const spies: string[] = [];
+  const waitingOn: string[] = [];
+  for (const chair of chairs) {
+    const card = revealed?.[roleSlot(chair)]?.[0];
+    if (card === undefined) waitingOn.push(chair);
+    else if (card === SPY) spies.push(chair);
+  }
+  return { spies, waitingOn };
+}

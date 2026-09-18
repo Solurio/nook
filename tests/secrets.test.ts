@@ -485,3 +485,117 @@ test("deleting the item takes its piles with it", async () => {
   const { rows } = await db.query("select 1 from public.secrets where item_id = $1", [itemId]);
   assert.equal(rows.length, 0);
 });
+
+// ---------------------------------------------------------------------------
+// The pieces the hidden-role games need
+// ---------------------------------------------------------------------------
+
+test("a setup with choices picks one deck, and the dealer cannot tell which", async () => {
+  const seen = new Set<string>();
+  for (let i = 0; i < 12; i += 1) {
+    const { itemId } = await tableFor(db, alice, "spyfall");
+    await call(alice, "pile_setup", {
+      p_item: itemId,
+      p_piles: [{ slot: "briefings", choices: [["beach"], ["bank"], ["circus"]] }],
+    });
+    // Alice dealt it; she still cannot read it.
+    assert.equal((await read(alice, itemId)).briefings, undefined);
+    await call(alice, "pile_reveal", { p_item: itemId, p_slots: ["briefings"] });
+    seen.add(String((await publicState(itemId)).revealed?.briefings?.[0]));
+  }
+  assert.ok(seen.size > 1, "the same choice came up every time");
+  for (const place of seen) assert.ok(["beach", "bank", "circus"].includes(place));
+});
+
+test("copies give several people the same pile in the same order", async () => {
+  const { itemId } = await tableFor(db, alice, "codenames");
+  const key = Array.from({ length: 25 }, (_, i) => (i < 9 ? "red" : i < 17 ? "blue" : i < 24 ? "neutral" : "assassin"));
+  await call(alice, "pile_setup", {
+    p_item: itemId,
+    p_piles: [
+      {
+        slot: "key",
+        cards: key,
+        shuffle: true,
+        copies: [
+          { slot: "key:red", owner: bob },
+          { slot: "key:blue", owner: carol },
+        ],
+      },
+    ],
+  });
+  const bobs = (await read(bob, itemId))["key:red"];
+  const carols = (await read(carol, itemId))["key:blue"];
+  assert.deepEqual(bobs, carols, "both spymasters hold the same key");
+  assert.equal((await read(alice, itemId))["key:red"], undefined, "a guesser holds nothing");
+  assert.equal((await read(alice, itemId)).key, undefined);
+});
+
+test("one card can be turned over by its place in the pile, leaving the rest", async () => {
+  const { itemId } = await tableFor(db, alice, "codenames");
+  await call(alice, "pile_setup", {
+    p_item: itemId,
+    p_piles: [{ slot: "key", cards: ["red", "blue", "assassin"] }],
+  });
+  await call(bob, "pile_reveal", { p_item: itemId, p_slots: ["key"], p_at: 2, p_keep: true, p_as: "word:2" });
+  const state = await publicState(itemId);
+  assert.deepEqual(state.revealed?.["word:2"], ["assassin"]);
+  assert.equal(state.revealed?.key, undefined, "the rest of the key stays hidden");
+  assert.equal(state.piles?.key.size, 3);
+});
+
+test("a pooled reveal says what was played but not by whom", async () => {
+  const { itemId } = await tableFor(db, alice, "resistance");
+  const seal = ["play:s0", "play:s1"];
+  await call(alice, "pile_put", { p_item: itemId, p_to: "play:s0", p_cards: ["fail"], p_to_owner: alice, p_seal: seal });
+  await call(bob, "pile_put", { p_item: itemId, p_to: "play:s1", p_cards: ["success"], p_to_owner: bob, p_seal: seal });
+  await call(carol, "pile_reveal", { p_item: itemId, p_slots: seal, p_pool: "mission" });
+  const state = await publicState(itemId);
+  assert.deepEqual([...(state.revealed?.mission as string[])].sort(), ["fail", "success"]);
+  assert.equal(state.revealed?.["play:s0"], undefined, "nobody's own card is shown");
+  assert.equal(state.revealed?.["play:s1"], undefined);
+});
+
+test("nobody can put cards into somebody else's pile by naming them", async () => {
+  const itemId = await dealt();
+  await assert.rejects(
+    call(bob, "pile_put", { p_item: itemId, p_to: "hand:s0", p_cards: [99] }),
+    /not yours/,
+  );
+});
+
+test("asking whether a pile holds a card answers everyone at once", async () => {
+  const { itemId } = await tableFor(db, alice, "coup");
+  await call(alice, "pile_setup", {
+    p_item: itemId,
+    p_piles: [{ slot: "hand:s0", owner: alice, cards: ["captain", "contessa"] }],
+  });
+  const has = await call(bob, "pile_test", { p_item: itemId, p_slot: "hand:s0", p_card: JSON.stringify("duke") });
+  assert.equal((has.rows[0] as { out: boolean }).out, false);
+  const tested = (await publicState(itemId)).tested as Array<{ card: string; found: boolean; by: string }>;
+  assert.deepEqual(
+    { card: tested.at(-1)?.card, found: tested.at(-1)?.found, by: tested.at(-1)?.by },
+    { card: "duke", found: false, by: bob },
+  );
+  assert.equal((await read(bob, itemId))["hand:s0"], undefined, "Bob learned the answer, not the hand");
+});
+
+test("the people dealt the same card find each other, and nobody else learns a thing", async () => {
+  const { itemId } = await tableFor(db, alice, "resistance");
+  const dave = await newUser(db);
+  await call(alice, "pile_setup", {
+    p_item: itemId,
+    p_piles: [
+      { slot: "role:s0", owner: alice, cards: ["spy"] },
+      { slot: "role:s1", owner: bob, cards: ["rebel"] },
+      { slot: "role:s2", owner: carol, cards: ["spy"] },
+      { slot: "role:s3", owner: dave, cards: ["rebel"] },
+    ],
+  });
+  await call(bob, "pile_team", { p_item: itemId, p_prefix: "role:", p_card: JSON.stringify("spy"), p_to_prefix: "team:" });
+
+  assert.deepEqual((await read(alice, itemId))["team:s0"], ["s0", "s2"]);
+  assert.deepEqual((await read(carol, itemId))["team:s2"], ["s0", "s2"]);
+  assert.equal((await read(bob, itemId))["team:s1"], undefined, "a rebel is told nothing");
+  assert.equal((await read(dave, itemId))["team:s3"], undefined);
+});

@@ -252,7 +252,13 @@ $$;
 -- ---------------------------------------------------------------------------
 
 -- Clears the item's piles and lays out new ones: a fresh deck, a new round.
--- piles: [{ slot, owner?, cards, shuffle?, seal? }]
+-- piles: [{ slot, owner?, cards | choices, shuffle?, seal?, copies? }]
+--
+--   choices -- several possible decks; one is picked here, at random, and the
+--              caller never learns which. How Spyfall sends everyone to the
+--              same place without whoever dealt knowing where.
+--   copies  -- [{ slot, owner }]: identical piles, same order, for others. How
+--              both Codenames spymasters get the one key.
 --
 -- Whoever calls this supplies the cards, so they know what is in each pile --
 -- which is fine for a deck everyone knows the contents of. What they do not
@@ -267,23 +273,37 @@ as $$
 declare
   target uuid := public._pile_room(p_item);
   spec jsonb;
+  copy jsonb;
+  cards jsonb;
 begin
   delete from public.secrets where item_id = p_item;
 
   for spec in select value from jsonb_array_elements(coalesce(p_piles, '[]'::jsonb)) loop
+    if spec ? 'choices' and jsonb_array_length(spec -> 'choices') > 0 then
+      cards := spec -> 'choices' -> floor(random() * jsonb_array_length(spec -> 'choices'))::integer;
+    else
+      cards := coalesce(spec -> 'cards', '[]'::jsonb);
+    end if;
+    if coalesce((spec ->> 'shuffle')::boolean, false) then
+      cards := public._shuffled(cards);
+    end if;
+
     insert into public.secrets (item_id, room_id, slot, owner_id, cards, seal)
     values (
       p_item,
       target,
       spec ->> 'slot',
       nullif(spec ->> 'owner', '')::uuid,
-      case when coalesce((spec ->> 'shuffle')::boolean, false)
-           then public._shuffled(spec -> 'cards')
-           else coalesce(spec -> 'cards', '[]'::jsonb) end,
+      cards,
       case when spec ? 'seal'
            then array(select jsonb_array_elements_text(spec -> 'seal'))
            else null end
     );
+
+    for copy in select value from jsonb_array_elements(coalesce(spec -> 'copies', '[]'::jsonb)) loop
+      insert into public.secrets (item_id, room_id, slot, owner_id, cards)
+      values (p_item, target, copy ->> 'slot', nullif(copy ->> 'owner', '')::uuid, cards);
+    end loop;
   end loop;
 
   -- Whatever had been turned over belonged to the last deal.
@@ -490,6 +510,10 @@ begin
   select owner_id into existing from public.secrets where item_id = p_item and slot = p_to;
   if not found then
     existing := p_to_owner;
+  elsif existing is not null and existing is distinct from auth.uid() then
+    -- Naming cards into somebody else's hand would let anyone stuff a vote
+    -- or a hand. Moving cards there is pile_move's job, which never names them.
+    raise exception 'that pile is not yours' using errcode = '42501';
   end if;
   perform public._pile_add(p_item, target, p_to, p_cards, existing, p_bottom);
 
@@ -552,8 +576,13 @@ begin
 end;
 $$;
 
--- Turns cards over for everyone: the top p_count (all of them when null), or
--- that many at random. They land in state.revealed.<slot>.
+-- Turns cards over for everyone: the top p_count (all of them when null), that
+-- many at random, or the one card at index p_at. They land in
+-- state.revealed.<slot>, or under p_as instead when given.
+--
+-- p_pool turns several piles over together and publishes them shuffled under
+-- one name, so the table learns what was played but not by whom -- the way
+-- mission cards are read out in The Resistance.
 --
 -- You may turn over what nobody owns, what you own, or a sealed commitment
 -- once everyone in its set has committed. Never somebody else's hand.
@@ -562,7 +591,10 @@ create or replace function public.pile_reveal(
   p_slots text[],
   p_count integer default null,
   p_random boolean default false,
-  p_keep boolean default false
+  p_keep boolean default false,
+  p_at integer default null,
+  p_as text default null,
+  p_pool text default null
 )
 returns void
 language plpgsql
@@ -574,9 +606,9 @@ declare
   pile public.secrets;
   shown jsonb;
   kept jsonb;
-  outcome record;
   sibling text;
   ready boolean;
+  pooled jsonb := '[]'::jsonb;
 begin
   perform public._pile_room(p_item);
 
@@ -612,7 +644,16 @@ begin
   foreach current in array p_slots loop
     select * into pile from public.secrets where item_id = p_item and slot = current;
 
-    if p_random then
+    if p_at is not null then
+      shown := case when p_at >= 0 and p_at < jsonb_array_length(pile.cards)
+                    then jsonb_build_array(pile.cards -> p_at)
+                    else '[]'::jsonb end;
+      kept := (
+        select coalesce(jsonb_agg(value order by ord), '[]'::jsonb)
+          from jsonb_array_elements(pile.cards) with ordinality as t(value, ord)
+         where ord - 1 <> p_at
+      );
+    elsif p_random then
       select coalesce(jsonb_agg(value), '[]'::jsonb) into shown
         from (select value from jsonb_array_elements(pile.cards)
                order by gen_random_uuid() limit greatest(coalesce(p_count, 1), 0)) picked;
@@ -629,7 +670,96 @@ begin
        where item_id = p_item and slot = current;
     end if;
 
-    perform public._publish(p_item, current, shown);
+    if p_pool is not null then
+      pooled := pooled || shown;
+    else
+      perform public._publish(p_item, coalesce(p_as, current), shown);
+    end if;
+  end loop;
+
+  if p_pool is not null then
+    perform public._publish(p_item, p_pool, public._shuffled(pooled));
+  end if;
+
+  perform public._pile_sync(p_item, null);
+end;
+$$;
+
+-- Asks whether a pile holds a card, and tells the whole table the answer.
+-- How you prove you do not have a card without showing your hand -- and since
+-- every question is written down for everyone, nobody can ask quietly.
+create or replace function public.pile_test(p_item uuid, p_slot text, p_card jsonb)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  pile public.secrets;
+  found_it boolean;
+begin
+  perform public._pile_room(p_item);
+  select * into pile from public.secrets where item_id = p_item and slot = p_slot;
+  if not found then
+    raise exception 'no pile called %', p_slot using errcode = 'P0002';
+  end if;
+  found_it := exists (select 1 from jsonb_array_elements(pile.cards) as t(value) where value = p_card);
+
+  update public.items
+     set data = jsonb_set(
+           data,
+           '{state,tested}',
+           (
+             select coalesce(jsonb_agg(entry order by ord), '[]'::jsonb)
+               from (
+                 select entry, ord
+                   from jsonb_array_elements(
+                          coalesce(data #> '{state,tested}', '[]'::jsonb)
+                          || jsonb_build_array(jsonb_build_object(
+                               'slot', p_slot, 'card', p_card, 'found', found_it, 'by', auth.uid(),
+                               'at', (extract(epoch from now()) * 1000)::bigint))
+                        ) with ordinality as t(entry, ord)
+                  order by ord desc
+                  limit 20
+               ) latest
+           )
+         )
+   where id = p_item;
+
+  return found_it;
+end;
+$$;
+
+-- Lets the people who were dealt the same card find each other: every pile
+-- under p_prefix whose top card is p_card gets a companion pile, owned by the
+-- same person, listing all of them. Nobody else learns anything -- the lists
+-- only go to the people on them. How spies in The Resistance know each other.
+create or replace function public.pile_team(
+  p_item uuid, p_prefix text, p_card jsonb, p_to_prefix text
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  target uuid := public._pile_room(p_item);
+  members jsonb;
+  member record;
+begin
+  select coalesce(jsonb_agg(substr(slot, char_length(p_prefix) + 1) order by slot), '[]'::jsonb)
+    into members
+    from public.secrets
+   where item_id = p_item and starts_with(slot, p_prefix) and cards -> 0 = p_card;
+
+  for member in
+    select slot, owner_id from public.secrets
+     where item_id = p_item and starts_with(slot, p_prefix) and cards -> 0 = p_card
+  loop
+    insert into public.secrets (item_id, room_id, slot, owner_id, cards)
+    values (p_item, target, p_to_prefix || substr(member.slot, char_length(p_prefix) + 1), member.owner_id, members)
+    on conflict (item_id, slot) do update
+       set cards = excluded.cards, owner_id = excluded.owner_id, updated_at = now();
   end loop;
 
   perform public._pile_sync(p_item, null);

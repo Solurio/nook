@@ -170,29 +170,34 @@ export type CoupState = import("./coup").CoupState;
  */
 export interface SpyfallState {
   seats: Record<string, string | null>;
+  holders?: Record<string, string | null>;
   seatCount: number;
-  /** Index into the pack, or null before the first deal. */
-  location: number | null;
-  /** Chair id of the one who was told nothing. */
-  spy: string | null;
-  /** Chair id to the job they hold at the location. */
-  roles: Record<string, string>;
+  /** Counts up with every deal. */
+  round?: number;
   /** Epoch ms the clock was set running, null while it is stopped. */
   startedAt: number | null;
   /** Seconds still to run when the clock was last set going. */
   seconds: number;
-  /** Once the round is called, everything is on show. */
-  revealed: boolean;
+  /** The round has been called, and everyone turns their card over. */
+  called?: boolean;
   pack: "en" | "pt";
   wins: { spy: number; table: number };
+  /** Written by the database: who holds which briefing. */
+  piles?: import("./piles").PileMeta;
+  /** Written by the database: briefings turned over at the end of a round. */
+  revealed?: Record<string, unknown[]>;
+  /** From before briefings were private. Wiped on sight. */
+  location?: number | null;
+  spy?: string | null;
+  roles?: Record<string, string>;
 }
 
 /** The Resistance. Five missions, and spies hidden among the people sent on them. */
 export interface ResistanceState {
   seats: Record<string, string | null>;
+  /** Who is in each chair, by user id: whose role card is whose. */
+  holders?: Record<string, string | null>;
   seatCount: number;
-  /** Chair ids working for the other side. Empty before a deal. */
-  spies: string[];
   /** Index into the chairs: whose proposal it is. */
   leader: number;
   /** Which mission, 0 through 4. */
@@ -203,14 +208,22 @@ export interface ResistanceState {
   rejections: number;
   /** Chair ids the leader wants to send. */
   team: string[];
-  /** Chair id to their vote on the proposal. */
-  votes: Record<string, boolean>;
-  /** Chair id to what they did on the mission; true is carrying it out. */
-  plays: Record<string, boolean>;
+  /** Counts up with every vote, so each has piles of its own. */
+  voteNo?: number;
+  /** How the last vote went, by name, once it was turned over. */
+  lastVote?: Record<string, boolean> | null;
+  /** How many sabotaged the last mission. */
+  lastFails?: number | null;
   stage: "lobby" | "propose" | "vote" | "mission" | "over";
-  /** Set when the round is called, and the spies are named. */
-  revealed: boolean;
   wins: { resistance: number; spies: number };
+  /** Written by the database: role cards, votes and mission cards, by owner and size. */
+  piles?: import("./piles").PileMeta;
+  /** Written by the database: whatever has been turned over. */
+  revealed?: Record<string, unknown[]>;
+  /** From before roles were private. Wiped on sight. */
+  spies?: string[];
+  votes?: Record<string, boolean>;
+  plays?: Record<string, boolean>;
 }
 
 /** Codenames: the words, and the key only the spymasters look at. */

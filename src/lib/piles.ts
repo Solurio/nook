@@ -33,7 +33,9 @@ export type PileFn =
   | "pile_peek"
   | "pile_show"
   | "pile_give"
-  | "pile_drop";
+  | "pile_drop"
+  | "pile_test"
+  | "pile_team";
 
 /**
  * The functions that can write the table's public state in the same breath as
@@ -114,8 +116,10 @@ export function explainPileError(message: string | undefined | null): string {
 }
 
 /**
- * Hands this device holds for a chair somebody else now sits in, as
- * [slot, new owner] pairs. Those are owed to the person sitting there.
+ * Piles this device holds for a chair somebody else now sits in -- a hand, a
+ * role card, a vote -- as [slot, new owner] pairs. Those are owed to the
+ * person sitting there. A pile belongs to a chair when its name ends in
+ * ":<chair>", which is how every game here names them.
  */
 export function handsOwed(
   meta: PileMeta | undefined,
@@ -125,8 +129,11 @@ export function handsOwed(
   if (!meta || !me || !holders) return [];
   const out: Array<[string, string]> = [];
   for (const [slot, info] of Object.entries(meta)) {
-    if (!slot.startsWith("hand:") || info?.owner !== me) continue;
-    const holder = holders[slot.slice(5)];
+    const colon = slot.lastIndexOf(":");
+    if (colon < 0 || info?.owner !== me) continue;
+    const chair = slot.slice(colon + 1);
+    if (!Object.prototype.hasOwnProperty.call(holders, chair)) continue;
+    const holder = holders[chair];
     if (holder && holder !== me) out.push([slot, holder]);
   }
   return out.sort((a, b) => a[0].localeCompare(b[0]));

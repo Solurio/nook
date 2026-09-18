@@ -420,3 +420,70 @@ export function clock(seconds: number): string {
   const s = seconds % 60;
   return `${m}:${String(s).padStart(2, "0")}`;
 }
+
+// ---------------------------------------------------------------------------
+// Private briefings
+//
+// Nobody deals Spyfall by hand, because whoever did would know where everyone
+// is and who the spy is. So the table offers the database one possible deck
+// per place -- a "spy" card and a job card for each agent -- and the database
+// picks one without saying which, shuffles it and deals it. Each player can
+// read only their own card. At the end, everyone turns theirs over.
+// ---------------------------------------------------------------------------
+
+export const BRIEFINGS = "briefings";
+
+export function roleSlot(chair: string): string {
+  return `role:${chair}`;
+}
+
+/** A card that says you are the spy. */
+export const SPY_CARD = "spy";
+
+/**
+ * Every deck the database may choose from: for each place, one spy card and a
+ * job card per agent, written "place:job" by index into the pack.
+ */
+export function briefingChoices(pack: Pack, players: number): string[][] {
+  return PLACES[pack].map((place, p) => [
+    SPY_CARD,
+    ...Array.from({ length: Math.max(0, players - 1) }, (_, j) => `${p}:${j % place.roles.length}`),
+  ]);
+}
+
+export type Briefing = { spy: true } | { spy: false; place: number; placeName: string; role: string };
+
+export function readBriefing(card: string | undefined, pack: Pack): Briefing | null {
+  if (!card) return null;
+  if (card === SPY_CARD) return { spy: true };
+  const [p, j] = card.split(":").map(Number);
+  const place = PLACES[pack][p];
+  if (!place) return null;
+  return { spy: false, place: p, placeName: place.name, role: place.roles[j] ?? place.roles[0] };
+}
+
+/** What the table knows once the briefings are turned over. */
+export function unmasked(
+  revealed: Record<string, unknown[]> | undefined,
+  chairs: string[],
+  pack: Pack,
+): { spy: string | null; place: string | null; roles: Record<string, string>; waitingOn: string[] } {
+  let spy: string | null = null;
+  let place: string | null = null;
+  const roles: Record<string, string> = {};
+  const waitingOn: string[] = [];
+  for (const chair of chairs) {
+    const card = revealed?.[roleSlot(chair)]?.[0] as string | undefined;
+    const read = readBriefing(card, pack);
+    if (!read) {
+      waitingOn.push(chair);
+      continue;
+    }
+    if (read.spy) spy = chair;
+    else {
+      place = read.placeName;
+      roles[chair] = read.role;
+    }
+  }
+  return { spy, place, roles, waitingOn };
+}

@@ -77,6 +77,7 @@ interface RoomApi {
   pile: <T = unknown>(
     fn: PileFn,
     args: Record<string, unknown>,
+    options?: { quiet?: boolean },
   ) => Promise<{ data: T | null; error: string | null }>;
   /** This visitor's own piles for an item. Row level security returns nothing else. */
   readPiles: (itemId: string) => Promise<Record<string, unknown[]>>;
@@ -569,7 +570,7 @@ export function RoomProvider({
   );
 
   const pile = useCallback(
-    async <T,>(fn: PileFn, args: Record<string, unknown>) => {
+    async <T,>(fn: PileFn, args: Record<string, unknown>, options?: { quiet?: boolean }) => {
       const itemId = args.p_item as string | undefined;
       const nextPublic = args.p_public as Record<string, unknown> | undefined;
 
@@ -591,7 +592,10 @@ export function RoomProvider({
 
       const { data, error: rpcError } = await supabase.rpc(fn, args);
       if (rpcError) {
-        setError(explainPileError(rpcError.message));
+        // Some refusals are expected -- two phones racing to turn the same
+        // votes over, and the second finding them already turned. Those are
+        // not worth a toast.
+        if (!options?.quiet) setError(explainPileError(rpcError.message));
         if (itemId) {
           const { data: row } = await supabase.from("items").select("*").eq("id", itemId).maybeSingle();
           if (row) store.getState().upsertItem(row as AnyItem);

@@ -21,8 +21,20 @@ test("a device only hands over what it owns", () => {
   assert.deepEqual(handsOwed(meta, "bob", { s0: "carol", s1: "carol", s2: "bob" }), []);
 });
 
-test("only hands are handed over, never a deck", () => {
+test("a deck is never handed over, however it is named", () => {
   assert.deepEqual(handsOwed({ deck: { owner: "me", size: 3, at: 0, sealed: false } }, "me", { deck: "x" }), []);
+  assert.deepEqual(handsOwed({ "stack:abc123": { owner: "me", size: 1, at: 0, sealed: false } }, "me", { s0: "x" }), []);
+});
+
+test("a role card or a vote goes with the chair, like a hand", () => {
+  const roles = {
+    "role:s1": { owner: "dealer", size: 1, at: 0, sealed: false },
+    "vote:s1": { owner: "dealer", size: 0, at: 0, sealed: true },
+  };
+  assert.deepEqual(handsOwed(roles, "dealer", { s1: "carol" }), [
+    ["role:s1", "carol"],
+    ["vote:s1", "carol"],
+  ]);
 });
 
 test("which piles are mine, and when to read them again", () => {
