@@ -31,7 +31,7 @@ const SWATCHES = [
   "#a6d189", "#4f9d69", "#8bc7e8", "#4f77c4", "#c4a7f0", "#9b5de5",
 ] as const;
 
-const BROADCAST_MS = 45;
+const BROADCAST_MS = 90;
 
 export default function Doodle({ item, state }: { item: Item<"game">; state: DoodleState }) {
   const { updateData, canEdit, broadcastStroke, liveStrokes } = useRoom();

@@ -18,7 +18,7 @@ export default function Cursors() {
             style={{
               // Counter-scaling keeps cursors legible at any zoom level.
               transform: `translate3d(${peer.cursor.x}px, ${peer.cursor.y}px, 0) scale(${1 / scale})`,
-              transition: "transform 90ms linear",
+              transition: "transform 120ms linear",
               transformOrigin: "top left",
             }}
           >

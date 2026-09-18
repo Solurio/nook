@@ -66,7 +66,7 @@ interface RoomApi {
   duplicateItem: (id: string) => Promise<void>;
   deleteItem: (id: string) => Promise<void>;
   commitTransform: (patch: TransformPatch) => Promise<void>;
-  broadcastTransform: (patch: TransformPatch) => void;
+  broadcastTransform: (patch: TransformPatch | TransformPatch[]) => void;
   updateData: <K extends ItemKind>(id: string, data: ItemDataMap[K]) => Promise<void>;
   /**
    * Calls one of the secret pile functions. Pass the new public state as
@@ -126,8 +126,13 @@ export function useRoom(): RoomApi {
   return ctx;
 }
 
-const CURSOR_INTERVAL_MS = 45;
-const TRANSFORM_INTERVAL_MS = 33;
+// Realtime is billed by the message, each one counted again for every screen
+// it reaches, so the throwaway traffic is kept as thin as it can be while
+// still looking live: cursors a little over eight times a second (the remote
+// cursor glides between them), drags about fourteen, ink about eleven.
+const CURSOR_INTERVAL_MS = 120;
+const TRANSFORM_INTERVAL_MS = 70;
+const INK_INTERVAL_MS = 90;
 const PING_LIFETIME_MS = 1800;
 
 /** Matches the storage bucket's own limit, so the message beats the error. */
@@ -185,6 +190,21 @@ export function RoomProvider({
     if (!channel) return;
     channel.send({ type: "broadcast", event, payload });
   }, []);
+
+  /**
+   * For the traffic that only matters to someone watching -- cursors, drags,
+   * ink in progress. With nobody else in the room it goes nowhere and would
+   * still be counted, so it is not sent at all.
+   */
+  const ephemeral = useCallback(
+    (event: string, payload: unknown) => {
+      const mine = identityRef.current?.userId;
+      const company = Object.keys(store.getState().peers).some((id) => id !== mine);
+      if (!company) return;
+      broadcast(event, payload);
+    },
+    [broadcast, store],
+  );
 
   // -------------------------------------------------------------------------
   // Boot: sign in anonymously, load the room, wire realtime.
@@ -303,7 +323,9 @@ export function RoomProvider({
             store.getState().setPeerCursor(from, { x, y });
           })
           .on("broadcast", { event: "transform" }, ({ payload }) => {
-            store.getState().applyTransform(payload as TransformPatch);
+            // Several at once when a bundle of tied things is dragged.
+            const batch = (payload as { patches?: TransformPatch[] }).patches ?? [payload as TransformPatch];
+            for (const patch of batch) store.getState().applyTransform(patch);
           })
           .on("broadcast", { event: "ping" }, ({ payload }) => {
             const p = payload as Omit<Ping, "id">;
@@ -431,20 +453,27 @@ export function RoomProvider({
   // Ephemeral effects
   // -------------------------------------------------------------------------
 
+  const lastCursor = useRef({ x: Number.NaN, y: Number.NaN });
   const emitCursor = useCallback(
     (x: number, y: number) => {
       const identity = identityRef.current;
       if (!identity) return;
-      broadcast("cursor", { userId: identity.userId, x, y });
+      if (typeof document !== "undefined" && document.hidden) return;
+      // A hand resting on the mouse still twitches; that is not worth a message.
+      const last = lastCursor.current;
+      if (Math.abs(last.x - x) < 3 && Math.abs(last.y - y) < 3) return;
+      lastCursor.current = { x, y };
+      ephemeral("cursor", { userId: identity.userId, x, y });
     },
-    [broadcast],
+    [ephemeral],
   );
 
   const emitTransform = useCallback(
-    (patch: TransformPatch) => {
-      broadcast("transform", patch);
+    (patch: TransformPatch | TransformPatch[]) => {
+      // A bundle of tied things goes as one message, not one per thing.
+      ephemeral("transform", { patches: Array.isArray(patch) ? patch : [patch] });
     },
-    [broadcast],
+    [ephemeral],
   );
 
   const moveCursor = useThrottled(emitCursor, CURSOR_INTERVAL_MS);
@@ -454,17 +483,17 @@ export function RoomProvider({
     (x: number, y: number, glyph: string) => {
       const identity = identityRef.current;
       if (!identity) return;
-      broadcast("ping", { x, y, glyph, tint: identity.tint, by: identity.name });
+      ephemeral("ping", { x, y, glyph, tint: identity.tint, by: identity.name });
       pushPing({ id: newId(), x, y, glyph, tint: identity.tint, by: identity.name });
     },
-    [broadcast, pushPing],
+    [ephemeral, pushPing],
   );
 
   const broadcastStroke = useCallback(
     (itemId: string, stroke: DoodleStroke) => {
-      broadcast("stroke", { itemId, stroke });
+      ephemeral("stroke", { itemId, stroke });
     },
-    [broadcast],
+    [ephemeral],
   );
 
   // -------------------------------------------------------------------------
@@ -827,15 +856,41 @@ export function RoomProvider({
     [supabase, store],
   );
 
+  const inkLast = useRef(0);
+  const inkTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inkPending = useRef<InkDraft | null>(null);
   const broadcastInk = useCallback(
     (draft: InkDraft | null) => {
       const identity = identityRef.current;
       if (!identity) return;
       // Mirror locally so our own in-flight line shows without a round trip.
       store.getState().setLiveInk(identity.userId, draft);
-      broadcast("ink", { userId: identity.userId, draft });
+      const send = (d: InkDraft | null) => ephemeral("ink", { userId: identity.userId, draft: d });
+      // The end of a line goes at once, and nothing queued may land after it.
+      if (!draft) {
+        if (inkTimer.current) clearTimeout(inkTimer.current);
+        inkTimer.current = null;
+        inkPending.current = null;
+        send(null);
+        return;
+      }
+      const wait = INK_INTERVAL_MS - (Date.now() - inkLast.current);
+      if (wait <= 0) {
+        inkLast.current = Date.now();
+        send(draft);
+        return;
+      }
+      inkPending.current = draft;
+      if (inkTimer.current) return;
+      inkTimer.current = setTimeout(() => {
+        inkTimer.current = null;
+        inkLast.current = Date.now();
+        const next = inkPending.current;
+        inkPending.current = null;
+        if (next) send(next);
+      }, wait);
     },
-    [broadcast, store],
+    [ephemeral, store],
   );
 
   // -------------------------------------------------------------------------

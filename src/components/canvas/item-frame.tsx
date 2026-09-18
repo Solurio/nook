@@ -150,7 +150,7 @@ function ItemFrame({
         }
         return { items };
       });
-      for (const patch of patches) broadcastTransform(patch);
+      broadcastTransform(patches);
     },
     [broadcastTransform],
   );
