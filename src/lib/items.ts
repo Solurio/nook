@@ -8,6 +8,8 @@ import { emptyCoup } from "./coup";
 import { emptyDice } from "./dice";
 import { emptyCoin } from "./coin";
 import { emptyWheel } from "./wheel";
+import { emptyBuckshot } from "./buckshot";
+import { emptyRps } from "./rps";
 import { DEFAULT_SECONDS as SPYFALL_SECONDS } from "./spyfall";
 import type { AnyItem, GameKind, ItemDataMap, ItemKind } from "./types";
 
@@ -59,6 +61,8 @@ const GAME_SIZE: Record<GameKind, { width: number; height: number }> = {
   dice: { width: 360, height: 430 },
   coin: { width: 280, height: 360 },
   wheel: { width: 360, height: 440 },
+  buckshot: { width: 440, height: 460 },
+  rps: { width: 380, height: 420 },
 };
 
 function emptyGameData(game: GameKind): ItemDataMap["game"] {
@@ -120,6 +124,10 @@ function emptyGameData(game: GameKind): ItemDataMap["game"] {
       return { game: "coin", state: emptyCoin() };
     case "wheel":
       return { game: "wheel", state: emptyWheel() };
+    case "buckshot":
+      return { game: "buckshot", state: emptyBuckshot(2) };
+    case "rps":
+      return { game: "rps", state: emptyRps(2) };
     case "resistance":
       return {
         game: "resistance",

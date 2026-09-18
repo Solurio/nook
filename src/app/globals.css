@@ -217,6 +217,91 @@ body.is-room {
   }
 }
 
+@keyframes bang {
+  0%,
+  100% {
+    transform: none;
+  }
+  15% {
+    transform: translate(-3px, 1px) scale(1.25);
+  }
+  30% {
+    transform: translate(3px, -1px) scale(1.15);
+  }
+  45% {
+    transform: translate(-2px, 0) scale(1.08);
+  }
+  60% {
+    transform: translate(1px, 0);
+  }
+}
+
+/* A gun's recoil: back, then settling. */
+@keyframes kick {
+  0% {
+    transform: none;
+  }
+  20% {
+    transform: translateX(-6px) rotate(-3deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+/* Rock, paper, scissors... the fist pumps three times, then the throws show. */
+@keyframes rps-pump {
+  0%,
+  22%,
+  44%,
+  66% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  11%,
+  33%,
+  55% {
+    transform: translateY(-9px);
+  }
+  74%,
+  100% {
+    opacity: 0;
+    transform: translateY(0) scale(0.8);
+  }
+}
+
+@keyframes rps-show {
+  0%,
+  70% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  85% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-rps-pump {
+  animation: rps-pump 1.3s ease-in-out both;
+}
+
+.animate-rps-show {
+  animation: rps-show 1.3s ease-out both;
+}
+
+.animate-bang {
+  animation: bang 0.6s ease-out both;
+}
+
+.animate-kick {
+  animation: kick 0.5s ease-out infinite;
+}
+
 .animate-die-tumble {
   animation: die-tumble 0.7s cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }
@@ -357,7 +442,11 @@ body.is-room {
   .animate-die-tumble,
   .animate-die-land,
   .animate-coin-toss,
-  .animate-coin-shadow {
+  .animate-coin-shadow,
+  .animate-bang,
+  .animate-kick,
+  .animate-rps-pump,
+  .animate-rps-show {
     animation-duration: 0.01ms;
     animation-iteration-count: 1;
   }
