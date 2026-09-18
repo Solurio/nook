@@ -45,9 +45,8 @@ import {
 import type { Item } from "@/lib/types";
 import { aspectOf, openPdf, outlineOf, pageWords, type OutlineEntry } from "@/components/pdf/engine";
 import PageView from "@/components/pdf/page-view";
+import { PDF_MAX_MB, uploadPdf } from "@/components/pdf/upload";
 import type { InkTool } from "@/components/pdf/ink-layer";
-
-const MAX_PDF_MB = 50;
 
 /**
  * A PDF on the table. Open as a book -- the cover alone, then spreads, the
@@ -64,36 +63,34 @@ export default function PdfItem({ item }: { item: Item<"pdf"> }) {
 function PdfSlot({ item }: { item: Item<"pdf"> }) {
   const { canEdit, uploadFile, updateData, setNotice } = useRoom();
   const input = useRef<HTMLInputElement>(null);
-  const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const busy = progress !== null;
 
   const pick = async (file: File | undefined) => {
     if (!file) return;
-    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
-      setNotice("that is not a PDF");
+    setProgress({ done: 0, total: 1 });
+    const up = await uploadPdf(file, uploadFile, (done, total) => setProgress({ done, total }));
+    setProgress(null);
+    if ("error" in up) {
+      setNotice(up.error);
       return;
     }
-    if (file.size > MAX_PDF_MB * 1048576) {
-      setNotice(`PDFs stop at ${MAX_PDF_MB}MB`);
-      return;
-    }
-    setBusy(true);
-    const url = await uploadFile(file);
-    setBusy(false);
-    if (url) await updateData(item.id, { ...emptyPdf(), ...item.data, src: url, name: file.name.replace(/\.pdf$/i, "") });
+    await updateData(item.id, { ...emptyPdf(), ...item.data, ...up, name: file.name.replace(/\.pdf$/i, "") });
   };
 
   return (
     <div className="surface grain grid size-full place-items-center rounded-2xl p-4 text-center">
       <div className="flex flex-col items-center gap-2">
         <BookOpen className="size-8 text-glow/70" strokeWidth={1.6} />
-        <p className="text-[12px] text-muted">a book, a menu, the rules, a character sheet</p>
+        <p className="text-[12px] text-muted">a book, a menu, the rules, a character sheet -- up to {PDF_MAX_MB}MB</p>
         <button
           type="button"
           disabled={!canEdit || busy}
           onClick={() => input.current?.click()}
           className="flex min-h-10 items-center gap-2 rounded-xl bg-chalk px-4 text-[12px] font-semibold text-ink-950 disabled:opacity-40"
         >
-          <FileUp className="size-4" /> {busy ? "putting it on the table..." : "choose a PDF"}
+          <FileUp className="size-4" />{" "}
+          {progress ? (progress.total > 1 ? `putting it on the table... ${progress.done} of ${progress.total}` : "putting it on the table...") : "choose a PDF"}
         </button>
         <input ref={input} type="file" accept="application/pdf,.pdf" hidden onChange={(event) => void pick(event.target.files?.[0])} />
       </div>
@@ -125,7 +122,7 @@ function Reader({ item, data }: { item: Item<"pdf">; data: PdfData }) {
 
   useEffect(() => {
     let live = true;
-    openPdf(data.src)
+    openPdf(data.src, data.parts)
       .then(async (opened) => {
         const shape = await aspectOf(opened, 1);
         if (!live) return;
@@ -136,6 +133,8 @@ function Reader({ item, data }: { item: Item<"pdf">; data: PdfData }) {
     return () => {
       live = false;
     };
+    // The parts only change along with the file itself.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.src]);
 
   // The page count is written down once the file has been read, so the room

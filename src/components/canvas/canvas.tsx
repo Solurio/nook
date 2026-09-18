@@ -10,6 +10,7 @@ import {
   type Viewport,
 } from "@/state/room-store";
 import { draftItem, topZ } from "@/lib/items";
+import { uploadPdf } from "@/components/pdf/upload";
 import { resolveLink } from "@/lib/embeds";
 import { parseMediaLink } from "@/lib/media";
 import { prepareImage } from "@/lib/image-upload";
@@ -370,15 +371,26 @@ export default function Canvas() {
           file = ready.file;
         }
 
-        const url = await uploadFile(file);
-        if (!url) continue;
         const z = topZ(Object.values(useRoomStore.getState().items));
         const where = { x: at.x + offset, y: at.y + offset };
 
+        // A big PDF goes up in parts, which a plain upload would refuse.
+        if (file.type === PDF_TYPE) {
+          const up = await uploadPdf(file, uploadFile);
+          if ("error" in up) {
+            setNotice(up.error);
+            continue;
+          }
+          await createItem(draftItem("pdf", where, z, { data: { ...up, name: file.name.replace(/\.pdf$/i, "") } }));
+          offset += 26;
+          continue;
+        }
+
+        const url = await uploadFile(file);
+        if (!url) continue;
+
         if (IMAGE_TYPES.test(file.type)) {
           await createItem(draftItem("image", where, z, { data: { url } }));
-        } else if (file.type === PDF_TYPE) {
-          await createItem(draftItem("pdf", where, z, { data: { src: url, name: file.name.replace(/\.pdf$/i, "") } }));
         } else {
           const playable = parseMediaLink(url);
           const name = file.name.replace(/\.[^.]+$/, "");

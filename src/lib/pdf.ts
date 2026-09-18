@@ -30,6 +30,10 @@ export type PdfMark = InkMark | NoteMark;
 
 export interface PdfData {
   src: string;
+  /** A PDF too big for one upload goes up in parts; these are joined back up to read it. */
+  parts?: string[];
+  /** Size of the whole file, in bytes. */
+  bytes?: number;
   name: string;
   /** Known once the file has been opened; 0 until then. */
   pages: number;

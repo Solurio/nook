@@ -22,18 +22,37 @@ function pdfjs(): Promise<PdfJs> {
 
 const documents = new Map<string, Promise<PDFDocumentProxy>>();
 
+/** A file that went up in parts, fetched and joined back into one. */
+async function joined(parts: string[]): Promise<Uint8Array> {
+  const pieces = await Promise.all(
+    parts.map(async (part) => {
+      const response = await fetch(part);
+      if (!response.ok) throw new Error(`a part of the PDF would not load (${response.status})`);
+      return new Uint8Array(await response.arrayBuffer());
+    }),
+  );
+  const out = new Uint8Array(pieces.reduce((sum, piece) => sum + piece.length, 0));
+  let at = 0;
+  for (const piece of pieces) {
+    out.set(piece, at);
+    at += piece.length;
+  }
+  return out;
+}
+
 /** Opens a document once, however many screens and items ask for it. */
-export function openPdf(url: string): Promise<PDFDocumentProxy> {
+export function openPdf(url: string, parts?: string[]): Promise<PDFDocumentProxy> {
   let doc = documents.get(url);
   if (!doc) {
-    doc = pdfjs().then(
-      (lib) =>
-        lib.getDocument({
-          url,
-          // Only the pages being looked at are fetched, in ranges, so a
-          // three hundred page scan opens as fast as a leaflet.
-          disableAutoFetch: true,
-        }).promise,
+    doc = pdfjs().then(async (lib) =>
+      parts && parts.length > 1
+        ? lib.getDocument({ data: await joined(parts) }).promise
+        : lib.getDocument({
+            url,
+            // Only the pages being looked at are fetched, in ranges, so a
+            // three hundred page scan opens as fast as a leaflet.
+            disableAutoFetch: true,
+          }).promise,
     );
     doc.catch(() => documents.delete(url));
     documents.set(url, doc);
