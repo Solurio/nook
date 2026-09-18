@@ -196,7 +196,8 @@ function ItemFrame({
     item.kind === "embed" ||
     item.kind === "game" ||
     item.kind === "cobrowse" ||
-    item.kind === "screencast";
+    item.kind === "screencast" ||
+    item.kind === "pdf";
 
   const handleProps = {
     onPointerMove,

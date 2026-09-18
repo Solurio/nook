@@ -286,6 +286,63 @@ body.is-room {
   }
 }
 
+/* A page of a book going over, and a sheet lifting off a clipboard. */
+@keyframes leaf-forward {
+  from {
+    transform: rotateY(0deg);
+  }
+  to {
+    transform: rotateY(-180deg);
+  }
+}
+
+@keyframes leaf-back {
+  from {
+    transform: rotateY(0deg);
+  }
+  to {
+    transform: rotateY(180deg);
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    opacity: 1;
+    transform: rotateX(0deg);
+  }
+  to {
+    opacity: 0;
+    transform: rotateX(100deg);
+  }
+}
+
+@keyframes sheet-down {
+  from {
+    opacity: 0;
+    transform: rotateX(100deg);
+  }
+  to {
+    opacity: 1;
+    transform: rotateX(0deg);
+  }
+}
+
+.animate-leaf-forward {
+  animation: leaf-forward 0.62s cubic-bezier(0.45, 0.05, 0.3, 1) both;
+}
+
+.animate-leaf-back {
+  animation: leaf-back 0.62s cubic-bezier(0.45, 0.05, 0.3, 1) both;
+}
+
+.animate-sheet-up {
+  animation: sheet-up 0.45s ease-in both;
+}
+
+.animate-sheet-down {
+  animation: sheet-down 0.45s ease-out both;
+}
+
 .animate-rps-pump {
   animation: rps-pump 1.3s ease-in-out both;
 }
@@ -446,7 +503,11 @@ body.is-room {
   .animate-bang,
   .animate-kick,
   .animate-rps-pump,
-  .animate-rps-show {
+  .animate-rps-show,
+  .animate-leaf-forward,
+  .animate-leaf-back,
+  .animate-sheet-up,
+  .animate-sheet-down {
     animation-duration: 0.01ms;
     animation-iteration-count: 1;
   }

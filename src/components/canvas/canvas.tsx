@@ -23,6 +23,7 @@ import InkOverlay from "./ink-overlay";
 
 const IMAGE_TYPES = /^image\//;
 const PLAYABLE_TYPES = /^(audio|video)\//;
+const PDF_TYPE = "application/pdf";
 
 /** A fresh one-track queue, ready to play for the whole room. */
 function newQueue(
@@ -352,7 +353,7 @@ export default function Canvas() {
       // Pictures go on the wall; songs and clips open in the synced player, so
       // dropping an mp3 or an mp4 gets you something everyone hears together.
       const usable = files.filter(
-        (file) => IMAGE_TYPES.test(file.type) || PLAYABLE_TYPES.test(file.type),
+        (file) => IMAGE_TYPES.test(file.type) || PLAYABLE_TYPES.test(file.type) || file.type === PDF_TYPE,
       );
       let offset = 0;
 
@@ -376,6 +377,8 @@ export default function Canvas() {
 
         if (IMAGE_TYPES.test(file.type)) {
           await createItem(draftItem("image", where, z, { data: { url } }));
+        } else if (file.type === PDF_TYPE) {
+          await createItem(draftItem("pdf", where, z, { data: { src: url, name: file.name.replace(/\.pdf$/i, "") } }));
         } else {
           const playable = parseMediaLink(url);
           const name = file.name.replace(/\.[^.]+$/, "");

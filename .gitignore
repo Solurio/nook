@@ -20,3 +20,6 @@ next-env.d.ts
 
 supabase/.temp
 supabase/.branches
+
+# copied out of node_modules by scripts/copy-pdf-worker.mjs
+public/pdf.worker.min.mjs

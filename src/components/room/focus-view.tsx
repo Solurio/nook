@@ -17,6 +17,7 @@ const KIND_NAME: Record<AnyItem["kind"], string> = {
   game: "game",
   cobrowse: "shared browser",
   screencast: "shared tab",
+  pdf: "document",
 };
 
 /**

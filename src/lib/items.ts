@@ -10,6 +10,7 @@ import { emptyCoin } from "./coin";
 import { emptyWheel } from "./wheel";
 import { emptyBuckshot } from "./buckshot";
 import { emptyRps } from "./rps";
+import { emptyPdf } from "./pdf";
 import { DEFAULT_SECONDS as SPYFALL_SECONDS } from "./spyfall";
 import type { AnyItem, GameKind, ItemDataMap, ItemKind } from "./types";
 
@@ -42,6 +43,7 @@ const DEFAULT_SIZE: Record<ItemKind, { width: number; height: number }> = {
   game: { width: 340, height: 400 },
   cobrowse: { width: 640, height: 440 },
   screencast: { width: 640, height: 420 },
+  pdf: { width: 620, height: 460 },
 };
 
 const GAME_SIZE: Record<GameKind, { width: number; height: number }> = {
@@ -245,6 +247,9 @@ export function draftItem(
     case "screencast":
       data = { url: "", broadcaster: null };
       break;
+    case "pdf":
+      data = emptyPdf();
+      break;
   }
 
   if (options.data) data = { ...data, ...options.data } as ItemDataMap[ItemKind];
@@ -278,6 +283,7 @@ export const MIN_ITEM_SIZE: Record<ItemKind, { width: number; height: number }> 
   game: { width: 260, height: 300 },
   cobrowse: { width: 380, height: 280 },
   screencast: { width: 360, height: 240 },
+  pdf: { width: 280, height: 240 },
 };
 
 export function clampSize(kind: ItemKind, width: number, height: number) {

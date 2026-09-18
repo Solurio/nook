@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import {
+  BookOpen,
   Brush,
   CircleDot,
   Coins,
@@ -257,6 +258,9 @@ export default function Dock() {
           >
             <Sticker className="size-4.5" strokeWidth={2} />
           </DockButton>
+          <DockButton label="lay a document on the table (PDF)" disabled={!canEdit} onClick={() => add("pdf")}>
+            <BookOpen className="size-4.5" strokeWidth={2} />
+          </DockButton>
           <DockButton label="leave a note" disabled={!canEdit} onClick={() => add("note")}>
             <StickyNote className="size-4.5" strokeWidth={2} />
           </DockButton>
@@ -387,6 +391,7 @@ function AddSheet({
     { icon: <ImagePlus className="size-5" strokeWidth={2} />, label: "picture", run: () => onAdd("image") },
     { icon: <Sticker className="size-5" strokeWidth={2} />, label: "gifs and stickers", run: onStickers },
     { icon: <StickyNote className="size-5" strokeWidth={2} />, label: "note", run: () => onAdd("note") },
+    { icon: <BookOpen className="size-5" strokeWidth={2} />, label: "document (PDF)", run: () => onAdd("pdf") },
     { icon: <Type className="size-5" strokeWidth={2} />, label: "big text", run: () => onAdd("text") },
     { icon: <Music4 className="size-5" strokeWidth={2} />, label: "music or video", run: () => onAdd("media") },
     { icon: <Globe className="size-5" strokeWidth={2} />, label: "window", run: () => onAdd("embed") },

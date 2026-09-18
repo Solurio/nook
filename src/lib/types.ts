@@ -6,7 +6,8 @@ export type ItemKind =
   | "embed"
   | "game"
   | "cobrowse"
-  | "screencast";
+  | "screencast"
+  | "pdf";
 
 export type Background =
   | { kind: "solid"; color: string }
@@ -57,6 +58,8 @@ interface ItemPayloads {
   game: GameData;
   cobrowse: CobrowseData;
   screencast: ScreencastData;
+  /** A document on the table, read as a book or on a clipboard. */
+  pdf: import("./pdf").PdfData;
 }
 
 /** Every payload, plus the fields shared across all of them. */
