@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import clsx from "clsx";
+import { RpsIcon } from "./rps-icons";
 import { useRoom } from "@/realtime/room-provider";
 import { useRoomStore } from "@/state/room-store";
 import { canPlay, takeSeat, turnHint } from "@/lib/seats";
@@ -14,7 +15,6 @@ import {
   outcome,
   SHAPE_NAME,
   type Board,
-  type Shape,
   type Side,
 } from "@/lib/intransitive";
 import GameTable from "./table";
@@ -22,7 +22,6 @@ import type { IntransitiveState, Item } from "@/lib/types";
 
 const SIDES = ["blue", "red"] as const;
 const TINT: Record<Side, string> = { blue: "#6aa9e0", red: "#e0655c" };
-const GLYPH: Record<Shape, string> = { R: "●", P: "■", S: "▲" };
 
 export default function Intransitive({
   item,
@@ -149,14 +148,15 @@ export default function Intransitive({
             >
               {cell && (
                 <span
-                  className="grid size-[78%] place-items-center rounded-full text-[clamp(7px,1.9vw,13px)] font-bold shadow-sm"
+                  className="grid size-[86%] place-items-center rounded-full"
                   style={{
-                    background: TINT[cell.side],
-                    color: "#1a1420",
+                    // The side's colour is the rim; the piece itself is drawn.
+                    background: "#2b2540",
+                    boxShadow: `inset 0 0 0 2px ${TINT[cell.side]}`,
                   }}
-                  title={SHAPE_NAME[cell.shape]}
+                  title={`${cell.side} ${SHAPE_NAME[cell.shape]}`}
                 >
-                  {GLYPH[cell.shape]}
+                  <RpsIcon shape={cell.shape} className="size-[80%]" ink={TINT[cell.side]} />
                 </span>
               )}
 

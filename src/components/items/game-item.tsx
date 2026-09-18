@@ -13,6 +13,7 @@ import Codenames from "@/components/games/codenames";
 import Coup from "@/components/games/coup";
 import Spyfall from "@/components/games/spyfall";
 import Resistance from "@/components/games/resistance";
+import Uno from "@/components/games/uno";
 
 export default function GameItem({ item }: { item: Item<"game"> }) {
   switch (item.data.game) {
@@ -40,6 +41,8 @@ export default function GameItem({ item }: { item: Item<"game"> }) {
       return <Spyfall item={item} state={item.data.state} />;
     case "resistance":
       return <Resistance item={item} state={item.data.state} />;
+    case "uno":
+      return <Uno item={item} state={item.data.state} />;
     default:
       return null;
   }

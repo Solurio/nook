@@ -13,6 +13,7 @@ import {
   GripVertical,
   Grid3x3,
   ImagePlus,
+  Layers,
   Maximize2,
   MessageSquare,
   Minus,
@@ -55,6 +56,7 @@ const GAMES: Array<{ kind: GameKind; title: string; hint: string; icon: React.Re
     icon: <Swords />,
   },
   { kind: "cards", title: "card table", hint: "any deck, any rules", icon: <Spade /> },
+  { kind: "uno", title: "uno", hint: "match the colour, empty your hand", icon: <Layers /> },
   { kind: "coup", title: "coup", hint: "lie well, or lose a card", icon: <VenetianMask /> },
   { kind: "spyfall", title: "spyfall", hint: "everyone knows where but one", icon: <MapPin /> },
   {
@@ -496,8 +498,10 @@ function DockButton({
       title={label}
       aria-label={label}
       className={clsx(
-        // 44px on touch, tighter once there is a mouse to aim with.
-        "grid size-11 place-items-center rounded-xl transition select-none disabled:opacity-35 disabled:hover:bg-transparent sm:size-9",
+        // 44px on touch, tighter once there is a mouse to aim with -- and 40px
+        // on the narrowest phones, where 44 pushed both ends of the dock off
+        // the screen.
+        "grid size-10 place-items-center rounded-xl transition select-none disabled:opacity-35 disabled:hover:bg-transparent min-[360px]:size-11 sm:size-9",
         active ? "bg-glow/22 text-glow" : "text-muted hover:bg-white/8 hover:text-chalk",
       )}
     >

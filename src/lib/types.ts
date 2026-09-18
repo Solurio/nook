@@ -131,7 +131,8 @@ export type GameKind =
   | "codenames"
   | "coup"
   | "spyfall"
-  | "resistance";
+  | "resistance"
+  | "uno";
 
 export type GameData =
   | { game: "tictactoe"; state: TicTacToeState }
@@ -145,7 +146,8 @@ export type GameData =
   | { game: "codenames"; state: CodenamesState }
   | { game: "coup"; state: CoupState }
   | { game: "spyfall"; state: SpyfallState }
-  | { game: "resistance"; state: ResistanceState };
+  | { game: "resistance"; state: ResistanceState }
+  | { game: "uno"; state: import("./uno").UnoState };
 
 export interface ChessState {
   /** 64 cells, index = row*8+col, row 0 is black's back rank. */

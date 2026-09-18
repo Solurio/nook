@@ -39,6 +39,20 @@ body.is-room {
   overflow: hidden;
 }
 
+/*
+ * In a room only the canvas zooms. iOS has ignored user-scalable=no since
+ * iOS 10, so a pinch or a double tap that landed on the top bar or the dock
+ * zoomed the whole page instead, and there was no tidy way back out. Panning
+ * is still allowed, so every panel and sheet scrolls as it did. In the base
+ * layer on purpose: the canvas's own touch-none, a utility, still wins.
+ */
+@layer base {
+  body.is-room,
+  body.is-room * {
+    touch-action: pan-x pan-y;
+  }
+}
+
 ::selection {
   background: color-mix(in oklab, var(--color-glow) 45%, transparent);
 }

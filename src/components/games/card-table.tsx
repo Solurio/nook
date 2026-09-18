@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useRoom } from "@/realtime/room-provider";
 import { usePiles } from "@/realtime/use-piles";
+import { useHandOver, useScrub } from "@/realtime/use-hand-over";
 import { useRoomStore } from "@/state/room-store";
 import { chairOf, claimChair } from "@/lib/seats";
 import { TAKES_PUBLIC, sizeOf } from "@/lib/piles";
@@ -112,6 +113,11 @@ export default function CardTable({ item, state }: { item: Item<"game">; state: 
   const chairs = chairsFor(table.seatCount);
   const holders = useMemo(() => table.holders ?? {}, [table.holders]);
   const myChair = chairOf(table.seats, holders, me);
+  useHandOver(item.id, piles, holders);
+  // A table saved before stacks existed kept every hand and the deck in the open.
+  useScrub((state as { version?: number } | null)?.version !== 2, () =>
+    void updateData(item.id, { game: "cards", state: table as never }),
+  );
 
   const [selected, setSelected] = useState<string[]>([]);
   const [grouping, setGrouping] = useState(false);

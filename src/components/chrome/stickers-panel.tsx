@@ -128,9 +128,11 @@ export default function StickersPanel({
         "surface animate-drift-in pointer-events-auto z-60 flex flex-col overflow-hidden",
         place
           ? // Hung off the button, growing upwards from it.
-            "fixed w-[21rem] max-w-[92vw] rounded-2xl shadow-2xl"
+            // It used to have no height limit at all, so a search that came
+            // back with plenty grew the panel to the top of the screen.
+            "fixed h-[min(25rem,52dvh)] w-[21rem] max-w-[92vw] rounded-2xl shadow-2xl"
           : // No button to point at: a sheet across the bottom instead.
-            "fixed inset-x-2 bottom-20 max-h-[68dvh] rounded-3xl",
+            "fixed inset-x-2 bottom-20 h-[min(25rem,50dvh)] rounded-3xl",
       )}
     >
       <header className="flex items-center justify-between border-b border-white/8 px-4 py-3">

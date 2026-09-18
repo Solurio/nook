@@ -112,3 +112,22 @@ export function explainPileError(message: string | undefined | null): string {
   if (/own hand/i.test(text)) return "You can only draw into your own hand.";
   return text || "The table did not take that move.";
 }
+
+/**
+ * Hands this device holds for a chair somebody else now sits in, as
+ * [slot, new owner] pairs. Those are owed to the person sitting there.
+ */
+export function handsOwed(
+  meta: PileMeta | undefined,
+  me: string | null | undefined,
+  holders: Record<string, string | null> | undefined,
+): Array<[string, string]> {
+  if (!meta || !me || !holders) return [];
+  const out: Array<[string, string]> = [];
+  for (const [slot, info] of Object.entries(meta)) {
+    if (!slot.startsWith("hand:") || info?.owner !== me) continue;
+    const holder = holders[slot.slice(5)];
+    if (holder && holder !== me) out.push([slot, holder]);
+  }
+  return out.sort((a, b) => a[0].localeCompare(b[0]));
+}

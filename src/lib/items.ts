@@ -4,6 +4,7 @@ import { initialBoard as initialCheckers } from "./checkers";
 import { initialBoard as initialIntransitive } from "./intransitive";
 import { seatIds } from "./cards";
 import { emptyTable } from "./table";
+import { emptyUno } from "./uno";
 import { newGame as newCoup } from "./coup";
 import { DEFAULT_SECONDS as SPYFALL_SECONDS } from "./spyfall";
 import { newSetup as newCodenames } from "./codenames";
@@ -53,6 +54,7 @@ const GAME_SIZE: Record<GameKind, { width: number; height: number }> = {
   coup: { width: 460, height: 420 },
   spyfall: { width: 460, height: 440 },
   resistance: { width: 480, height: 460 },
+  uno: { width: 480, height: 460 },
 };
 
 function emptyGameData(game: GameKind): ItemDataMap["game"] {
@@ -107,6 +109,8 @@ function emptyGameData(game: GameKind): ItemDataMap["game"] {
           wins: { spy: 0, table: 0 },
         },
       };
+    case "uno":
+      return { game: "uno", state: emptyUno(4) };
     case "resistance":
       return {
         game: "resistance",

@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useRoom } from "@/realtime/room-provider";
 import { usePiles } from "@/realtime/use-piles";
+import { useHandOver, useScrub } from "@/realtime/use-hand-over";
 import { useRoomStore } from "@/state/room-store";
 import { chairOf, claimChair } from "@/lib/seats";
 import { seatIds, teamOf } from "@/lib/cards";
@@ -73,6 +74,12 @@ export default function Dominoes({
   const myChair = chairOf(state.seats, holders, me);
   const piles = state.piles;
   const mine = usePiles(item.id, piles);
+  useHandOver(item.id, piles, holders);
+  // A table saved before hands were private still has them in the open.
+  const legacy = "hands" in state || "boneyard" in state || "wins" in state;
+  useScrub(legacy, () =>
+    void updateData(item.id, { game: "dominoes", state: publicOnly(state) }),
+  );
 
   const line = state.line as Line;
   const ends = openEnds(line);

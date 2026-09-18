@@ -30,6 +30,9 @@ export const viewport: Viewport = {
   themeColor: "#100d16",
   width: "device-width",
   initialScale: 1,
+  // Stops Chrome on Android shrinking the page to fit anything that pokes
+  // past the edge, which looked like the whole room zooming out.
+  minimumScale: 1,
   maximumScale: 1,
   userScalable: false,
 };
