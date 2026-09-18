@@ -42,7 +42,11 @@ it, and it all stays where you dropped it.
   Game** (five dice rolled for everyone to see, arrows and the Indians, dynamite,
   the Gatling, all sixteen characters, and hidden roles),
   **Spyfall**, **The Resistance**, **Codenames** in English or Portuguese,
-  **dominoes** and **Buckshot Roulette**. Your hand is yours alone; see
+  **dominoes**, **Buckshot Roulette** and **WAR** -- the Brazilian one: 42
+  territories on six continents, three to six armies, reinforcements by
+  territory and continent, dice battles everyone watches, territory cards
+  traded in at the going rate, and a secret objective each. Your hand is yours
+  alone; see
   [Hidden cards](#hidden-cards) for how.
 - **Board games.** Chess (with check, mate and castling), checkers, connect four,
   tic-tac-toe, **rock paper scissors** for two to six with sealed throws,
@@ -345,10 +349,12 @@ in [COBROWSE.md](COBROWSE.md). Without a key the rest of the app is unaffected.
   clock is badly off sees the fuse a little early or late.
 - **A role that leaves with its phone.** A role is turned over by the device
   that holds it. If that device is gone when it is needed, the role stays hidden.
+  The same goes for a WAR objective: only the screen holding it can tell it has
+  been reached.
 
 ## Next
 
-Prepared for, not built yet: **War** (Risk-style), **Catan**, **Detective**
+Prepared for, not built yet: **Catan**, **Detective**
 (Clue-style), **Werewolf** and **Monopoly**, all of which fit the secret piles
 and the chairs as they are. Cards Against Humanity with your own cards. An
 inventory for pieces, typing shown live to the table, and a proper undo.

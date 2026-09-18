@@ -155,7 +155,8 @@ export type GameKind =
   | "buckshot"
   | "rps"
   | "bang"
-  | "bomb";
+  | "bomb"
+  | "war";
 
 export type GameData =
   | { game: "tictactoe"; state: TicTacToeState }
@@ -177,7 +178,8 @@ export type GameData =
   | { game: "buckshot"; state: import("./buckshot").BuckshotState }
   | { game: "rps"; state: import("./rps").RpsState }
   | { game: "bang"; state: import("./bang").BangState }
-  | { game: "bomb"; state: import("./bomb").BombState };
+  | { game: "bomb"; state: import("./bomb").BombState }
+  | { game: "war"; state: import("./war").WarState };
 
 export interface ChessState {
   /** 64 cells, index = row*8+col, row 0 is black's back rank. */
