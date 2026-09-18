@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import {
+  Bomb,
   BookOpen,
   Brush,
   CircleDot,
@@ -100,6 +101,7 @@ const GAMES: Array<{
   { kind: "dominoes", group: "secrets", title: "dominoes", hint: "double six, teams optional", icon: <GripVertical /> },
   { kind: "chess", group: "boards", title: "chess", hint: "check, mate, castling", icon: <Crown /> },
   { kind: "checkers", group: "boards", title: "checkers", hint: "jump and crown", icon: <CircleDot /> },
+  { kind: "bomb", group: "boards", title: "bomb party", hint: "a word with the letters, before it blows", icon: <Bomb /> },
   { kind: "rps", group: "boards", title: "rock paper scissors", hint: "sealed throws, shown together", icon: <Hand /> },
   { kind: "intransitive", group: "boards", title: "intransitive", hint: "rock paper scissors, at war", icon: <Swords /> },
   { kind: "connectfour", group: "boards", title: "connect four", hint: "four in a row", icon: <Columns3 /> },
