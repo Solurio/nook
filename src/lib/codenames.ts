@@ -131,3 +131,80 @@ export function guessResult(slot: Slot, turn: Team): "continue" | "handover" | "
   if (slot === turn) return "continue";
   return "handover";
 }
+
+// ---------------------------------------------------------------------------
+// A key nobody but the spymasters can read
+//
+// The key lives in secret piles: one nobody owns, and an identical copy for
+// each spymaster. Guessing a word turns over just that position of the
+// ownerless copy, for everyone. What the table knows is what has been turned
+// over, and since each side's total is public -- the first team has nine, the
+// second eight -- the score and the end of the game follow from that alone.
+// ---------------------------------------------------------------------------
+
+export const KEY = "key";
+export const MASTERS = ["redMaster", "blueMaster"] as const;
+export type Master = (typeof MASTERS)[number];
+
+export function keySlot(master: Master): string {
+  return `key:${master}`;
+}
+
+export function wordSlot(index: number): string {
+  return `word:${index}`;
+}
+
+/** The colours in a key, before the database shuffles them. */
+export function keyCards(first: Team): Slot[] {
+  const second: Team = first === "red" ? "blue" : "red";
+  return [
+    ...Array<Slot>(FIRST_TEAM_CARDS).fill(first),
+    ...Array<Slot>(SECOND_TEAM_CARDS).fill(second),
+    ...Array<Slot>(NEUTRAL_CARDS).fill("neutral"),
+    ...Array<Slot>(ASSASSIN_CARDS).fill("assassin"),
+  ];
+}
+
+/** Which words have been turned over, and what they were. */
+export function turnedFrom(revealed: Record<string, unknown[]> | undefined): Record<number, Slot> {
+  const out: Record<number, Slot> = {};
+  for (const [key, cards] of Object.entries(revealed ?? {})) {
+    if (!key.startsWith("word:")) continue;
+    const slot = cards?.[0] as Slot | undefined;
+    if (slot) out[Number(key.slice(5))] = slot;
+  }
+  return out;
+}
+
+export function totalFor(team: Team, first: Team): number {
+  return team === first ? FIRST_TEAM_CARDS : SECOND_TEAM_CARDS;
+}
+
+export function leftFor(team: Team, first: Team, turned: Record<number, Slot>): number {
+  return totalFor(team, first) - Object.values(turned).filter((slot) => slot === team).length;
+}
+
+/**
+ * Where the game stands from what has been turned over. The assassin ends it
+ * against whoever found it, which is the side whose turn it was when it was
+ * turned -- the caller says which that was.
+ */
+export function standing(
+  turned: Record<number, Slot>,
+  first: Team,
+  assassinFoundBy: Team | null,
+): CodenamesOutcome {
+  if (assassinFoundBy) {
+    return { kind: "won", winner: assassinFoundBy === "red" ? "blue" : "red", reason: "assassin" };
+  }
+  for (const team of ["red", "blue"] as Team[]) {
+    if (leftFor(team, first, turned) === 0) return { kind: "won", winner: team, reason: "cleared" };
+  }
+  return { kind: "playing" };
+}
+
+/** Picks the words for a board and which side goes first. The key is not made here. */
+export function newBoard(pack: Pack, random: () => number = Math.random): { words: string[]; first: Team } {
+  const setup = newSetup(pack, random);
+  return { words: setup.words, first: setup.first };
+}

@@ -7,7 +7,6 @@ import { emptyTable } from "./table";
 import { emptyUno } from "./uno";
 import { newGame as newCoup } from "./coup";
 import { DEFAULT_SECONDS as SPYFALL_SECONDS } from "./spyfall";
-import { newSetup as newCodenames } from "./codenames";
 import type { AnyItem, GameKind, ItemDataMap, ItemKind } from "./types";
 
 export const NOTE_TINTS = [
@@ -127,22 +126,22 @@ function emptyGameData(game: GameKind): ItemDataMap["game"] {
           wins: { resistance: 0, spies: 0 },
         },
       };
-    case "codenames": {
-      const setup = newCodenames("en");
+    case "codenames":
       return {
         game: "codenames",
         state: {
           pack: "en",
-          words: setup.words,
-          key: setup.key,
-          revealed: Array(25).fill(false),
-          turn: setup.first,
+          words: [],
+          turn: "red",
           seats: { redMaster: null, blueMaster: null },
+          holders: { redMaster: null, blueMaster: null },
           clue: null,
           wins: { red: 0, blue: 0 },
+          round: 0,
+          results: {},
+          assassin: null,
         },
       };
-    }
     case "dominoes":
       return {
         game: "dominoes",

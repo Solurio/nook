@@ -226,16 +226,32 @@ export interface ResistanceState {
   plays?: Record<string, boolean>;
 }
 
-/** Codenames: the words, and the key only the spymasters look at. */
+/**
+ * Codenames: the words and whose turn it is. The key is not in here -- it is a
+ * secret pile, copied to each spymaster, and a word's colour only becomes
+ * public when it is guessed and the database turns that position over.
+ */
 export interface CodenamesState {
   words: string[];
-  key: ("red" | "blue" | "neutral" | "assassin")[];
-  revealed: boolean[];
+  pack: "en" | "pt";
+  /** The side with nine words, which goes first. */
+  first?: "red" | "blue";
   turn: "red" | "blue";
   seats: { redMaster: string | null; blueMaster: string | null };
+  holders?: { redMaster: string | null; blueMaster: string | null };
   clue: { word: string; count: number } | null;
   wins: { red: number; blue: number };
-  pack: "en" | "pt";
+  round?: number;
+  /** Round number to the side that took it. */
+  results?: Record<string, "red" | "blue">;
+  /** Set when the assassin is turned over: the side that turned it. */
+  assassin?: "red" | "blue" | null;
+  /** Written by the database: who holds a copy of the key. */
+  piles?: import("./piles").PileMeta;
+  /** Written by the database: each guessed word's colour, as word:<index>. */
+  revealed?: Record<string, unknown[]>;
+  /** From before the key was private. Wiped on sight. */
+  key?: ("red" | "blue" | "neutral" | "assassin")[];
 }
 
 /**

@@ -2,24 +2,32 @@
 
 import { useMemo, useState } from "react";
 import clsx from "clsx";
-import { Eye, EyeOff, RotateCcw, SkipForward } from "lucide-react";
+import { BookOpen, Eye, EyeOff, RotateCcw, SkipForward } from "lucide-react";
 import { useRoom } from "@/realtime/room-provider";
+import { usePiles } from "@/realtime/use-piles";
+import { useHandOver, useScrub } from "@/realtime/use-hand-over";
+import { waitForItem } from "@/realtime/wait-for-item";
 import { useRoomStore } from "@/state/room-store";
-import { seatOf, takeSeat } from "@/lib/seats";
+import { chairOf, claimChair } from "@/lib/seats";
 import {
-  GRID,
+  KEY,
+  MASTERS,
   PACK_NAME,
   guessResult,
-  newSetup,
-  outcome,
-  remaining,
+  keyCards,
+  keySlot,
+  leftFor,
+  newBoard,
+  standing,
+  turnedFrom,
+  wordSlot,
   type Pack,
   type Slot,
   type Team,
 } from "@/lib/codenames";
 import type { CodenamesState, Item } from "@/lib/types";
+import RulesSheet from "./rules-sheet";
 
-const MASTERS = ["redMaster", "blueMaster"] as const;
 const TEAM_TINT: Record<Team, string> = { red: "#e0655c", blue: "#6aa9e0" };
 
 const SLOT_FACE: Record<Slot, string> = {
@@ -33,9 +41,9 @@ const SLOT_FACE: Record<Slot, string> = {
  * Codenames. Twenty five words on the table and two spymasters who can see
  * which belong to whom; everyone else is guessing from a one word clue.
  *
- * The key travels in the same shared state as everything else in a room, so it
- * is hidden by the interface rather than kept from anyone. Sit in a spymaster
- * chair and turn it on; that is the honest version of the secret.
+ * The key is a secret pile with a copy for each spymaster and nobody else --
+ * not the guessers, not whoever dealt. A word's colour becomes public only
+ * when it is guessed, and then it is the database that turns it over.
  */
 export default function Codenames({
   item,
@@ -44,149 +52,184 @@ export default function Codenames({
   item: Item<"game">;
   state: CodenamesState;
 }) {
-  const { updateData, canEdit } = useRoom();
+  const { updateData, pile, canEdit } = useRoom();
   const me = useRoomStore((s) => s.me);
-  const name = me?.name ?? "someone";
   const [showKey, setShowKey] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [rules, setRules] = useState(false);
+
+  const holders = useMemo(
+    () => state.holders ?? { redMaster: null, blueMaster: null },
+    [state.holders],
+  );
+  const piles = state.piles;
+  const mine = usePiles(item.id, piles);
+  useHandOver(item.id, piles, holders);
+
+  const legacy = "key" in state || Array.isArray(state.revealed);
+  useScrub(legacy, () => void updateData(item.id, { game: "codenames", state: clean(state) }));
+
+  const myChair = chairOf(state.seats, holders, me);
+  const isMaster = myChair !== null;
+  // Both copies land here when nobody sits in a spymaster chair: one phone,
+  // passed round, where whoever holds it can look.
+  const myKey = (mine[keySlot("redMaster")] ?? mine[keySlot("blueMaster")]) as Slot[] | undefined;
+  const keyVisible = Boolean(myKey) && showKey;
+
+  const first: Team = state.first ?? "red";
+  const turned = useMemo(() => turnedFrom(state.revealed), [state.revealed]);
+  const result = standing(turned, first, state.assassin ?? null);
+  const over = result.kind === "won";
+  const dealt = state.words.length > 0 && Boolean(piles?.[KEY]);
 
   const write = (next: CodenamesState) =>
-    void updateData(item.id, { game: "codenames", state: next });
+    updateData(item.id, { game: "codenames", state: clean(next) });
 
-  const key = state.key as Slot[];
-  const result = useMemo(
-    () => outcome(key, state.revealed, state.turn),
-    [key, state.revealed, state.turn],
-  );
-  const over = result.kind === "won";
+  const run = async (work: () => Promise<unknown>) => {
+    if (busy || !canEdit) return;
+    setBusy(true);
+    try {
+      await work();
+    } finally {
+      setBusy(false);
+    }
+  };
 
-  const mySeat = seatOf(state.seats, name);
-  const isMaster = mySeat !== null;
-  // Nobody in a spymaster chair means one device is being passed around, and
-  // whoever holds it can look at the key.
-  const openTable = MASTERS.every((chair) => !state.seats[chair]);
-  const mayPeek = isMaster || openTable;
-  const keyVisible = mayPeek && showKey;
+  const guess = (index: number) =>
+    run(async () => {
+      if (over || turned[index] !== undefined || isMaster || !dealt) return;
+      const shown = await pile("pile_reveal", {
+        p_item: item.id,
+        p_slots: [KEY],
+        p_at: index,
+        p_keep: true,
+        p_as: wordSlot(index),
+      });
+      if (shown.error) return;
+      const slot = await waitForItem(
+        item.id,
+        (s) => ((s.revealed as Record<string, unknown[]> | undefined)?.[wordSlot(index)]?.[0] as Slot | undefined) ?? null,
+      );
+      if (!slot) return;
 
-  const reveal = (index: number) => {
-    if (!canEdit || over || state.revealed[index]) return;
-    // A spymaster knows the answers, so they do not get to do the guessing.
-    if (isMaster) return;
+      const live = (useRoomStore.getState().items[item.id]?.data as { state: CodenamesState } | undefined)?.state ?? state;
+      const what = guessResult(slot, live.turn);
+      const assassin = slot === "assassin" ? live.turn : (live.assassin ?? null);
+      const after = standing(turnedFrom(live.revealed), live.first ?? first, assassin);
+      const round = String(live.round ?? 0);
+      const won = after.kind === "won" && !live.results?.[round];
 
-    const revealed = state.revealed.map((was, i) => (i === index ? true : was));
-    const what = guessResult(key[index], state.turn);
-    const after = outcome(key, revealed, state.turn);
-
-    const wins =
-      after.kind === "won"
-        ? { ...state.wins, [after.winner]: state.wins[after.winner] + 1 }
-        : state.wins;
-
-    write({
-      ...state,
-      revealed,
-      wins,
-      clue: what === "continue" ? state.clue : null,
-      turn: what === "continue" ? state.turn : state.turn === "red" ? "blue" : "red",
+      await write({
+        ...live,
+        assassin,
+        clue: what === "continue" ? live.clue : null,
+        turn: what === "continue" ? live.turn : live.turn === "red" ? "blue" : "red",
+        results: won ? { ...live.results, [round]: after.winner } : live.results,
+        wins: won ? { ...live.wins, [after.winner]: live.wins[after.winner] + 1 } : live.wins,
+      });
     });
-  };
 
-  const endTurn = () => {
-    if (!canEdit || over) return;
-    write({ ...state, clue: null, turn: state.turn === "red" ? "blue" : "red" });
-  };
+  const endTurn = () =>
+    run(() => write({ ...state, clue: null, turn: state.turn === "red" ? "blue" : "red" }));
 
-  const deal = (pack: Pack) => {
-    const setup = newSetup(pack);
-    setShowKey(false);
-    write({
-      ...state,
-      pack,
-      words: setup.words,
-      key: setup.key,
-      revealed: Array(GRID).fill(false),
-      turn: setup.first,
-      clue: null,
+  const deal = (pack: Pack) =>
+    run(async () => {
+      if (!me) return;
+      const board = newBoard(pack);
+      setShowKey(false);
+      const fresh: CodenamesState = {
+        ...clean(state),
+        pack,
+        words: board.words,
+        first: board.first,
+        turn: board.first,
+        clue: null,
+        assassin: null,
+        round: (state.round ?? 0) + 1,
+      };
+      delete fresh.revealed;
+      await pile("pile_setup", {
+        p_item: item.id,
+        p_piles: [
+          {
+            slot: KEY,
+            cards: keyCards(board.first),
+            shuffle: true,
+            copies: MASTERS.map((master) => ({
+              slot: keySlot(master),
+              owner: holders[master] ?? me.userId,
+            })),
+          },
+        ],
+        p_public: { game: "codenames", state: fresh },
+      });
     });
-  };
 
-  const status = over
-    ? `${result.winner} wins · ${result.reason === "assassin" ? "the assassin" : "all of them"}`
-    : isMaster
-      ? `${state.turn} is guessing`
-      : `${state.turn} to guess`;
+  const status = !dealt
+    ? "spymasters sit down, then deal"
+    : over
+      ? `${result.winner} wins · ${result.reason === "assassin" ? "the assassin" : "all of them"}`
+      : isMaster
+        ? `${state.turn} is guessing`
+        : `${state.turn} to guess`;
 
   return (
-    <div className="surface grain flex size-full flex-col gap-2 overflow-hidden rounded-2xl p-2.5">
+    <div className="surface grain relative flex size-full flex-col gap-2 overflow-hidden rounded-2xl p-2.5">
       {/* Spymaster chairs and what each side has left */}
       <div className="flex items-center gap-1.5">
         {MASTERS.map((chair) => {
           const team: Team = chair === "redMaster" ? "red" : "blue";
           const who = state.seats[chair];
-          const mine = who === name;
-          const left = remaining(key, state.revealed, team);
+          const isMine = chair === myChair;
           return (
             <button
               key={chair}
               type="button"
-              disabled={!canEdit}
-              onClick={() => write({ ...state, seats: takeSeat(state.seats, chair, name) })}
-              title={who ? (mine ? "stand up" : who) : `become the ${team} spymaster`}
+              disabled={!canEdit || !me}
+              onClick={() => me && void write({ ...state, ...claimChair(state.seats, holders, chair, me) })}
+              title={who ? (isMine ? "stand up" : who) : `become the ${team} spymaster`}
               className={clsx(
-                "flex min-h-9 min-w-0 flex-1 items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-left transition disabled:opacity-50",
-                state.turn === team && !over
-                  ? "bg-white/12 ring-1 ring-glow/45"
-                  : "bg-white/5 hover:bg-white/9",
+                "flex min-h-10 min-w-0 flex-1 items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-left transition disabled:opacity-50",
+                state.turn === team && !over && dealt ? "bg-white/12 ring-1 ring-glow/45" : "bg-white/5 hover:bg-white/9",
               )}
             >
-              <span
-                className="size-3 shrink-0 rounded-full ring-1 ring-white/25"
-                style={{ background: TEAM_TINT[team] }}
-              />
+              <span className="size-3 shrink-0 rounded-full ring-1 ring-white/25" style={{ background: TEAM_TINT[team] }} />
               <span className="min-w-0 flex-1 truncate text-[11px]">
-                {who ? (
-                  <span className={mine ? "text-chalk" : "text-muted"}>{who}</span>
-                ) : (
-                  <span className="text-muted/55">{team} spymaster</span>
-                )}
+                {who ? <span className={isMine ? "text-chalk" : "text-muted"}>{who}</span> : <span className="text-muted/55">{team} spymaster</span>}
               </span>
-              <span className="shrink-0 text-[11px] font-semibold tabular-nums text-muted">
-                {left}
-              </span>
+              {dealt && (
+                <span className="shrink-0 text-[11px] font-semibold tabular-nums text-muted">
+                  {leftFor(team, first, turned)}
+                </span>
+              )}
             </button>
           );
         })}
+        <button type="button" onClick={() => setRules(true)} aria-label="rules" className="grid size-10 shrink-0 place-items-center rounded-xl text-muted hover:bg-white/8 hover:text-chalk">
+          <BookOpen className="size-4" />
+        </button>
       </div>
 
       {/* The table */}
       <div className="grid min-h-0 flex-1 grid-cols-5 gap-1">
         {state.words.map((word, i) => {
-          const slot = key[i];
-          const face = state.revealed[i];
-          const hinted = keyVisible && !face;
+          const face = turned[i];
+          const hint = keyVisible && !face ? myKey?.[i] : undefined;
           return (
             <button
               key={`${word}-${i}`}
               type="button"
-              onClick={() => reveal(i)}
-              disabled={!canEdit || over || face || isMaster}
-              aria-label={face ? `${word}, ${slot}` : word}
+              onClick={() => void guess(i)}
+              disabled={!canEdit || over || face !== undefined || isMaster || busy}
+              aria-label={face ? `${word}, ${face}` : word}
               className={clsx(
                 "grid touch-manipulation place-items-center overflow-hidden rounded-md px-0.5 text-center text-[clamp(7px,1.7vw,11px)] leading-tight font-semibold transition",
-                face
-                  ? SLOT_FACE[slot]
-                  : "bg-[#f6f2e8] text-[#1a1420] hover:ring-2 hover:ring-glow/70",
-                hinted && "ring-2 ring-inset",
+                face ? SLOT_FACE[face] : "bg-[#f6f2e8] text-[#1a1420] hover:ring-2 hover:ring-glow/70",
               )}
               style={
-                hinted
+                hint
                   ? {
-                      boxShadow: `inset 0 0 0 3px ${
-                        slot === "assassin"
-                          ? "#1a1420"
-                          : slot === "neutral"
-                            ? "#b8ab8d"
-                            : TEAM_TINT[slot as Team]
-                      }`,
+                      boxShadow: `inset 0 0 0 3px ${hint === "assassin" ? "#1a1420" : hint === "neutral" ? "#b8ab8d" : TEAM_TINT[hint as Team]}`,
                     }
                   : undefined
               }
@@ -195,12 +238,17 @@ export default function Codenames({
             </button>
           );
         })}
+        {state.words.length === 0 && (
+          <p className="col-span-5 my-auto text-center text-[11px] text-muted/50">
+            spymasters sit down first -- the key is dealt to whoever is in those chairs
+          </p>
+        )}
       </div>
 
       {/* Clue and controls */}
       <div className="flex items-center gap-1.5">
         <p className="min-w-0 flex-1 truncate text-xs font-medium text-muted">
-          {state.clue ? (
+          {state.clue && !over ? (
             <span className="text-chalk">
               {state.clue.word} <span className="text-muted">for {state.clue.count}</span>
             </span>
@@ -209,62 +257,59 @@ export default function Codenames({
           )}
         </p>
 
-        {mayPeek && (
+        {myKey && (
           <button
             type="button"
             onClick={() => setShowKey((v) => !v)}
             title={showKey ? "hide the key" : "show the key"}
             className={clsx(
-              "grid size-8 shrink-0 place-items-center rounded-lg transition sm:size-7",
+              "grid size-9 shrink-0 place-items-center rounded-lg transition sm:size-8",
               showKey ? "bg-glow/22 text-glow" : "text-muted hover:bg-white/8 hover:text-chalk",
             )}
           >
-            {showKey ? (
-              <Eye className="size-3.5" strokeWidth={2.2} />
-            ) : (
-              <EyeOff className="size-3.5" strokeWidth={2.2} />
-            )}
+            {showKey ? <Eye className="size-3.5" strokeWidth={2.2} /> : <EyeOff className="size-3.5" strokeWidth={2.2} />}
           </button>
         )}
 
-        {!over && (
-          <button
-            type="button"
-            disabled={!canEdit}
-            onClick={endTurn}
-            title="hand the turn over"
-            aria-label="hand the turn over"
-            className="grid size-8 shrink-0 place-items-center rounded-lg text-muted transition hover:bg-white/8 hover:text-chalk disabled:opacity-40 sm:size-7"
-          >
+        {!over && dealt && (
+          <button type="button" disabled={!canEdit || busy} onClick={() => void endTurn()} title="hand the turn over" aria-label="hand the turn over" className="grid size-9 shrink-0 place-items-center rounded-lg text-muted transition hover:bg-white/8 hover:text-chalk disabled:opacity-40 sm:size-8">
             <SkipForward className="size-3.5" strokeWidth={2.2} />
           </button>
         )}
 
         <button
           type="button"
-          disabled={!canEdit}
-          onClick={() => deal(state.pack === "en" ? "pt" : "en")}
+          disabled={!canEdit || busy}
+          onClick={() => void deal(state.pack === "en" ? "pt" : "en")}
           title={`switch to ${PACK_NAME[state.pack === "en" ? "pt" : "en"]} and deal`}
-          className="shrink-0 rounded-lg px-2 py-1.5 text-[10px] font-medium text-muted transition hover:bg-white/8 hover:text-chalk disabled:opacity-40"
+          className="min-h-9 shrink-0 rounded-lg px-2 py-1.5 text-[10px] font-medium text-muted transition hover:bg-white/8 hover:text-chalk disabled:opacity-40"
         >
           {PACK_NAME[state.pack]}
         </button>
 
-        <button
-          type="button"
-          disabled={!canEdit}
-          onClick={() => deal(state.pack)}
-          aria-label="new board"
-          title="new board"
-          className="grid size-8 shrink-0 place-items-center rounded-lg text-muted transition hover:bg-white/8 hover:text-chalk disabled:opacity-40 sm:size-7"
-        >
+        <button type="button" disabled={!canEdit || busy} onClick={() => void deal(state.pack)} aria-label="new board" title="new board" className="grid size-9 shrink-0 place-items-center rounded-lg text-muted transition hover:bg-white/8 hover:text-chalk disabled:opacity-40 sm:size-8">
           <RotateCcw className="size-3.5" strokeWidth={2.2} />
         </button>
       </div>
 
       {/* The spymaster's line */}
-      {isMaster && !over && state.seats[state.turn === "red" ? "redMaster" : "blueMaster"] === name && (
-        <ClueBox onGive={(word, count) => write({ ...state, clue: { word, count } })} />
+      {isMaster && !over && dealt && myChair === (state.turn === "red" ? "redMaster" : "blueMaster") && (
+        <ClueBox onGive={(word, count) => void write({ ...state, clue: { word, count } })} />
+      )}
+
+      {rules && (
+        <RulesSheet title="how codenames goes" onClose={() => setRules(false)}>
+          <p>
+            Two teams, red and blue. Each has a <b>spymaster</b> who can see which of the twenty five words
+            belong to which side -- nobody else can, not even whoever dealt.
+          </p>
+          <p>
+            On your side&apos;s turn, the spymaster gives <b>one word and a number</b>: a clue linking that many
+            of your words. Your team taps words to guess. Your own colour lets you keep going; a neutral word or
+            the other side&apos;s ends the turn; the <b>assassin</b> loses you the game on the spot.
+          </p>
+          <p>First to turn over all their words wins. The side going first has nine, the other eight.</p>
+        </RulesSheet>
       )}
     </div>
   );
@@ -292,7 +337,7 @@ function ClueBox({ onGive }: { onGive: (word: string, count: number) => void }) 
         onKeyDown={(event) => event.stopPropagation()}
         placeholder="your one word"
         spellCheck={false}
-        className="min-w-0 flex-1 rounded-lg bg-white/8 px-2.5 py-1.5 text-xs ring-1 ring-white/12 outline-none placeholder:text-muted/55 focus:ring-glow/50"
+        className="min-h-9 min-w-0 flex-1 rounded-lg bg-white/8 px-2.5 py-1.5 text-xs ring-1 ring-white/12 outline-none placeholder:text-muted/55 focus:ring-glow/50"
       />
       <input
         type="number"
@@ -302,14 +347,20 @@ function ClueBox({ onGive }: { onGive: (word: string, count: number) => void }) 
         onChange={(event) => setCount(Number(event.target.value))}
         onKeyDown={(event) => event.stopPropagation()}
         aria-label="how many"
-        className="w-12 rounded-lg bg-white/8 px-2 py-1.5 text-center text-xs tabular-nums ring-1 ring-white/12 outline-none focus:ring-glow/50"
+        className="min-h-9 w-12 rounded-lg bg-white/8 px-2 py-1.5 text-center text-xs tabular-nums ring-1 ring-white/12 outline-none focus:ring-glow/50"
       />
-      <button
-        type="submit"
-        className="shrink-0 rounded-lg bg-glow/25 px-2.5 py-1.5 text-[11px] font-medium text-glow transition hover:bg-glow/35"
-      >
+      <button type="submit" className="min-h-9 shrink-0 rounded-lg bg-glow/25 px-2.5 py-1.5 text-[11px] font-medium text-glow transition hover:bg-glow/35">
         give
       </button>
     </form>
   );
+}
+
+/** The state without the old, leaky key, or what the database owns. */
+function clean(state: CodenamesState): CodenamesState {
+  const out = { ...state } as CodenamesState & Record<string, unknown>;
+  delete out.key;
+  delete out.piles;
+  if (Array.isArray(out.revealed)) delete out.revealed;
+  return out;
 }
