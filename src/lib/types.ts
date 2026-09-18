@@ -129,6 +129,8 @@ export interface MediaData {
   volume: number;
   /** Hides the video surface and renders a compact player instead. */
   audioOnly: boolean;
+  /** What happens when a track ends: stop at the end of the queue, go round again, or play it again. */
+  repeat?: "off" | "all" | "one";
 }
 
 export type TextEffect = "none" | "rainbow" | "shake" | "wave" | "glow" | "pulse";

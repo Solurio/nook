@@ -51,6 +51,7 @@ import { draftItem, topZ } from "@/lib/items";
 import EmojiPicker from "./emoji-picker";
 import type { GameKind, ItemDataMap, ItemKind } from "@/lib/types";
 import { emptyTable } from "@/lib/table";
+import { radioMedia } from "@/lib/radio";
 import BrushPopover from "./brush-popover";
 import StickersPanel from "./stickers-panel";
 
@@ -86,7 +87,7 @@ const GAMES: Array<{
     title: "tarot",
     hint: "all 78, reversals and all",
     icon: <Sparkles />,
-    setup: () => ({ game: "cards", state: emptyTable("tarot") }),
+    setup: () => ({ game: "cards", state: { ...emptyTable("tarot"), autoSet: true } }),
   },
   { kind: "token", group: "table", title: "piece", hint: "a mini, a marker, a counter", icon: <CircleUser /> },
   { kind: "grid", group: "table", title: "grid", hint: "squares or hexes, over a map", icon: <Hexagon /> },
@@ -165,6 +166,17 @@ export default function Dock() {
     },
     [canEdit, centerOfView, createItem],
   );
+
+  /** The OMORI radio: a player with the whole playlist queued, going round and round. */
+  const addRadio = useCallback(async () => {
+    if (!canEdit) return;
+    const base = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+    const z = topZ(Object.values(useRoomStore.getState().items));
+    const at = centerOfView();
+    const me = useRoomStore.getState().me?.name ?? "someone";
+    await createItem(draftItem("media", at, z, { data: radioMedia(base, me) }));
+    setSheetOpen(false);
+  }, [canEdit, centerOfView, createItem]);
 
   /** Pull the camera back until everything in the room is on screen. */
   const fitEverything = useCallback(() => {
@@ -288,6 +300,9 @@ export default function Dock() {
           <DockButton label="lay a document on the table (PDF)" disabled={!canEdit} onClick={() => add("pdf")}>
             <BookOpen className="size-4.5" strokeWidth={2} />
           </DockButton>
+          <DockButton label="put the OMORI radio on (loops for everyone)" disabled={!canEdit} onClick={() => void addRadio()}>
+            <Disc3 className="size-4.5" strokeWidth={2} />
+          </DockButton>
           <DockButton label="leave a note" disabled={!canEdit} onClick={() => add("note")}>
             <StickyNote className="size-4.5" strokeWidth={2} />
           </DockButton>
@@ -391,6 +406,7 @@ export default function Dock() {
           onClose={() => setSheetOpen(false)}
           onAdd={add}
           onFit={fitEverything}
+          onRadio={() => void addRadio()}
           onStickers={() => {
             setPanel("stickers");
             setSheetOpen(false);
@@ -411,16 +427,19 @@ function AddSheet({
   onAdd,
   onFit,
   onStickers,
+  onRadio,
 }: {
   canEdit: boolean;
   onClose: () => void;
   onAdd: (kind: ItemKind, game?: GameKind, data?: ItemDataMap["game"]) => void;
   onFit: () => void;
   onStickers: () => void;
+  onRadio: () => void;
 }) {
   const things: Array<{ icon: React.ReactNode; label: string; run: () => void }> = [
     { icon: <ImagePlus className="size-5" strokeWidth={2} />, label: "picture", run: () => onAdd("image") },
     { icon: <Sticker className="size-5" strokeWidth={2} />, label: "gifs and stickers", run: onStickers },
+    { icon: <Disc3 className="size-5" strokeWidth={2} />, label: "OMORI radio", run: onRadio },
     { icon: <StickyNote className="size-5" strokeWidth={2} />, label: "note", run: () => onAdd("note") },
     { icon: <BookOpen className="size-5" strokeWidth={2} />, label: "document (PDF)", run: () => onAdd("pdf") },
     { icon: <Type className="size-5" strokeWidth={2} />, label: "big text", run: () => onAdd("text") },

@@ -124,6 +124,8 @@ export default function Coup({ item, state: raw }: { item: Item<"game">; state: 
   useHandOver(item.id, piles, holders);
 
   const dealt = Boolean(piles?.[COURT]);
+  /** How many are in the game: whoever was dealt in, or every chair before the deal. */
+  const tableSize = Object.keys(state.players).length || chairs.length;
   const alive = dealt ? aliveFrom(chairs, piles) : [];
   const phase = state.phase;
   const label = (chair: string) => state.seats[chair] ?? `seat ${chairs.indexOf(chair) + 1}`;
@@ -153,20 +155,25 @@ export default function Coup({ item, state: raw }: { item: Item<"game">; state: 
   const deal = () =>
     run(async () => {
       if (!me) return;
-      const first = chairs[state.round % chairs.length];
-      const fresh = startRound(clean(state), chairs, first);
+      // With two or more people sitting down, the game is theirs: empty chairs
+      // are not dealt in, so nobody waits on a seat with nobody in it. With
+      // fewer, every chair plays, from whichever phone is passed round.
+      const seated = chairs.filter((c) => holders[c]);
+      const players = seated.length >= 2 ? seated : chairs;
+      const first = players[state.round % players.length];
+      const fresh = startRound(clean(state), players, first);
       delete fresh.revealed;
       delete fresh.tested;
       const set = await pile("pile_setup", {
         p_item: item.id,
-        p_piles: [{ slot: COURT, cards: deckFor(state.rules, chairs.length), shuffle: true }],
+        p_piles: [{ slot: COURT, cards: deckFor(state.rules, players.length), shuffle: true }],
         p_public: { game: "coup", state: fresh },
       });
       if (set.error) return;
       await pile("pile_deal", {
         p_item: item.id,
         p_from: COURT,
-        p_targets: chairs.map((chair) => ({ slot: handSlot(chair), owner: holders[chair] ?? me.userId, count: 2 })),
+        p_targets: players.map((chair) => ({ slot: handSlot(chair), owner: holders[chair] ?? me.userId, count: 2 })),
       });
     });
 
@@ -411,8 +418,8 @@ export default function Coup({ item, state: raw }: { item: Item<"game">; state: 
         <span title="cards face down in the court">
           <span className="tabular-nums text-chalk">{sizeOf(piles, COURT)}</span> asleep
         </span>
-        <span title={`${copiesFor(chairs.length)} of each of the five characters`}>
-          <span className="tabular-nums text-chalk">{deckSize(chairs.length)}</span> in the box
+        <span title={`${copiesFor(tableSize)} of each of the five characters`}>
+          <span className="tabular-nums text-chalk">{deckSize(tableSize)}</span> in the box
         </span>
         {state.rules.reformation && dealt && (
           <span title="the treasury reserve">
@@ -528,7 +535,7 @@ export default function Coup({ item, state: raw }: { item: Item<"game">; state: 
         {phase.kind === "act" && (
           <>
             <p className="text-[11px] text-muted">{label(state.turn)} to move</p>
-            {myMove && !gated && canEdit && (
+            {myMove && canEdit && (
               <>
                 <div className="flex flex-wrap gap-1">
                   {legalActions(state, state.turn, alive).map((kind) => (
@@ -826,8 +833,8 @@ function RulesSetup({
       <div className="space-y-1">
         {(
           [
-            ["inquisitor", "the Inquisitor", "replaces the Ambassador: exchange one card, or examine someone else's"],
-            ["reformation", "the Reformation", "Loyalists and Reformists, the treasury, converting and embezzling"],
+            ["inquisitor", "the Inquisitor (expansion)", "replaces the Ambassador: exchange one card, or examine someone else's"],
+            ["reformation", "the Reformation (expansion)", "everyone is on one of two sides and cannot attack their own; paying to change sides, and a treasury to steal"],
             ["guess", "guess to eliminate", "a coup or an assassination must name the card; a wrong guess misses"],
           ] as const
         ).map(([key, title, hint]) => (
@@ -851,7 +858,7 @@ function RulesSetup({
         onClick={() => onPick(draft, draft.mode === "duel" ? 2 : undefined)}
         className="min-h-10 w-full rounded-xl bg-chalk text-[12px] font-semibold text-ink-950"
       >
-        play it this way (deals again)
+        play it this way
       </button>
     </RulesSheet>
   );

@@ -292,6 +292,8 @@ export interface TableState {
   /** 0 is everyone for themselves; 2 or more pairs chairs across the table. */
   teams: number;
   dealEach: number;
+  /** Lay the deck out as soon as the table is first opened -- how tarot arrives ready to read. */
+  autoSet?: boolean;
   /** Written by the database. */
   piles?: PileMeta;
   revealed?: Revealed;

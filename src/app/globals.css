@@ -198,22 +198,37 @@ body.is-room {
   }
 }
 
+/* Up, turning over and over, down -- and a little bounce where it lands. */
 @keyframes coin-toss {
   0% {
     transform: translateY(0) rotateX(var(--coin-from));
+    animation-timing-function: cubic-bezier(0.2, 0.6, 0.4, 1);
   }
-  50% {
-    transform: translateY(-78px) scale(1.08) rotateX(calc((var(--coin-from) + var(--coin-to)) / 2));
+  45% {
+    transform: translateY(-86px) scale(1.1) rotateX(calc(var(--coin-from) + (var(--coin-to) - var(--coin-from)) * 0.55));
+    animation-timing-function: cubic-bezier(0.55, 0, 0.8, 0.45);
+  }
+  86% {
+    transform: translateY(0) rotateX(var(--coin-to));
+  }
+  93% {
+    transform: translateY(-7px) rotateX(var(--coin-to));
   }
   100% {
     transform: translateY(0) rotateX(var(--coin-to));
   }
 }
 
+/* The shadow shrinks and fades as the coin goes up. Only scale: the element
+   is centred by its parent, so nothing here fights a translate. */
 @keyframes coin-shadow {
-  50% {
-    opacity: 0.35;
-    transform: translateX(-50%) scale(0.55);
+  45% {
+    opacity: 0.3;
+    transform: scale(0.5);
+  }
+  86% {
+    opacity: 1;
+    transform: scale(1);
   }
 }
 
@@ -368,11 +383,11 @@ body.is-room {
 }
 
 .animate-coin-toss {
-  animation: coin-toss 1.3s cubic-bezier(0.3, 0.55, 0.45, 1) both;
+  animation: coin-toss 1.45s both;
 }
 
 .animate-coin-shadow {
-  animation: coin-shadow 1.3s cubic-bezier(0.3, 0.55, 0.45, 1) both;
+  animation: coin-shadow 1.45s ease-in-out both;
 }
 
 /* ---------------------------------------------------------------------------

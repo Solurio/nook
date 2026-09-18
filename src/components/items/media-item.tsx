@@ -5,6 +5,8 @@ import clsx from "clsx";
 import {
   ListMusic,
   Loader2,
+  Repeat,
+  Repeat1,
   Music4,
   Pause,
   Play,
@@ -18,6 +20,7 @@ import {
   VolumeX,
 } from "lucide-react";
 import { useRoom } from "@/realtime/room-provider";
+import { afterEnd } from "@/lib/radio";
 import { useRoomStore } from "@/state/room-store";
 import {
   anchor,
@@ -128,10 +131,21 @@ export default function MediaItem({
       } else if (state === "paused" && s.playing) {
         write(anchor(s, at, false));
       } else if (state === "ended") {
-        advance(s, 1);
+        const next = afterEnd(s);
+        if (next.again) {
+          // The same file again: nothing will reload it, so start it here.
+          const player = playerRef.current;
+          quietly(() => {
+            player?.seek(0);
+            player?.play();
+          });
+          write({ ...s, index: next.index, positionSec: 0, playing: true, anchoredAt: Date.now() });
+        } else {
+          write({ ...s, index: next.index, positionSec: 0, playing: next.playing, anchoredAt: Date.now() });
+        }
       }
     },
-    [advance, write],
+    [quietly, write],
   );
 
   // When the queue empties, the provider player unmounts. Clear the readiness
@@ -474,6 +488,17 @@ export default function MediaItem({
             ) : (
               <Music4 className="size-4" strokeWidth={2.2} />
             )}
+          </IconButton>
+
+          <IconButton
+            label={media.repeat === "one" ? "repeating this track" : media.repeat === "all" ? "repeating the queue" : "repeat"}
+            active={Boolean(media.repeat && media.repeat !== "off")}
+            disabled={!canEdit}
+            onClick={() =>
+              write({ ...media, repeat: media.repeat === "all" ? "one" : media.repeat === "one" ? "off" : "all" })
+            }
+          >
+            {media.repeat === "one" ? <Repeat1 className="size-4" strokeWidth={2.2} /> : <Repeat className="size-4" strokeWidth={2.2} />}
           </IconButton>
 
           <IconButton

@@ -18,6 +18,29 @@ export interface GridData {
   image?: string;
   /** Letters across, numbers down, for calling out "C4". */
   labels?: boolean;
+  /** How much ground one cell stands for: 5 feet, 1.5 metres... */
+  unit?: Unit;
+  /** Areas laid on the map -- a fireball, a cone of cold, a wall -- for everyone to see. */
+  areas?: Area[];
+}
+
+export interface Unit {
+  size: number;
+  name: "ft" | "m";
+}
+
+export type AreaKind = "circle" | "cone" | "square" | "line";
+
+export interface Area {
+  id: string;
+  kind: AreaKind;
+  /** Where it starts, in the grid's own pixels. */
+  x: number;
+  y: number;
+  /** Where it was dragged to: the direction, and how far. */
+  tx: number;
+  ty: number;
+  color: string;
 }
 
 export type TokenShape = "round" | "square";
@@ -141,4 +164,134 @@ export function unlink(groups: Record<string, string | undefined>, id: string): 
   if (!group) return [];
   const rest = Object.keys(groups).filter((other) => other !== id && groups[other] === group);
   return rest.length === 1 ? [id, rest[0]] : [id];
+}
+
+// ---------------------------------------------------------------------------
+// Measuring, and areas of effect
+// ---------------------------------------------------------------------------
+
+export const UNIT_PRESETS: Unit[] = [
+  { size: 5, name: "ft" },
+  { size: 10, name: "ft" },
+  { size: 1.5, name: "m" },
+  { size: 1, name: "m" },
+  { size: 2, name: "m" },
+];
+export const DEFAULT_UNIT: Unit = { size: 5, name: "ft" };
+export const MAX_AREAS = 40;
+export const AREA_COLORS = ["#f08f6a", "#8bc7e8", "#a6d189", "#c4a7f0"];
+
+/** The next of the usual scales, for a button that cycles through them. */
+export function nextUnit(unit: Unit | undefined): Unit {
+  const at = UNIT_PRESETS.findIndex((u) => u.size === unit?.size && u.name === unit?.name);
+  return UNIT_PRESETS[(at + 1) % UNIT_PRESETS.length];
+}
+
+export const unitText = (unit: Unit | undefined) => `${(unit ?? DEFAULT_UNIT).size} ${(unit ?? DEFAULT_UNIT).name}`;
+
+/**
+ * Cells from one point to another the way tabletop games count them: on
+ * squares a diagonal step is one step, on hexes it is hex steps.
+ */
+export function cellsBetween(shape: GridShape, cell: number, ax: number, ay: number, bx: number, by: number): number {
+  if (shape === "hex") {
+    const a = hexAt(ax, ay, cell);
+    const b = hexAt(bx, by, cell);
+    const dq = a.q - b.q;
+    const dr = a.r - b.r;
+    return Math.max(Math.abs(dq), Math.abs(dr), Math.abs(dq + dr));
+  }
+  const dx = Math.floor(ax / cell) - Math.floor(bx / cell);
+  const dy = Math.floor(ay / cell) - Math.floor(by / cell);
+  return Math.max(Math.abs(dx), Math.abs(dy));
+}
+
+/** A distance in cells, said in the grid's units. */
+export function distanceText(cells: number, unit: Unit | undefined): string {
+  const u = unit ?? DEFAULT_UNIT;
+  const amount = Math.round(cells * u.size * 10) / 10;
+  return `${amount} ${u.name} · ${cells} ${cells === 1 ? "square" : "squares"}`;
+}
+
+/** Where an area starts: on a corner for squares, the middle of a hex for hexes. */
+export function areaAnchor(shape: GridShape, cell: number, x: number, y: number): { x: number; y: number } {
+  if (shape === "hex") return snapHex(x, y, cell);
+  return { x: Math.round(x / cell) * cell, y: Math.round(y / cell) * cell };
+}
+
+/**
+ * How big an area is, in whole cells -- never less than one. A cube goes by
+ * its longer side, so dragging corner to corner makes the cube you drew.
+ */
+export function areaCells(area: Area, cell: number): number {
+  const dx = Math.abs(area.tx - area.x);
+  const dy = Math.abs(area.ty - area.y);
+  const reach = area.kind === "square" ? Math.max(dx, dy) : Math.hypot(dx, dy);
+  return Math.max(1, Math.round(reach / cell));
+}
+
+/** The outline of an area in the grid's pixels. A circle comes back as a centre and a radius. */
+export function areaShape(
+  area: Area,
+  cell: number,
+): { circle: { cx: number; cy: number; r: number } } | { points: Array<[number, number]> } {
+  const length = areaCells(area, cell) * cell;
+  const dx = area.tx - area.x;
+  const dy = area.ty - area.y;
+  const d = Math.hypot(dx, dy) || 1;
+  const ux = dx / d;
+  const uy = dy / d;
+  // At right angles to the drag.
+  const px = -uy;
+  const py = ux;
+  switch (area.kind) {
+    case "circle":
+      return { circle: { cx: area.x, cy: area.y, r: length } };
+    case "cone": {
+      // As wide at its end as it is long, the way the rulebooks draw one.
+      const endX = area.x + ux * length;
+      const endY = area.y + uy * length;
+      return {
+        points: [
+          [area.x, area.y],
+          [endX + (px * length) / 2, endY + (py * length) / 2],
+          [endX - (px * length) / 2, endY - (py * length) / 2],
+        ],
+      };
+    }
+    case "line": {
+      // One cell wide, as long as it was dragged.
+      const half = cell / 2;
+      const endX = area.x + ux * length;
+      const endY = area.y + uy * length;
+      return {
+        points: [
+          [area.x + px * half, area.y + py * half],
+          [endX + px * half, endY + py * half],
+          [endX - px * half, endY - py * half],
+          [area.x - px * half, area.y - py * half],
+        ],
+      };
+    }
+    case "square": {
+      // A cube from the corner it starts on, out the way it was dragged.
+      const sx = dx < 0 ? -1 : 1;
+      const sy = dy < 0 ? -1 : 1;
+      return {
+        points: [
+          [area.x, area.y],
+          [area.x + sx * length, area.y],
+          [area.x + sx * length, area.y + sy * length],
+          [area.x, area.y + sy * length],
+        ],
+      };
+    }
+  }
+}
+
+export function areaText(area: Area, cell: number, unit: Unit | undefined): string {
+  const u = unit ?? DEFAULT_UNIT;
+  const size = Math.round(areaCells(area, cell) * u.size * 10) / 10;
+  const word = { circle: "radius", cone: "cone", square: "cube", line: "line" }[area.kind];
+  return `${size} ${u.name} ${word}`;
 }

@@ -24,6 +24,7 @@ import {
   type Language,
 } from "@/lib/bomb";
 import type { Item } from "@/lib/types";
+import { loadWords, type Dictionary } from "./words";
 
 /**
  * Bomb Party. The bomb goes round with a few letters on it; the one holding
@@ -37,6 +38,7 @@ export default function Bomb({ item, state: raw }: { item: Item<"game">; state: 
   const [draft, setDraft] = useState({ tick: -1, text: "" });
   const [complaint, setComplaint] = useState<{ tick: number; text: string } | null>(null);
   const [now, setNow] = useState(0);
+  const [dictionary, setDictionary] = useState<(Dictionary & { language: Language }) | null>(null);
   const input = useRef<HTMLInputElement>(null);
 
   const chairs = chairsFor(state.seatCount);
@@ -58,6 +60,18 @@ export default function Bomb({ item, state: raw }: { item: Item<"game">; state: 
     return { ...emptyBomb(), ...(data?.state ?? state) };
   };
 
+  // The dictionary for the language the table is playing in.
+  useEffect(() => {
+    let live = true;
+    loadWords(state.language)
+      .then((d) => live && setDictionary({ ...d, language: state.language }))
+      .catch(() => live && setDictionary(null));
+    return () => {
+      live = false;
+    };
+  }, [state.language]);
+  const ready = dictionary?.language === state.language ? dictionary : null;
+
   // A clock for the fuse to burn down by.
   useEffect(() => {
     if (!playing) return;
@@ -75,7 +89,7 @@ export default function Bomb({ item, state: raw }: { item: Item<"game">; state: 
     const t = window.setTimeout(() => {
       const live = latest();
       if (live.phase !== "play" || live.tick !== tick) return;
-      void write(explode(live, Date.now(), randomBelow));
+      void write(explode(live, Date.now(), randomBelow, ready?.prompts));
     }, wait);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -89,20 +103,20 @@ export default function Bomb({ item, state: raw }: { item: Item<"game">; state: 
   const send = () => {
     const live = latest();
     if (!mine(live.turn) || live.phase !== "play") return;
-    const verdict = judge(live, word);
+    const verdict = judge(live, word, ready?.words ?? null);
     if (!verdict.ok) {
       setWhy(verdict.why);
       return;
     }
     setWhy(null);
     setWord("");
-    void write(accept(live, verdict.word, Date.now(), randomBelow));
+    void write(accept(live, verdict.word, Date.now(), randomBelow, ready?.prompts));
   };
 
   const begin = () => {
     const seated = chairs.filter((c) => holders[c]);
     const players = seated.length >= 2 ? seated : chairs;
-    void write(start(state, players, clock(), randomBelow));
+    void write(start(state, players, clock(), randomBelow, ready?.prompts));
   };
 
   const total = (FUSE_MIN + FUSE_SPREAD) * 1000;
@@ -203,11 +217,11 @@ export default function Bomb({ item, state: raw }: { item: Item<"game">; state: 
           <div className="flex flex-col items-center gap-2 text-center">
             {state.winner && <p className="text-sm font-semibold text-warm">{label(state.winner)} is the last one standing</p>}
             <p className="max-w-64 text-[11px] text-muted/70">
-              type a word with the letters on the bomb before it goes off. Everyone who sits down plays; with nobody sitting, every
-              chair plays from this screen.
+              type a five-letter word with the letters on the bomb before it goes off -- a real one, it is checked. Everyone who
+              sits down plays; with nobody sitting, every chair plays from this screen.
             </p>
-            <button type="button" disabled={!canEdit} onClick={() => begin()} className="min-h-10 rounded-xl bg-chalk px-4 text-[12px] font-semibold text-ink-950 disabled:opacity-40">
-              {state.winner ? "again" : "light it"}
+            <button type="button" disabled={!canEdit || !ready} onClick={() => begin()} className="min-h-10 rounded-xl bg-chalk px-4 text-[12px] font-semibold text-ink-950 disabled:opacity-40">
+              {!ready ? "opening the dictionary..." : state.winner ? "again" : "light it"}
             </button>
           </div>
         )}
@@ -241,7 +255,7 @@ export default function Bomb({ item, state: raw }: { item: Item<"game">; state: 
             autoCorrect="off"
             spellCheck={false}
             enterKeyHint="send"
-            placeholder={holding ? `a word with ${state.prompt.toUpperCase()}...` : `${label(state.turn)} is thinking`}
+            placeholder={holding ? `five letters, with ${state.prompt.toUpperCase()}...` : `${label(state.turn)} is thinking`}
             className={clsx(
               "h-11 min-w-0 flex-1 rounded-xl bg-white/6 px-3 text-[14px] text-chalk outline-none placeholder:text-muted/50 focus:bg-white/10 disabled:opacity-50",
               why && "ring-1 ring-[#e0655c]/60",

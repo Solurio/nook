@@ -43,13 +43,16 @@ export default function Coin({ item, state: raw }: { item: Item<"game">; state: 
   const run = streak(state.flips);
   const name = (side: Side) => faceLabel(side === "heads" ? state.heads : state.tails, side);
 
+  // Half the coin's thickness: the faces sit this far either side of the
+  // middle, with the rim filled in between, so it has an edge when it turns.
+  const half = 4;
   const face = (side: Side) => (
     <div
       className="absolute inset-0 grid place-items-center rounded-full [backface-visibility:hidden]"
       style={{
         background: metal.face,
         boxShadow: `inset 0 0 0 5px ${metal.rim}, inset 0 0 0 8px rgba(255,255,255,0.25), inset 0 -6px 14px rgba(0,0,0,0.3)`,
-        transform: side === "tails" ? "rotateX(180deg)" : undefined,
+        transform: side === "tails" ? `rotateX(180deg) translateZ(${half}px)` : `translateZ(${half}px)`,
       }}
     >
       <svg viewBox="0 0 100 100" className="absolute inset-[9%] size-[82%]" aria-hidden>
@@ -84,13 +87,15 @@ export default function Coin({ item, state: raw }: { item: Item<"game">; state: 
       </button>
 
       {/* The air above the table */}
-      <div className="flex min-h-0 w-full flex-1 items-end justify-center pb-3 [perspective:600px]">
+      <div className="flex min-h-0 w-full flex-1 items-end justify-center pb-3">
+        {/* The perspective has to sit on the coin's own parent, or the turn
+            flattens into a squash. */}
         <button
           type="button"
           onClick={toss}
           disabled={!canEdit || flying}
           aria-label="flip the coin"
-          className="relative aspect-square w-[min(9rem,60%)] rounded-full outline-none focus-visible:ring-2 focus-visible:ring-glow"
+          className="relative aspect-square w-[min(9rem,60%)] rounded-full outline-none [perspective:700px] focus-visible:ring-2 focus-visible:ring-glow"
         >
           <div
             key={latest?.id ?? "none"}
@@ -104,11 +109,22 @@ export default function Coin({ item, state: raw }: { item: Item<"game">; state: 
             }
             onAnimationEnd={() => latest && setLanded(latest.id)}
           >
+            {/* The rim, a disc at a time, so it reads as metal edge-on */}
+            {Array.from({ length: half * 2 - 1 }, (_, i) => (
+              <div
+                key={i}
+                aria-hidden
+                className="absolute inset-[1px] rounded-full"
+                style={{ background: metal.rim, transform: `translateZ(${i - half + 1}px)` }}
+              />
+            ))}
             {face("heads")}
             {face("tails")}
           </div>
           {/* Its shadow on the table, shrinking as it goes up */}
-          <span className={clsx("absolute -bottom-3 left-1/2 h-2 w-3/4 -translate-x-1/2 rounded-[50%] bg-black/35 blur-[3px]", flying && "animate-coin-shadow")} />
+          <span className="pointer-events-none absolute inset-x-0 -bottom-3 flex justify-center">
+            <span className={clsx("h-2 w-3/4 rounded-[50%] bg-black/35 blur-[3px]", flying && "animate-coin-shadow")} />
+          </span>
         </button>
       </div>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import {
   ArrowDownToLine,
@@ -217,6 +217,20 @@ export default function CardTable({ item, state }: { item: Item<"game">; state: 
   };
 
   const write = (next: TableState) => void exec({ table: next });
+
+  // A table made ready to use (tarot, from the games menu) lays its deck out
+  // the first time anyone who can edit opens it.
+  const laid = useRef(false);
+  const autoSet = Boolean(table.autoSet && canEdit && table.stacks.length === 0);
+  useEffect(() => {
+    if (!autoSet || laid.current) return;
+    laid.current = true;
+    const next = { ...table };
+    delete next.autoSet;
+    void exec(setTable(next));
+    // Once, when the table first shows up.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoSet]);
 
   const sit = (chair: string) => {
     if (!me) return;

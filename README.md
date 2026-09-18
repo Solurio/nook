@@ -47,14 +47,16 @@ it, and it all stays where you dropped it.
 - **Board games.** Chess (with check, mate and castling), checkers, connect four,
   tic-tac-toe, **rock paper scissors** for two to six with sealed throws,
   **intransitive** (a race where the pieces beat each other in a circle instead
-  of a ladder), and **Bomb Party** in English, Portuguese or Spanish.
+  of a ladder), and **Bomb Party** in English, Portuguese or Spanish: five-letter
+  words, checked against a dictionary of each (see `public/words/NOTICE.txt`).
 
   Every game has chairs. Sit in one and the turns are yours; leave them all
   empty and whoever is holding the device plays every side, which is how one
   phone gets passed round a room. A phone holding more than one hand asks before
   it shows each one. The board turns to face whichever chair you took.
 - **A card table** for anything else: any deck (52, 54, 40, canasta, **tarot**
-  with reversals, or cards you make yourself, with your own backs), stacks you
+  with reversals -- the tarot on the games menu comes with its 78 already laid
+  out -- or cards you make yourself, with your own backs), stacks you
   drag, merge, split, cut, shuffle and deal from, face up or face down, and hands
   held in a fan.
 - **Things for the table.** **Dice** that take real notation (`2d6+3`,
@@ -64,7 +66,9 @@ it, and it all stays where you dropped it.
   as wide as their chance of coming up, which lands on the same spot on every
   screen and can make winners sit out. **Pieces** and **grids** (squares or
   hexes, over a map if you like): a piece let go over a grid settles into its
-  cell.
+  cell. A grid **measures** in feet or metres -- however much ground a square
+  stands for -- and holds **areas** for everyone to see: circles, cones, cubes
+  and lines, the way a tabletop RPG needs them.
 - **Tying things together.** Tie any item to any other from its bar, a map to its
   pieces or a note to its photo, and dragging one moves them all.
 - **Documents.** A PDF laid on the table **as a book**, the cover alone and then
@@ -72,7 +76,12 @@ it, and it all stays where you dropped it.
   Everyone reads the same page unless you choose to read on your own. Search,
   the document's own contents, bookmarks, links inside and out, and a layer to
   draw, highlight and pin notes on that belongs to the room rather than the file.
-  Pages are only fetched and drawn as they are looked at.
+  Pages are only fetched and drawn as they are looked at. Up to 200MB: anything
+  over the storage limit of 50MB a file goes up in parts and is joined back
+  together to read.
+- **A radio.** A player loaded with a playlist, on repeat for the whole room. The
+  songs live in the project's own storage (`music/omori/` in the decorations
+  bucket), not in this repository; `src/lib/radio.ts` only lists their names.
 - **Paint board.** Not a doodle pad: a raster painting app with everyone drawing
   at once. Brushes (pen, marker, spray, eraser), a **paint bucket**, size and
   opacity, **graphics tablet pressure** with adjustable sensitivity and palm
@@ -330,8 +339,8 @@ in [COBROWSE.md](COBROWSE.md). Without a key the rest of the app is unaffected.
 - **Dice, coins, wheels and the bomb's fuse** are rolled in the browser of
   whoever rolls them, with the browser's proper random source. Fair, but not
   provably so.
-- **Bomb Party has no dictionary yet.** A word with the letters, made of letters
-  and not said before is accepted; the table is the judge.
+- **Bomb Party only knows five-letter words**, and only the ones on its lists.
+  A real word it has never heard of is refused.
 - **Fuses and timers** are measured on each person's clock, so a phone whose
   clock is badly off sees the fuse a little early or late.
 - **A role that leaves with its phone.** A role is turned over by the device
@@ -341,8 +350,8 @@ in [COBROWSE.md](COBROWSE.md). Without a key the rest of the app is unaffected.
 
 Prepared for, not built yet: **War** (Risk-style), **Catan**, **Detective**
 (Clue-style), **Werewolf** and **Monopoly**, all of which fit the secret piles
-and the chairs as they are. A dictionary for Bomb Party, an inventory for
-pieces, typing shown live to the table, and a proper undo.
+and the chairs as they are. Cards Against Humanity with your own cards. An
+inventory for pieces, typing shown live to the table, and a proper undo.
 
 ## Things left out
 

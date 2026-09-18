@@ -57,7 +57,7 @@ export const PRESETS: Record<Preset, CoupRules> = {
 export const PRESET_NAME: Record<Preset, string> = {
   standard: "standard",
   duel: "two players",
-  expanded: "expanded",
+  expanded: "both expansions",
 };
 
 /** Copies of each character in the base box, which covers up to six players. */
@@ -637,6 +637,6 @@ export const ACTION_LABEL: Record<ActionKind, string> = {
   steal: "steal",
   exchange: "exchange",
   examine: "examine",
-  convert: "convert",
-  embezzle: "embezzle",
+  convert: "change sides",
+  embezzle: "take the treasury",
 };

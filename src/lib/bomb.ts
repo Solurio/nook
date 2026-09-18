@@ -3,10 +3,10 @@
 // and a word said once is gone for the rest of the game. Run out of lives and
 // you are out; the last one left wins.
 //
-// This is the foundation: English, Portuguese and Spanish prompts, the fuse,
-// lives and turns. A word is taken on trust as long as it has the letters,
-// is made of letters, and has not been used -- there is no dictionary behind
-// it yet, so the table is the judge.
+// Words are five letters long, and have to be in the dictionary: English,
+// Portuguese or Spanish lists of five-letter words, served with the site
+// (public/words). The letters on the bomb are drawn from the same list, so
+// there is always an answer.
 
 import { fold } from "./pdf";
 
@@ -38,7 +38,7 @@ export const PROMPTS: Record<Language, string[]> = {
 
 export const MIN_SEATS = 2;
 export const MAX_SEATS = 8;
-export const MIN_WORD = 3;
+export const WORD_LENGTH = 5;
 export const USED_MAX = 400;
 /** The fuse: some seconds, never the same twice, never shown exactly. */
 export const FUSE_MIN = 8;
@@ -98,20 +98,44 @@ type Random = (max: number) => number;
 /** The time now, for fuses. Kept here so the table reads the clock only when something happens. */
 export const clock = () => Date.now();
 
-export const pickPrompt = (language: Language, random: Random, not?: string) => {
-  const list = PROMPTS[language].filter((p) => p !== not);
+/** Letters that turn up in plenty of words in the list: enough to find one, few enough to take a moment. */
+export function promptsFrom(words: string[]): string[] {
+  const counts = new Map<string, number>();
+  for (const word of words) {
+    const seen = new Set<string>();
+    for (let n = 2; n <= 3; n += 1) {
+      for (let i = 0; i + n <= word.length; i += 1) seen.add(word.slice(i, i + n));
+    }
+    for (const chunk of seen) counts.set(chunk, (counts.get(chunk) ?? 0) + 1);
+  }
+  // A two-letter run has to be in at least 1 word in 200, a three-letter one in 1 in 500.
+  const out: string[] = [];
+  for (const [chunk, count] of counts) {
+    if (chunk.length === 2 && count >= Math.max(20, words.length / 200)) out.push(chunk);
+    if (chunk.length === 3 && count >= Math.max(8, words.length / 500)) out.push(chunk);
+  }
+  return out.sort();
+}
+
+/**
+ * The letters for the next bomb. From the dictionary's own prompts when it
+ * has loaded; the built-in ones, cut to what fits a five-letter word, if not.
+ */
+export const pickPrompt = (language: Language, random: Random, not?: string, prompts?: string[]) => {
+  const pool = prompts && prompts.length ? prompts : PROMPTS[language].filter((p) => p.length <= 3);
+  const list = pool.filter((p) => p !== not);
   return list[random(list.length)];
 };
 export const fuseFrom = (now: number, random: Random) => now + (FUSE_MIN + random(FUSE_SPREAD)) * 1000;
 
-export function start(state: BombState, chairs: string[], now: number, random: Random): BombState {
+export function start(state: BombState, chairs: string[], now: number, random: Random, prompts?: string[]): BombState {
   return {
     ...state,
     phase: "play",
     lives: Object.fromEntries(chairs.map((c) => [c, state.startLives])),
     order: chairs,
     turn: chairs[random(chairs.length)],
-    prompt: pickPrompt(state.language, random),
+    prompt: pickPrompt(state.language, random, undefined, prompts),
     fuseEnds: fuseFrom(now, random),
     tick: state.tick + 1,
     used: [],
@@ -138,31 +162,37 @@ const WORDY = /^\p{L}[\p{L}'-]*\p{L}$/u;
 
 export type Verdict = { ok: true; word: string } | { ok: false; why: string };
 
-export function judge(state: BombState, raw: string): Verdict {
+/**
+ * Whether a word counts: letters only, five of them, with the bomb's letters
+ * in it, not said before this game -- and in the dictionary.
+ */
+export function judge(state: BombState, raw: string, dictionary?: Set<string> | null): Verdict {
   const word = raw.trim().toLowerCase();
-  if (word.length < MIN_WORD) return { ok: false, why: "too short" };
   if (!WORDY.test(word)) return { ok: false, why: "letters only" };
   const folded = fold(word);
+  if (folded.length !== WORD_LENGTH) return { ok: false, why: `${WORD_LENGTH} letters, not ${folded.length}` };
   if (!folded.includes(fold(state.prompt))) return { ok: false, why: `needs "${state.prompt.toUpperCase()}"` };
   if (state.used.includes(folded)) return { ok: false, why: "already said" };
+  if (!dictionary) return { ok: false, why: "the dictionary is still loading" };
+  if (!dictionary.has(folded)) return { ok: false, why: "not in the dictionary" };
   return { ok: true, word };
 }
 
 /** A good word: the bomb moves on, with new letters and a new fuse. */
-export function accept(state: BombState, word: string, now: number, random: Random): BombState {
+export function accept(state: BombState, word: string, now: number, random: Random, prompts?: string[]): BombState {
   return {
     ...state,
     used: [...state.used, fold(word)].slice(-USED_MAX),
     last: { chair: state.turn, word },
     turn: nextOf(state, state.turn),
-    prompt: pickPrompt(state.language, random, state.prompt),
+    prompt: pickPrompt(state.language, random, state.prompt, prompts),
     fuseEnds: fuseFrom(now, random),
     tick: state.tick + 1,
   };
 }
 
 /** The fuse ran out: a life gone, and the bomb goes on -- or the game is over. */
-export function explode(state: BombState, now: number, random: Random): BombState {
+export function explode(state: BombState, now: number, random: Random, prompts?: string[]): BombState {
   const who = state.turn;
   const lives = { ...state.lives, [who]: Math.max(0, (state.lives[who] ?? 0) - 1) };
   const next: BombState = { ...state, lives, lastBang: { chair: who, tick: state.tick }, tick: state.tick + 1 };
@@ -174,7 +204,7 @@ export function explode(state: BombState, now: number, random: Random): BombStat
   return {
     ...next,
     turn: nextOf(next, who),
-    prompt: pickPrompt(state.language, random, state.prompt),
+    prompt: pickPrompt(state.language, random, state.prompt, prompts),
     fuseEnds: fuseFrom(now, random),
   };
 }
