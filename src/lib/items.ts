@@ -2,10 +2,9 @@ import { emptyMedia } from "./media";
 import { initialBoard as initialChess } from "./chess";
 import { initialBoard as initialCheckers } from "./checkers";
 import { initialBoard as initialIntransitive } from "./intransitive";
-import { seatIds } from "./cards";
 import { emptyTable } from "./table";
 import { emptyUno } from "./uno";
-import { newGame as newCoup } from "./coup";
+import { emptyCoup } from "./coup";
 import { DEFAULT_SECONDS as SPYFALL_SECONDS } from "./spyfall";
 import type { AnyItem, GameKind, ItemDataMap, ItemKind } from "./types";
 
@@ -91,7 +90,7 @@ function emptyGameData(game: GameKind): ItemDataMap["game"] {
         },
       };
     case "coup":
-      return { game: "coup", state: newCoup(seatIds(4)) };
+      return { game: "coup", state: emptyCoup(4) };
     case "spyfall":
       return {
         game: "spyfall",
