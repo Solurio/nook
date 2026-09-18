@@ -599,3 +599,52 @@ test("the people dealt the same card find each other, and nobody else learns a t
   assert.equal((await read(bob, itemId))["team:s1"], undefined, "a rebel is told nothing");
   assert.equal((await read(dave, itemId))["team:s3"], undefined);
 });
+
+// ---------------------------------------------------------------------------
+// What a browser writing the item may not touch
+// ---------------------------------------------------------------------------
+
+test("a browser saving the game keeps the pile sizes and cannot forge a reveal", async () => {
+  const a = await newUser(db);
+  const { itemId } = await tableFor(db, a, "uno");
+  const run = (sql: string, params: unknown[]) => as(db, a, (tx) => tx.query(sql, params));
+  const state = async () =>
+    (await db.query<{ data: { state: Record<string, unknown> } }>("select data from public.items where id = $1", [itemId])).rows[0].data.state;
+
+  await run("select public.pile_setup(p_item => $1, p_piles => $2::jsonb)", [
+    itemId,
+    JSON.stringify([{ slot: "draw", cards: [1, 2, 3], shuffle: true }]),
+  ]);
+  await run("select public.pile_reveal(p_item => $1, p_slots => $2, p_count => 1)", [itemId, ["draw"]]);
+  const truth = (await state()).revealed as Record<string, unknown[]>;
+
+  // The whole item written back, the way updateData does: no piles, and a
+  // made-up card turned over.
+  await run("update public.items set data = $2::jsonb where id = $1", [
+    itemId,
+    JSON.stringify({ game: "uno", state: { turn: "s1", revealed: { draw: [99] }, tested: [{ found: true }] } }),
+  ]);
+  const after = await state();
+  assert.equal(after.turn, "s1", "the rest of the save went through");
+  assert.deepEqual(after.revealed, truth, "the reveal was forged");
+  assert.equal((after.piles as Record<string, { size: number }>).draw.size, 2, "the pile sizes were wiped");
+  assert.equal(after.tested, undefined, "a test result was made up");
+
+  // The functions still write them.
+  await run("select public.pile_reveal(p_item => $1, p_slots => $2, p_count => 1, p_as => 'second')", [itemId, ["draw"]]);
+  assert.ok(((await state()).revealed as Record<string, unknown>).second);
+});
+
+test("an old save's leftovers can still be cleaned out", async () => {
+  const a = await newUser(db);
+  const { itemId } = await tableFor(db, a, "spyfall");
+  await db.query("update public.items set data = $2::jsonb where id = $1", [
+    itemId,
+    JSON.stringify({ game: "spyfall", state: { revealed: true, location: "the beach" } }),
+  ]);
+  await as(db, a, (tx) =>
+    tx.query("update public.items set data = $2::jsonb where id = $1", [itemId, JSON.stringify({ game: "spyfall", state: { round: 1 } })]),
+  );
+  const { rows } = await db.query<{ data: { state: Record<string, unknown> } }>("select data from public.items where id = $1", [itemId]);
+  assert.deepEqual(rows[0].data.state, { round: 1 });
+});

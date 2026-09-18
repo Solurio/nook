@@ -888,6 +888,57 @@ revoke all on function public._pile_sync(uuid, jsonb) from public, anon, authent
 revoke all on function public._publish(uuid, text, jsonb) from public, anon, authenticated;
 
 -- ---------------------------------------------------------------------------
+-- What only the pile functions may write
+-- ---------------------------------------------------------------------------
+
+-- A game saves its public state by writing the whole item, and that write
+-- comes from a browser. Left alone it would wipe the pile sizes, and worse, a
+-- browser could put whatever it liked under state.revealed and claim the
+-- database had turned it over. So when a browser writes an item, these keys
+-- are put back the way they were; only the functions above, which run as the
+-- table's owner, can change them.
+--
+-- A key holding something of the wrong shape -- a leftover from before hands
+-- were private, when state.revealed was a plain true or false -- is left to
+-- the browser, which is how those old saves get cleaned up.
+create or replace function public._keep_table_state()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+declare
+  key text;
+  shape text;
+  was jsonb;
+  sent jsonb;
+begin
+  if current_user not in ('anon', 'authenticated') then
+    return new;
+  end if;
+  if jsonb_typeof(new.data -> 'state') is distinct from 'object' then
+    return new;
+  end if;
+
+  foreach key in array array['piles', 'revealed', 'peeked', 'tested'] loop
+    shape := case when key in ('piles', 'revealed') then 'object' else 'array' end;
+    was := old.data #> array['state', key];
+    sent := new.data #> array['state', key];
+    if jsonb_typeof(was) = shape then
+      new.data := jsonb_set(new.data, array['state', key], was);
+    elsif jsonb_typeof(sent) = shape then
+      new.data := new.data #- array['state', key];
+    end if;
+  end loop;
+  return new;
+end;
+$$;
+
+drop trigger if exists items_keep_table_state on public.items;
+create trigger items_keep_table_state
+  before update of data on public.items
+  for each row execute function public._keep_table_state();
+
+-- ---------------------------------------------------------------------------
 -- New kinds of object on the canvas
 -- ---------------------------------------------------------------------------
 

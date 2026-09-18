@@ -138,3 +138,29 @@ export function handsOwed(
   }
   return out.sort((a, b) => a[0].localeCompare(b[0]));
 }
+
+/**
+ * What only the pile functions write, and the shape each has. The database
+ * keeps these whatever a browser's save says (0006_tabletop.sql), so a save
+ * can neither wipe the pile sizes nor claim a card was turned over.
+ */
+export const TABLE_KEYS = { piles: "object", revealed: "object", peeked: "array", tested: "array" } as const;
+
+const shapeOf = (value: unknown) => (Array.isArray(value) ? "array" : value !== null && typeof value === "object" ? "object" : null);
+
+/**
+ * A save as the database will end up storing it: the new state, with those
+ * keys as they were. Used to show a save straight away without them blinking.
+ * Something of the wrong shape is a leftover from an old version, and the
+ * save is allowed to drop it, as the database allows.
+ */
+export function keepTableState(live: unknown, next: unknown): unknown {
+  if (shapeOf(next) !== "object" || shapeOf(live) !== "object") return next;
+  const out = { ...(next as Record<string, unknown>) };
+  const was = live as Record<string, unknown>;
+  for (const [key, shape] of Object.entries(TABLE_KEYS)) {
+    if (shapeOf(was[key]) === shape) out[key] = was[key];
+    else if (shapeOf(out[key]) === shape) delete out[key];
+  }
+  return out;
+}

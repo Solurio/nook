@@ -21,7 +21,7 @@ import {
 import { newId } from "@/lib/slug";
 import { useThrottled } from "@/lib/use-throttled";
 import { relayer, type ItemDraft, type Layering } from "@/lib/items";
-import { explainPileError, type PileFn } from "@/lib/piles";
+import { explainPileError, keepTableState, type PileFn } from "@/lib/piles";
 import { useRoomStore, viewportForItems } from "@/state/room-store";
 import type {
   AnyItem,
@@ -562,7 +562,13 @@ export function RoomProvider({
 
   const updateData = useCallback(
     async <K extends ItemKind>(id: string, data: ItemDataMap[K]) => {
-      store.getState().patchItemData(id, data as unknown as Record<string, unknown>);
+      // Pile sizes and whatever has been turned over belong to the database,
+      // which keeps them whatever a save says (see 0006_tabletop.sql). Kept
+      // here too, so they do not blink out until the saved row comes back.
+      const liveState = (store.getState().items[id]?.data as { state?: unknown } | undefined)?.state;
+      const nextState = (data as { state?: unknown }).state;
+      const local = liveState && nextState ? { ...data, state: keepTableState(liveState, nextState) } : data;
+      store.getState().patchItemData(id, local as unknown as Record<string, unknown>);
       const { error: updateError } = await supabase.from("items").update({ data }).eq("id", id);
       if (updateError) setError(updateError.message);
     },

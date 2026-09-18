@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { handsOwed, ownedSignature, ownedSlots, type PileMeta } from "../src/lib/piles.ts";
+import { handsOwed, keepTableState, ownedSignature, ownedSlots, type PileMeta } from "../src/lib/piles.ts";
 
 const meta: PileMeta = {
   "hand:s0": { owner: "dealer", size: 7, at: 1, sealed: false },
@@ -43,4 +43,16 @@ test("which piles are mine, and when to read them again", () => {
   const after = ownedSignature({ ...meta, "hand:s0": { ...meta["hand:s0"], size: 8, at: 2 } }, "dealer");
   assert.notEqual(before, after);
   assert.equal(ownedSignature(meta, "carol"), "", "nothing of carol's, nothing to read");
+});
+
+test("a save shows with the database's piles and reveals, as the database will keep them", () => {
+  const live = { turn: "s0", piles: { draw: { size: 3 } }, revealed: { draw: [1] }, tested: [{ found: false }] };
+  assert.deepEqual(keepTableState(live, { turn: "s1", revealed: { draw: [99] } }), {
+    turn: "s1",
+    piles: { draw: { size: 3 } },
+    revealed: { draw: [1] },
+    tested: [{ found: false }],
+  });
+  assert.deepEqual(keepTableState({ turn: "s0" }, { turn: "s1", revealed: { draw: [99] } }), { turn: "s1" }, "nothing to forge from");
+  assert.deepEqual(keepTableState({ revealed: true }, { round: 2 }), { round: 2 }, "an old boolean can go");
 });
