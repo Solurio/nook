@@ -19,7 +19,8 @@ export function loadWords(language: Language): Promise<Dictionary> {
         return response.text();
       })
       .then((text) => {
-        const list = text.split("\n").filter(Boolean);
+        // Split either way: a copy checked out on Windows may have CRLF endings.
+        const list = text.split(/\r?\n/).filter(Boolean);
         return { words: new Set(list), prompts: promptsFrom(list) };
       });
     found.catch(() => loaded.delete(language));

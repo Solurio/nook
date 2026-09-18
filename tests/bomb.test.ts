@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import { FUSE_MIN, FUSE_SPREAD, accept, alive, emptyBomb, explode, judge, promptsFrom, start, type BombState, type Language } from "../src/lib/bomb.ts";
 
 const first = () => 0;
-const words = (language: Language) => readFileSync(new URL(`../public/words/${language}.txt`, import.meta.url), "utf8").split("\n").filter(Boolean);
+const words = (language: Language) => readFileSync(new URL(`../public/words/${language}.txt`, import.meta.url), "utf8").split(/\r?\n/).filter(Boolean);
 const EN = new Set(words("en"));
 
 const game = (language: Language = "en"): BombState => ({

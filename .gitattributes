@@ -1,0 +1,2 @@
+# The word lists are read by the site; keep their line endings as they are.
+public/words/*.txt text eol=lf
