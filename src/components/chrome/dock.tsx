@@ -5,7 +5,10 @@ import clsx from "clsx";
 import {
   Brush,
   CircleDot,
+  Coins,
+  Columns3,
   Crown,
+  Disc3,
   Dices,
   Eraser,
   Gamepad2,
@@ -42,40 +45,42 @@ import type { GameKind, ItemKind } from "@/lib/types";
 import BrushPopover from "./brush-popover";
 import StickersPanel from "./stickers-panel";
 
+type GameGroup = "table" | "secrets" | "boards";
+
+const GROUP_TITLE: Record<GameGroup, string> = {
+  table: "on the table",
+  secrets: "hidden hands",
+  boards: "boards",
+};
+
 /**
  * Every game in one list, so the dock and the phone sheet always offer the same
  * things in the same order rather than two lists drifting apart.
  */
-const GAMES: Array<{ kind: GameKind; title: string; hint: string; icon: React.ReactNode }> = [
-  { kind: "chess", title: "chess", hint: "check, mate, castling", icon: <Crown /> },
-  { kind: "checkers", title: "checkers", hint: "jump and crown", icon: <CircleDot /> },
-  {
-    kind: "intransitive",
-    title: "intransitive",
-    hint: "rock paper scissors, at war",
-    icon: <Swords />,
-  },
-  { kind: "cards", title: "card table", hint: "any deck, any rules", icon: <Spade /> },
-  { kind: "uno", title: "uno", hint: "match the colour, empty your hand", icon: <Layers /> },
-  { kind: "coup", title: "coup", hint: "lie well, or lose a card", icon: <VenetianMask /> },
-  { kind: "spyfall", title: "spyfall", hint: "everyone knows where but one", icon: <MapPin /> },
-  {
-    kind: "resistance",
-    title: "the resistance",
-    hint: "five missions, spies among you",
-    icon: <Radio />,
-  },
-  {
-    kind: "codenames",
-    title: "codenames",
-    hint: "one word, two spymasters",
-    icon: <MessageSquare />,
-  },
-  { kind: "dominoes", title: "dominoes", hint: "double six, teams optional", icon: <GripVertical /> },
-  { kind: "connectfour", title: "connect four", hint: "four in a row", icon: <Dices /> },
-  { kind: "tictactoe", title: "tic tac toe", hint: "quick and petty", icon: <Grid3x3 /> },
-  { kind: "doodle", title: "paint board", hint: "draw together", icon: <Pencil /> },
+const GAMES: Array<{ kind: GameKind; group: GameGroup; title: string; hint: string; icon: React.ReactNode }> = [
+  { kind: "dice", group: "table", title: "dice", hint: "2d6+3, 4d6kh3, any of it", icon: <Dices /> },
+  { kind: "coin", group: "table", title: "coin", hint: "heads or tails, or your own", icon: <Coins /> },
+  { kind: "wheel", group: "table", title: "wheel", hint: "weighted, spun for everyone", icon: <Disc3 /> },
+  { kind: "cards", group: "table", title: "card table", hint: "any deck, any rules", icon: <Spade /> },
+  { kind: "doodle", group: "table", title: "paint board", hint: "draw together", icon: <Pencil /> },
+  { kind: "uno", group: "secrets", title: "uno", hint: "match the colour, empty your hand", icon: <Layers /> },
+  { kind: "coup", group: "secrets", title: "coup", hint: "lie well, or lose a card", icon: <VenetianMask /> },
+  { kind: "spyfall", group: "secrets", title: "spyfall", hint: "everyone knows where but one", icon: <MapPin /> },
+  { kind: "resistance", group: "secrets", title: "the resistance", hint: "five missions, spies among you", icon: <Radio /> },
+  { kind: "codenames", group: "secrets", title: "codenames", hint: "one word, two spymasters", icon: <MessageSquare /> },
+  { kind: "dominoes", group: "secrets", title: "dominoes", hint: "double six, teams optional", icon: <GripVertical /> },
+  { kind: "chess", group: "boards", title: "chess", hint: "check, mate, castling", icon: <Crown /> },
+  { kind: "checkers", group: "boards", title: "checkers", hint: "jump and crown", icon: <CircleDot /> },
+  { kind: "intransitive", group: "boards", title: "intransitive", hint: "rock paper scissors, at war", icon: <Swords /> },
+  { kind: "connectfour", group: "boards", title: "connect four", hint: "four in a row", icon: <Columns3 /> },
+  { kind: "tictactoe", group: "boards", title: "tic tac toe", hint: "quick and petty", icon: <Grid3x3 /> },
 ];
+
+const GROUPS = (Object.keys(GROUP_TITLE) as GameGroup[]).map((group) => ({
+  group,
+  title: GROUP_TITLE[group],
+  games: GAMES.filter((game) => game.group === group),
+}));
 
 export default function Dock() {
   const { createItem, canEdit, sendPing } = useRoom();
@@ -288,15 +293,22 @@ export default function Dock() {
           </DockButton>
 
           {gamesOpen && (
-            <div className="surface-raised animate-drift-in absolute right-1.5 bottom-full mb-2 grid w-[24rem] max-w-[90vw] grid-cols-2 gap-1 rounded-2xl p-2 shadow-2xl">
-              {GAMES.map((game) => (
-                <GameOption
-                  key={game.kind}
-                  icon={game.icon}
-                  title={game.title}
-                  hint={game.hint}
-                  onClick={() => add("game", game.kind)}
-                />
+            <div className="surface-raised animate-drift-in absolute right-1.5 bottom-full mb-2 max-h-[min(34rem,calc(100dvh-7rem))] w-[26rem] max-w-[90vw] overflow-y-auto overscroll-contain rounded-2xl p-2 shadow-2xl">
+              {GROUPS.map(({ group, title, games }) => (
+                <div key={group} className="mb-1 last:mb-0">
+                  <p className="px-2.5 pt-1 pb-0.5 text-[10px] tracking-wide text-muted/60 uppercase">{title}</p>
+                  <div className="grid grid-cols-2 gap-1">
+                    {games.map((game) => (
+                      <GameOption
+                        key={game.kind}
+                        icon={game.icon}
+                        title={game.title}
+                        hint={game.hint}
+                        onClick={() => add("game", game.kind)}
+                      />
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           )}
@@ -411,20 +423,24 @@ function AddSheet({
           ))}
         </div>
 
-        <h2 className="mt-5 mb-3 text-sm font-semibold">games</h2>
-        <div className="grid grid-cols-2 gap-2">
-          {GAMES.map((game) => (
-            <SheetTile
-              key={game.kind}
-              disabled={!canEdit}
-              onClick={() => onAdd("game", game.kind)}
-              icon={game.icon}
-              hint={game.hint}
-            >
-              {game.title}
-            </SheetTile>
-          ))}
-        </div>
+        {GROUPS.map(({ group, title, games }) => (
+          <div key={group}>
+            <h2 className="mt-5 mb-3 text-sm font-semibold">{title}</h2>
+            <div className="grid grid-cols-2 gap-2">
+              {games.map((game) => (
+                <SheetTile
+                  key={game.kind}
+                  disabled={!canEdit}
+                  onClick={() => onAdd("game", game.kind)}
+                  icon={game.icon}
+                  hint={game.hint}
+                >
+                  {game.title}
+                </SheetTile>
+              ))}
+            </div>
+          </div>
+        ))}
 
         <h2 className="mt-5 mb-3 text-sm font-semibold">view</h2>
         <div className="grid grid-cols-2 gap-2">

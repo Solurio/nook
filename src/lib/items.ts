@@ -5,6 +5,9 @@ import { initialBoard as initialIntransitive } from "./intransitive";
 import { emptyTable } from "./table";
 import { emptyUno } from "./uno";
 import { emptyCoup } from "./coup";
+import { emptyDice } from "./dice";
+import { emptyCoin } from "./coin";
+import { emptyWheel } from "./wheel";
 import { DEFAULT_SECONDS as SPYFALL_SECONDS } from "./spyfall";
 import type { AnyItem, GameKind, ItemDataMap, ItemKind } from "./types";
 
@@ -53,6 +56,9 @@ const GAME_SIZE: Record<GameKind, { width: number; height: number }> = {
   spyfall: { width: 460, height: 440 },
   resistance: { width: 480, height: 460 },
   uno: { width: 480, height: 460 },
+  dice: { width: 360, height: 430 },
+  coin: { width: 280, height: 360 },
+  wheel: { width: 360, height: 440 },
 };
 
 function emptyGameData(game: GameKind): ItemDataMap["game"] {
@@ -108,6 +114,12 @@ function emptyGameData(game: GameKind): ItemDataMap["game"] {
       };
     case "uno":
       return { game: "uno", state: emptyUno(4) };
+    case "dice":
+      return { game: "dice", state: emptyDice() };
+    case "coin":
+      return { game: "coin", state: emptyCoin() };
+    case "wheel":
+      return { game: "wheel", state: emptyWheel() };
     case "resistance":
       return {
         game: "resistance",

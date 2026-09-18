@@ -132,7 +132,10 @@ export type GameKind =
   | "coup"
   | "spyfall"
   | "resistance"
-  | "uno";
+  | "uno"
+  | "dice"
+  | "coin"
+  | "wheel";
 
 export type GameData =
   | { game: "tictactoe"; state: TicTacToeState }
@@ -147,7 +150,10 @@ export type GameData =
   | { game: "coup"; state: CoupState }
   | { game: "spyfall"; state: SpyfallState }
   | { game: "resistance"; state: ResistanceState }
-  | { game: "uno"; state: import("./uno").UnoState };
+  | { game: "uno"; state: import("./uno").UnoState }
+  | { game: "dice"; state: import("./dice").DiceState }
+  | { game: "coin"; state: import("./coin").CoinState }
+  | { game: "wheel"; state: import("./wheel").WheelState };
 
 export interface ChessState {
   /** 64 cells, index = row*8+col, row 0 is black's back rank. */

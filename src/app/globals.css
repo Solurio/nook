@@ -167,6 +167,73 @@ body.is-room {
 }
 
 /* ---------------------------------------------------------------------------
+   Things thrown on the table: dice tumbling in, a coin going up and over.
+   --------------------------------------------------------------------------- */
+
+@keyframes die-tumble {
+  0% {
+    opacity: 0;
+    transform: translate(-40px, -26px) rotate(-260deg) scale(0.7);
+  }
+  55% {
+    opacity: 1;
+    transform: translate(6px, 4px) rotate(24deg) scale(1.05);
+  }
+  78% {
+    transform: translate(-2px, 0) rotate(-8deg) scale(0.98);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+/* The face only shows once the die has stopped. */
+@keyframes die-land {
+  0%,
+  70% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes coin-toss {
+  0% {
+    transform: translateY(0) rotateX(var(--coin-from));
+  }
+  50% {
+    transform: translateY(-78px) scale(1.08) rotateX(calc((var(--coin-from) + var(--coin-to)) / 2));
+  }
+  100% {
+    transform: translateY(0) rotateX(var(--coin-to));
+  }
+}
+
+@keyframes coin-shadow {
+  50% {
+    opacity: 0.35;
+    transform: translateX(-50%) scale(0.55);
+  }
+}
+
+.animate-die-tumble {
+  animation: die-tumble 0.7s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+.animate-die-land {
+  animation: die-land 0.7s linear both;
+}
+
+.animate-coin-toss {
+  animation: coin-toss 1.3s cubic-bezier(0.3, 0.55, 0.45, 1) both;
+}
+
+.animate-coin-shadow {
+  animation: coin-shadow 1.3s cubic-bezier(0.3, 0.55, 0.45, 1) both;
+}
+
+/* ---------------------------------------------------------------------------
    Text effects. Picked per text item; "wave" animates one character at a time,
    the rest animate the whole block.
    --------------------------------------------------------------------------- */
@@ -286,7 +353,11 @@ body.is-room {
 @media (prefers-reduced-motion: reduce) {
   .animate-ping-pop,
   .animate-drift-in,
-  .animate-pulse-ring {
+  .animate-pulse-ring,
+  .animate-die-tumble,
+  .animate-die-land,
+  .animate-coin-toss,
+  .animate-coin-shadow {
     animation-duration: 0.01ms;
     animation-iteration-count: 1;
   }
