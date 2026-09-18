@@ -639,6 +639,13 @@ export function RoomProvider({
         }
         return { data: null, error: rpcError.message };
       }
+      // These write the item several times in one go -- once per pile turned
+      // over, then the sizes -- and the last of those echoes can arrive out of
+      // step or not at all. One read settles it.
+      if (itemId && (fn === "pile_reveal" || fn === "pile_setup")) {
+        const { data: row } = await supabase.from("items").select("*").eq("id", itemId).maybeSingle();
+        if (row) store.getState().upsertItem(row as AnyItem);
+      }
       return { data: (data as T) ?? null, error: null };
     },
     [supabase, store],

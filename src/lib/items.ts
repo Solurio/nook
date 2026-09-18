@@ -13,6 +13,7 @@ import { emptyRps } from "./rps";
 import { emptyBang } from "./bang";
 import { emptyBomb } from "./bomb";
 import { emptyWar } from "./war";
+import { emptyCah } from "./cah";
 import { emptyPdf } from "./pdf";
 import { emptyGrid, emptyToken } from "./grid";
 import { DEFAULT_SECONDS as SPYFALL_SECONDS } from "./spyfall";
@@ -74,6 +75,7 @@ const GAME_SIZE: Record<GameKind, { width: number; height: number }> = {
   bang: { width: 560, height: 560 },
   bomb: { width: 420, height: 440 },
   war: { width: 820, height: 640 },
+  cah: { width: 640, height: 620 },
 };
 
 function emptyGameData(game: GameKind): ItemDataMap["game"] {
@@ -145,6 +147,8 @@ function emptyGameData(game: GameKind): ItemDataMap["game"] {
       return { game: "bomb", state: emptyBomb(4) };
     case "war":
       return { game: "war", state: emptyWar(4) };
+    case "cah":
+      return { game: "cah", state: emptyCah(5) };
     case "resistance":
       return {
         game: "resistance",

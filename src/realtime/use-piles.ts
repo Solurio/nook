@@ -25,11 +25,24 @@ export function usePiles(itemId: string, meta: PileMeta | undefined): Record<str
   useEffect(() => {
     if (!signature) return;
     let cancelled = false;
-    void readPiles(itemId).then((piles) => {
-      if (!cancelled) setLoaded(piles);
-    });
+    let retry = 0;
+    // The slots the table says are mine: each entry is "<slot>:<size>:<at>".
+    const wanted = signature.split("|").map((entry) => entry.split(":").slice(0, -2).join(":"));
+    const read = (attempt: number) => {
+      void readPiles(itemId).then((piles) => {
+        if (cancelled) return;
+        setLoaded(piles);
+        // A read can land a moment before the cards it was told about. Ask
+        // again, a few times at most, rather than show an empty hand.
+        if (attempt < 3 && wanted.some((slot) => !(slot in piles))) {
+          retry = window.setTimeout(() => read(attempt + 1), 600 * (attempt + 1));
+        }
+      });
+    };
+    read(0);
     return () => {
       cancelled = true;
+      window.clearTimeout(retry);
     };
   }, [itemId, signature, readPiles]);
 

@@ -45,8 +45,11 @@ it, and it all stays where you dropped it.
   **dominoes**, **Buckshot Roulette** and **WAR** -- the Brazilian one: 42
   territories on six continents, three to six armies, reinforcements by
   territory and continent, dice battles everyone watches, territory cards
-  traded in at the going rate, and a secret objective each. Your hand is yours
-  alone; see
+  traded in at the going rate, and a secret objective each. **Cards Against
+  Humanity** with starter cards written for this project, in English and
+  Portuguese, or cards the table writes itself -- before a game or in the middle
+  of one. Answers go in face down and turn over together, mixed, so the czar
+  never knows whose is whose. Your hand is yours alone; see
   [Hidden cards](#hidden-cards) for how.
 - **Board games.** Chess (with check, mate and castling), checkers, connect four,
   tic-tac-toe, **rock paper scissors** for two to six with sealed throws,
@@ -356,8 +359,8 @@ in [COBROWSE.md](COBROWSE.md). Without a key the rest of the app is unaffected.
 
 Prepared for, not built yet: **Catan**, **Detective**
 (Clue-style), **Werewolf** and **Monopoly**, all of which fit the secret piles
-and the chairs as they are. Cards Against Humanity with your own cards. An
-inventory for pieces, typing shown live to the table, and a proper undo.
+and the chairs as they are. An inventory for pieces, typing shown live to the
+table, and a proper undo.
 
 ## Things left out
 
