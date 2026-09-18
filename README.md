@@ -38,8 +38,9 @@ it, and it all stays where you dropped it.
   everybody at once. Twitch, Vimeo, SoundCloud and Spotify links convert to the
   right player automatically.
 - **Games with hidden cards.** **UNO**, **Coup** (with the Inquisitor, the
-  Reformation, guessing to eliminate and the two-player table), **BANG!** (all
-  sixteen characters, the eighty cards, roles, distances, jail and dynamite),
+  Reformation, guessing to eliminate and the two-player table), **BANG! The Dice
+  Game** (five dice rolled for everyone to see, arrows and the Indians, dynamite,
+  the Gatling, all sixteen characters, and hidden roles),
   **Spyfall**, **The Resistance**, **Codenames** in English or Portuguese,
   **dominoes** and **Buckshot Roulette**. Your hand is yours alone; see
   [Hidden cards](#hidden-cards) for how.

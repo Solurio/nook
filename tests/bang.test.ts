@@ -3,284 +3,273 @@ import assert from "node:assert/strict";
 import type { PGlite } from "@electric-sql/pglite";
 import { as, freshDatabase, newUser, tableFor } from "./support/database.ts";
 import {
-  CARDS,
-  DECK,
-  alive,
-  answerWithBang,
-  blowsUp,
-  canDrinkToLive,
-  checked,
-  checksDue,
-  distance,
-  dodge,
-  drinkToLive,
+  ARROWS,
+  FACES,
+  ROLES_PILE,
+  SEALED_PILE,
+  canReroll,
   emptyBang,
-  endTurn,
-  fall,
-  hurt,
-  nameOf,
-  play,
-  playable,
-  reach,
-  roleSlot,
+  indians,
+  maxRolls,
+  resolve,
+  roll,
   rolesFor,
-  sidHeals,
-  startCheck,
+  roleSlot,
+  sealedSlot,
+  seatsBetween,
+  sidGives,
   startGame,
-  takeIt,
+  stopRolling,
+  takeArrows,
   targetsFor,
-  tookFromStore,
-  vultureFor,
-  waitingOn,
+  unchosen,
+  unmasked,
   winnerOf,
+  wound,
   type BangState,
   type Character,
-  type CardName,
+  type Face,
+  type Role,
 } from "../src/lib/bang.ts";
 
 const name = (c: string) => c;
-const card = (kind: CardName, suit?: string, rank?: string) =>
-  DECK.find((id) => nameOf(id) === kind && (!suit || CARDS[id].suit === suit) && (!rank || CARDS[id].rank === rank)) as string;
 
-/** A game of five with chosen characters, s0 the Sheriff, on s0's main step. */
+/** Dice that come up exactly as listed, then repeat. */
+const loaded = (...faces: Face[]) => {
+  let i = 0;
+  return () => FACES.indexOf(faces[i++ % faces.length]);
+};
+
+const LIFE: Record<Character, number> = {
+  bart: 8, blackjack: 8, calamity: 8, gringo: 7, jesse: 9, jourdonnais: 7, kit: 7, lucky: 8,
+  paul: 9, pedro: 8, rose: 9, sid: 8, slab: 8, suzy: 8, vulture: 9, willy: 8,
+};
+
+/** A table with chosen characters, s0 the Sheriff, about to roll. Anyone not named is Paul Regret. */
 function table(characters: Partial<Record<string, Character>> = {}, n = 5): BangState {
   const chairs = Array.from({ length: n }, (_, i) => `s${i}`);
   const { state } = startGame(emptyBang(n), chairs, () => 0);
   const players = { ...state.players };
-  for (const c of chairs) {
-    const character = characters[c] ?? "bart";
-    const max = (character === "paul" || character === "gringo" ? 3 : 4) + (c === "s0" ? 1 : 0);
-    players[c] = { character, life: max, max, inPlay: [], ...(c === "s0" ? { role: "sheriff" as const } : {}) };
-  }
-  return { ...state, players, turn: "s0", step: "main" };
+  chairs.forEach((c, i) => {
+    const character = characters[c] ?? "paul";
+    const life = LIFE[character] + (i === 0 ? 2 : 0);
+    players[c] = { character, life, max: life, arrows: 0, ...(i === 0 ? { role: "sheriff" as Role } : {}) };
+  });
+  return { ...state, players, turn: "s0", step: "roll", rolls: 0, dice: [], arrows: ARROWS };
 }
 
-const put = (state: BangState, chair: string, ...cards: string[]): BangState => ({
+const set = (state: BangState, chair: string, patch: Partial<BangState["players"][string]>): BangState => ({
   ...state,
-  players: { ...state.players, [chair]: { ...state.players[chair], inPlay: [...state.players[chair].inPlay, ...cards] } },
+  players: { ...state.players, [chair]: { ...state.players[chair], ...patch } },
 });
 
-test("the deck is the base game's eighty, each card its own", () => {
-  assert.equal(DECK.length, 80);
-  assert.equal(new Set(DECK).size, 80);
-  const count = (k: CardName) => DECK.filter((id) => nameOf(id) === k).length;
-  assert.equal(count("bang"), 25);
-  assert.equal(count("missed"), 12);
-  assert.equal(count("beer"), 6);
-  assert.equal(count("jail"), 3);
-});
-
-test("the roles fit the table", () => {
+test("the roles fit the table, from three to eight", () => {
+  assert.deepEqual([...rolesFor(3)].sort(), ["deputy", "outlaw", "renegade"]);
   assert.deepEqual([...rolesFor(4)].sort(), ["outlaw", "outlaw", "renegade", "sheriff"]);
-  assert.equal(rolesFor(5).filter((r) => r === "deputy").length, 1);
-  assert.equal(rolesFor(7).filter((r) => r === "outlaw").length, 3);
-  assert.equal(rolesFor(7).length, 7);
+  assert.equal(rolesFor(8).filter((r) => r === "renegade").length, 2);
+  assert.equal(rolesFor(8).length, 8);
 });
 
-test("the Sheriff is chosen in the open, starts the game, and has a life extra", () => {
-  const { state, sheriff, otherRoles, hands } = startGame(emptyBang(5), ["s0", "s1", "s2", "s3", "s4"], () => 2);
+test("the Sheriff has two more bullets, and starts", () => {
+  const { state, sheriff, hidden } = startGame(emptyBang(5), ["s0", "s1", "s2", "s3", "s4"], () => 1);
   assert.equal(state.turn, sheriff);
-  assert.equal(state.players[sheriff].role, "sheriff");
-  assert.equal(otherRoles.includes("sheriff"), false);
-  assert.equal(otherRoles.length, 4);
-  assert.equal(hands[sheriff], state.players[sheriff].max);
-  for (const c of state.order) if (c !== sheriff) assert.equal(state.players[c].role, undefined, "a role other than the Sheriff's is public");
+  const p = state.players[sheriff as string];
+  assert.equal(p.max, LIFE[p.character] + 2);
+  assert.equal(hidden.length, 4);
+  assert.equal(hidden.includes("sheriff"), false);
 });
 
-test("distance goes round the table the short way, with horses and scopes", () => {
-  let state = table();
-  assert.equal(distance(state, "s0", "s1"), 1);
-  assert.equal(distance(state, "s0", "s2"), 2);
-  assert.equal(distance(state, "s0", "s4"), 1, "round the other way");
-  state = put(state, "s1", card("mustang"));
-  assert.equal(distance(state, "s0", "s1"), 2);
-  state = put(state, "s0", card("scope"));
-  assert.equal(distance(state, "s0", "s1"), 1);
-  assert.equal(distance(table({ s1: "paul" }), "s0", "s1"), 2);
-  assert.equal(distance(table({ s0: "rose" }), "s0", "s2"), 1);
+test("at three the roles are face up and the Deputy starts", () => {
+  const { state, sheriff, hidden } = startGame(emptyBang(3), ["s0", "s1", "s2"], () => 0);
+  assert.equal(sheriff, null);
+  assert.deepEqual(hidden, []);
+  assert.equal(state.three, true);
+  assert.equal(state.players[state.turn].role, "deputy");
+  for (const c of state.order) assert.ok(state.players[c].role);
 });
 
-test("the dead do not count in distances", () => {
+test("the first roll throws all five, then up to two more", () => {
+  let state = roll(table(), [], loaded("one", "two", "beer", "gatling", "one"), name);
+  assert.equal(state.dice.length, 5);
+  assert.deepEqual(state.roll?.thrown, [0, 1, 2, 3, 4]);
+  state = roll(state, [0, 1], loaded("beer"), name);
+  assert.deepEqual(state.roll?.thrown, [0, 1]);
+  assert.equal(state.dice[0], "beer");
+  state = roll(state, [2], loaded("two"), name);
+  assert.equal(state.rolls, 3);
+  assert.equal(state.step, "resolve", "out of rolls");
+  assert.equal(roll(state, [3], loaded("one"), name), state);
+});
+
+test("Lucky Duke rolls four times", () => {
+  assert.equal(maxRolls(table({ s0: "lucky" })), 4);
+});
+
+test("dynamite stays put, unless you are Black Jack", () => {
+  const state = roll(table(), [], loaded("dynamite", "one", "one", "one", "one"), name);
+  assert.equal(canReroll(state, 0), false);
+  assert.equal(canReroll(state, 1), true);
+  const jack = roll(table({ s0: "blackjack" }), [], loaded("dynamite", "one", "one", "one", "one"), name);
+  assert.equal(canReroll(jack, 0), true);
+});
+
+test("three dynamite ends the rolling and costs a life, and the rest still count", () => {
+  let state = roll(table(), [], loaded("dynamite", "dynamite", "dynamite", "one", "beer"), name);
+  assert.equal(state.exploded, true);
+  assert.equal(state.step, "resolve");
+  const before = state.players.s1.life;
+  state = resolve(state, { shots: { 3: "s1" }, beers: { 4: "s0" } }, name);
+  assert.equal(state.players.s0.life, 11, "a life lost, and a beer back");
+  assert.equal(state.players.s1.life, before - 1);
+  assert.equal(state.turn, "s1");
+});
+
+test("arrows are taken as they land; the last one brings the Indians", () => {
+  let state = set({ ...table(), arrows: 2 }, "s2", { arrows: 3 });
+  state = roll(state, [], loaded("arrow", "arrow", "arrow", "one", "one"), name);
+  // The second arrow empties the middle: the Indians attack, then the third is taken.
+  assert.equal(state.players.s2.life, 9 - 3);
+  assert.equal(state.players.s0.life, 11 - 2);
+  assert.equal(state.players.s0.arrows, 1);
+  assert.equal(state.arrows, ARROWS - 1);
+});
+
+test("Jourdonnais never loses more than one to the Indians", () => {
+  const state = indians(set(table({ s1: "jourdonnais" }), "s1", { arrows: 4 }), name);
+  assert.equal(state.players.s1.life, state.players.s1.max - 1);
+});
+
+test("bull's eyes reach one and two places, and a 2 is a 1 with three left", () => {
   const state = table();
-  state.players.s1 = { ...state.players.s1, dead: true };
-  assert.equal(distance(state, "s0", "s2"), 1);
+  assert.deepEqual(targetsFor(state, "s0", "one").sort(), ["s1", "s4"]);
+  assert.deepEqual(targetsFor(state, "s0", "two").sort(), ["s2", "s3"]);
+  const three = set(set(state, "s1", { dead: true }), "s2", { dead: true });
+  assert.deepEqual(targetsFor(three, "s0", "two").sort(), ["s3", "s4"]);
+  assert.equal(seatsBetween(three, "s0", "s3"), 1, "the dead are not counted");
 });
 
-test("a gun decides how far a BANG! reaches, and one BANG! a turn", () => {
-  let state = table();
-  const bang = card("bang");
-  assert.deepEqual(targetsFor(state, "s0", bang), ["s1", "s4"]);
-  state = put(state, "s0", card("remington"));
-  assert.equal(reach(state, "s0"), 3);
-  assert.deepEqual(targetsFor(state, "s0", bang), ["s1", "s2", "s3", "s4"]);
-  state = { ...state, bangs: 1 };
-  assert.deepEqual(targetsFor(state, "s0", bang), [], "the second BANG! of the turn");
-  assert.equal(targetsFor(table({ s0: "willy" }), "s0", bang)?.length, 2);
-  assert.equal(targetsFor({ ...table({ s0: "willy" }), bangs: 3 }, "s0", bang)?.length, 2, "Willy shoots as often as he likes");
+test("Calamity Janet uses either, and Rose Doolan reaches further", () => {
+  assert.deepEqual(targetsFor(table({ s0: "calamity" }), "s0", "one").sort(), ["s1", "s2", "s3", "s4"]);
+  const rose = table({ s0: "rose" }, 7);
+  assert.deepEqual(targetsFor(rose, "s0", "one").sort(), ["s1", "s2", "s5", "s6"]);
+  assert.deepEqual(targetsFor(rose, "s0", "two").sort(), ["s2", "s3", "s4", "s5"]);
 });
 
-test("a new gun replaces the old one", () => {
-  let state = put(table(), "s0", card("schofield"));
-  state = play(state, "s0", card("winchester"), null, name).state;
-  assert.equal(state.players.s0.inPlay.filter((id) => ["schofield", "winchester"].includes(nameOf(id))).length, 1);
-  assert.equal(nameOf(state.discard[0]), "schofield");
+test("every bull's eye and beer needs someone chosen", () => {
+  const state = stopRolling(roll(table(), [], loaded("one", "beer", "arrow", "gatling", "dynamite"), name));
+  assert.deepEqual(unchosen(state, { shots: {}, beers: {} }), [0, 1]);
+  assert.deepEqual(unchosen(state, { shots: { 0: "s1" }, beers: { 1: "s0" } }), []);
 });
 
-test("a shot is dodged with a Missed!, or it costs a life", () => {
-  let state = play(table(), "s0", card("bang"), "s1", name).state;
-  assert.equal(waitingOn(state), "s1");
-  const dodged = dodge(state, name, card("missed"));
-  assert.equal(dodged.pending, null);
-  assert.equal(dodged.players.s1.life, 4);
-  state = takeIt(state, name);
-  assert.equal(state.players.s1.life, 3);
-  assert.equal(state.pending, null);
+test("three Gatlings hit everyone else and drop your arrows; Paul Regret shrugs it off", () => {
+  let state = roll({ ...table({ s1: "paul", s2: "jesse", s3: "jesse", s4: "jesse" }), arrows: 7 }, [], loaded("gatling", "gatling", "gatling", "arrow", "beer"), name);
+  assert.equal(state.players.s0.arrows, 1);
+  const lives = Object.fromEntries(state.order.map((c) => [c, state.players[c].life]));
+  state = resolve(stopRolling(state), { shots: {}, beers: { 4: "s0" } }, name);
+  assert.equal(state.players.s0.arrows, 0);
+  assert.equal(state.players.s1.life, lives.s1);
+  assert.equal(state.players.s2.life, lives.s2 - 1);
 });
 
-test("Slab the Killer's shots take two Missed! to stop", () => {
-  let state = play(table({ s0: "slab" }), "s0", card("bang"), "s1", name).state;
-  state = dodge(state, name, card("missed"));
-  assert.equal(waitingOn(state), "s1", "one was not enough");
-  state = dodge(state, name, card("missed", "S", "3"));
-  assert.equal(state.pending, null);
+test("Willy the Kid needs only two", () => {
+  let state = stopRolling(roll(table({ s0: "willy", s1: "jesse" }), [], loaded("gatling", "gatling", "beer", "beer", "beer"), name));
+  const before = state.players.s1.life;
+  state = resolve(state, { shots: {}, beers: { 2: "s0", 3: "s0", 4: "s0" } }, name);
+  assert.equal(state.players.s1.life, before - 1);
 });
 
-test("a barrel that comes up hearts is a Missed!", () => {
-  let state = put(play(table(), "s0", card("bang"), "s1", name).state, "s1", card("barrel"));
-  state = startCheck(state, "barrel", "s1");
-  state = checked(state, [card("beer")], name);
-  assert.equal(state.pending, null);
-  let spade = put(play(table(), "s0", card("bang"), "s1", name).state, "s1", card("barrel"));
-  spade = checked(startCheck(spade, "barrel", "s1"), [card("missed", "S")], name);
-  assert.equal(waitingOn(spade), "s1", "still has to answer");
-  assert.equal(spade.pending?.kind === "shot" && spade.pending.barrel, true, "and the barrel is spent");
+test("Bart takes arrows instead of wounds, but never the last one", () => {
+  let state = set({ ...table({ s1: "bart" }), arrows: 2 }, "s1", { bartArrows: true });
+  state = wound(state, "s1", 2, "s0", "shot", name);
+  assert.equal(state.players.s1.arrows, 1, "one arrow, leaving the last in the middle");
+  assert.equal(state.players.s1.life, state.players.s1.max - 1);
 });
 
-test("the Gatling and Indians! go round everyone else in turn", () => {
-  let state = play(table(), "s0", card("gatling"), null, name).state;
-  assert.equal(waitingOn(state), "s1");
-  state = takeIt(state, name);
-  assert.equal(waitingOn(state), "s2");
-  state = dodge(state, name, card("missed"));
-  assert.equal(waitingOn(state), "s3");
-  let indians = play(table(), "s0", card("indians"), null, name).state;
-  indians = answerWithBang(indians, card("bang", "D"), name);
-  assert.equal(waitingOn(indians), "s2");
+test("El Gringo hands whoever hurts him an arrow", () => {
+  const state = wound(table({ s1: "gringo" }), "s1", 1, "s0", "shot", name);
+  assert.equal(state.players.s0.arrows, 1);
 });
 
-test("a duel goes back and forth until someone cannot answer", () => {
-  let state = play(table(), "s0", card("duel"), "s2", name).state;
-  assert.equal(waitingOn(state), "s2");
-  state = answerWithBang(state, card("bang", "D"), name);
-  assert.equal(waitingOn(state), "s0");
-  state = takeIt(state, name);
-  assert.equal(state.players.s0.life, 4);
-  assert.equal(state.pending, null);
+test("Pedro drops an arrow for each life he loses", () => {
+  let state = set({ ...table({ s1: "pedro" }), arrows: 7 }, "s1", { arrows: 2 });
+  state = wound(state, "s1", 1, "s0", "shot", name);
+  assert.equal(state.players.s1.arrows, 1);
+  assert.equal(state.arrows, 8);
 });
 
-test("dynamite blows on a spade from 2 to 9, or moves on", () => {
-  assert.equal(blowsUp(card("missed", "S", "5")), true);
-  assert.equal(blowsUp(card("bang", "S", "A")), false);
-  let state = put({ ...table(), step: "checks" as const }, "s0", card("dynamite"));
-  assert.deepEqual(checksDue(state), ["dynamite"]);
-  const quiet = checked(startCheck(state, "dynamite", "s0"), [card("beer")], name);
-  assert.equal(quiet.players.s1.inPlay.some((id) => nameOf(id) === "dynamite"), true);
-  state = checked(startCheck(state, "dynamite", "s0"), [card("missed", "S", "5")], name);
-  assert.equal(state.players.s0.life, 2);
-  assert.equal(state.players.s0.inPlay.length, 0);
+test("Slab the Killer turns a beer into a second wound", () => {
+  let state = stopRolling(roll(table({ s0: "slab" }), [], loaded("one", "beer", "arrow", "dynamite", "dynamite"), name));
+  const before = state.players.s1.life;
+  state = resolve(state, { shots: { 0: "s1" }, beers: {}, slab: { beer: 1, shot: 0 } }, name);
+  assert.equal(state.players.s1.life, before - 2);
 });
 
-test("jail: a heart walks out, anything else loses the turn", () => {
-  const jailed = put({ ...table(), turn: "s1", step: "checks" as const }, "s1", card("jail"));
-  const out = checked(startCheck(jailed, "jail", "s1"), [card("beer")], name);
-  assert.equal(out.turn, "s1");
-  const stays = checked(startCheck(jailed, "jail", "s1"), [card("missed")], name);
-  assert.equal(stays.turn, "s2");
-  assert.equal(stays.players.s1.inPlay.length, 0, "the jail is used up either way");
-  assert.deepEqual(targetsFor(table(), "s1", card("jail")), ["s2", "s3", "s4"], "nobody jails the Sheriff");
+test("Jesse Jones drinks double when low; Suzy heals with no bull's eyes", () => {
+  let state = set(table({ s0: "jesse" }), "s0", { life: 4 });
+  state = resolve(stopRolling(roll(state, [], loaded("beer", "arrow", "dynamite", "dynamite", "gatling"), name)), { shots: {}, beers: { 0: "s0" } }, name);
+  assert.equal(state.players.s0.life, 6);
+  let suzy = set(table({ s0: "suzy" }), "s0", { life: 5 });
+  suzy = resolve(stopRolling(roll(suzy, [], loaded("arrow", "dynamite", "dynamite", "gatling", "gatling"), name)), { shots: {}, beers: {} }, name);
+  assert.equal(suzy.players.s0.life, 7);
 });
 
-test("Lucky Duke keeps the better of two", () => {
-  const jailed = put({ ...table({ s1: "lucky" }), turn: "s1", step: "checks" as const }, "s1", card("jail"));
-  const out = checked(startCheck(jailed, "jail", "s1"), [card("missed"), card("beer")], name);
-  assert.equal(out.turn, "s1");
+test("Sid Ketchum gives a life before rolling", () => {
+  let state = set({ ...table({ s0: "sid" }), step: "sid" }, "s2", { life: 3 });
+  state = sidGives(state, "s2", name);
+  assert.equal(state.players.s2.life, 4);
+  assert.equal(state.step, "roll");
 });
 
-test("at no lives a Beer keeps you up, unless only two are left", () => {
-  let state: BangState = { ...table(), players: { ...table().players, s1: { ...table().players.s1, life: 1 } } };
-  state = hurt(state, "s1", 1, "s0", name);
-  assert.equal(waitingOn(state), "s1");
-  assert.equal(canDrinkToLive(state), true);
-  state = drinkToLive(state, card("beer"), name);
-  assert.equal(state.players.s1.life, 1);
-  assert.equal(state.pending, null);
-});
-
-test("a dead Outlaw pays the killer three cards; a Sheriff who kills his Deputy loses everything", () => {
-  let state: BangState = { ...table(), players: { ...table().players, s1: { ...table().players.s1, life: 1 } } };
-  state = hurt(state, "s1", 1, "s0", name);
-  state = fall(state, "outlaw", [card("beer")], name);
+test("Vulture Sam feeds on the dead", () => {
+  let state = set(set(table({ s3: "vulture" }), "s1", { life: 1 }), "s3", { life: 2 });
+  state = wound(state, "s1", 1, "s0", "shot", name);
   assert.equal(state.players.s1.dead, true);
-  assert.equal(state.players.s1.role, "outlaw");
-  assert.deepEqual(state.owed, [{ to: "s0", draw: 3 }]);
-  assert.equal(nameOf(state.discard[0]), "beer");
-
-  let deputy: BangState = { ...table(), players: { ...table().players, s2: { ...table().players.s2, life: 1 } } };
-  deputy = fall(hurt(deputy, "s2", 1, "s0", name), "deputy", [], name);
-  assert.deepEqual(deputy.owed, [{ to: "s0", discardAll: true }]);
+  assert.equal(state.players.s3.life, 4);
+  assert.deepEqual(state.unmask, ["s1"], "the role waits to be turned over");
 });
 
-test("Vulture Sam gets the dead player's cards instead of the discards", () => {
-  let state: BangState = { ...table({ s3: "vulture" }), players: { ...table({ s3: "vulture" }).players, s1: { ...table().players.s1, life: 1 } } };
-  state = fall(hurt(state, "s1", 1, "s0", name), "renegade", [card("beer")], name);
-  assert.equal(vultureFor(table({ s3: "vulture" }), "s1"), "s3");
-  assert.equal(state.discard.length, 0);
+test("a death at the end of a turn waits for the role before moving on", () => {
+  let state = set(table(), "s1", { life: 1 });
+  state = stopRolling(roll(state, [], loaded("one", "arrow", "dynamite", "dynamite", "gatling"), name));
+  state = resolve(state, { shots: { 0: "s1" }, beers: {} }, name);
+  assert.equal(state.waiting, true);
+  assert.equal(state.turn, "s0");
+  state = unmasked(state, { s1: "deputy" }, name);
+  assert.equal(state.turn, "s2", "the dead are skipped");
 });
 
-test("the Sheriff's side wins when every Outlaw and the Renegade are dead", () => {
+test("a death in the middle of someone's rolling does not end their turn", () => {
+  let state = set({ ...table(), arrows: 1 }, "s2", { life: 1, arrows: 1 });
+  state = roll(state, [], loaded("arrow", "one", "one", "beer", "beer"), name);
+  assert.equal(state.players.s2.dead, true);
+  state = unmasked(state, { s2: "outlaw" }, name);
+  assert.equal(state.turn, "s0");
+  assert.equal(state.step, "roll");
+});
+
+test("who wins", () => {
+  const dead = (s: BangState, c: string, role: Role) => set(s, c, { dead: true, role });
   const state = table();
-  const dead = (s: BangState, c: string, role: "outlaw" | "renegade" | "deputy" | "sheriff") => ({
-    ...s,
-    players: { ...s.players, [c]: { ...s.players[c], dead: true, role } },
-  });
-  let s = dead(dead(state, "s1", "outlaw"), "s2", "outlaw");
-  assert.equal(winnerOf(s), null);
-  s = dead(s, "s3", "renegade");
-  assert.equal(winnerOf(s), "sheriff");
+  assert.equal(winnerOf(dead(dead(dead(state, "s1", "renegade"), "s2", "outlaw"), "s3", "outlaw")), "sheriff");
   assert.equal(winnerOf(dead(state, "s0", "sheriff")), "outlaws");
-  const lastOne = dead(dead(dead(dead(state, "s1", "outlaw"), "s2", "outlaw"), "s3", "deputy"), "s0", "sheriff");
-  assert.equal(winnerOf(lastOne), "renegade");
+  const renegadeLast = dead(dead(dead(dead(state, "s1", "outlaw"), "s2", "outlaw"), "s3", "deputy"), "s0", "sheriff");
+  assert.equal(winnerOf(renegadeLast), "renegade");
+  assert.equal(winnerOf(dead(renegadeLast, "s4", "renegade")), "outlaws", "all dead at once: the Outlaws");
 });
 
-test("the turn passes over the dead", () => {
-  const state = table();
-  state.players.s1 = { ...state.players.s1, dead: true };
-  assert.equal(endTurn(state, name).turn, "s2");
-  assert.deepEqual(alive(state), ["s0", "s2", "s3", "s4"]);
+test("at three, you win by taking out your own target", () => {
+  const { state } = startGame(emptyBang(3), ["s0", "s1", "s2"], () => 0);
+  const byRole = (r: Role) => state.order.find((c) => state.players[c].role === r) as string;
+  const renegade = byRole("renegade");
+  const right = wound(set(state, renegade, { life: 1 }), renegade, 1, byRole("deputy"), "shot", name);
+  assert.equal(winnerOf(right), byRole("deputy"));
+  const wrong = wound(set(state, renegade, { life: 1 }), renegade, 1, byRole("outlaw"), "shot", name);
+  assert.equal(winnerOf(wrong), null, "the wrong hand: now it is last one standing");
+  assert.equal(wrong.freeForAll, true);
 });
 
-test("only what can be played shows as playable", () => {
-  const state = table();
-  assert.equal(playable(state, "s0", card("missed")), false, "a Missed! is an answer, not a move");
-  assert.equal(playable(state, "s0", card("beer")), false, "at full life");
-  assert.equal(playable(state, "s1", card("bang")), false, "not your turn");
-  assert.equal(playable(put(state, "s0", card("barrel")), "s0", card("barrel", "S", "K")), false, "one barrel is enough");
-  assert.equal(playable(state, "s0", card("stagecoach")), true);
-});
-
-test("Sid Ketchum trades two cards for a life", () => {
-  const state = { ...table({ s2: "sid" }), players: { ...table({ s2: "sid" }).players } };
-  state.players.s2 = { ...state.players.s2, life: 2 };
-  assert.equal(sidHeals(state, "s2", [card("bang"), card("missed")], name).players.s2.life, 3);
-  assert.equal(sidHeals(state, "s1", [card("bang"), card("missed")], name), state, "only Sid");
-});
-
-test("the General Store goes round, starting with whoever opened it", () => {
-  let state = play(table(), "s0", card("store"), null, name).state;
-  assert.equal(waitingOn(state), "s0");
-  state = tookFromStore(state, card("beer"), name);
-  assert.equal(waitingOn(state), "s1");
-  assert.deepEqual(state.pending?.kind === "store" && state.pending.taken, [card("beer")]);
+test("taking arrows stops at the dead", () => {
+  assert.equal(takeArrows(set(table(), "s1", { dead: true }), "s1", 3, name).arrows, ARROWS);
 });
 
 let db: PGlite;
@@ -288,29 +277,33 @@ before(async () => {
   db = await freshDatabase();
 });
 
-test("roles are dealt so only their owners can read them, and a dead one can be turned over", async () => {
+test("a role is read only by its owner, and its sealed copy can be turned over by anyone", async () => {
   const people = await Promise.all(Array.from({ length: 4 }, () => newUser(db)));
   const { itemId } = await tableFor(db, people[0], "bang");
   const run = (user: string, sql: string, params: unknown[]) => as(db, user, (tx) => tx.query(sql, params));
   const others = ["s1", "s2", "s3"];
   await run(people[0], "select public.pile_setup(p_item => $1, p_piles => $2::jsonb)", [
     itemId,
-    JSON.stringify([
-      { slot: "roles", cards: ["renegade", "outlaw", "outlaw"], shuffle: true },
-      { slot: "deck", cards: DECK, shuffle: true },
-    ]),
+    JSON.stringify([{ slot: ROLES_PILE, cards: ["renegade", "outlaw", "outlaw"], shuffle: true, copies: [{ slot: SEALED_PILE }] }]),
   ]);
-  await run(people[0], "select public.pile_deal(p_item => $1, p_from => 'roles', p_targets => $2::jsonb)", [
+  await run(people[0], "select public.pile_deal(p_item => $1, p_from => $2, p_targets => $3::jsonb)", [
     itemId,
+    ROLES_PILE,
     JSON.stringify(others.map((c, i) => ({ slot: roleSlot(c), owner: people[i + 1], count: 1 }))),
+  ]);
+  await run(people[0], "select public.pile_deal(p_item => $1, p_from => $2, p_targets => $3::jsonb)", [
+    itemId,
+    SEALED_PILE,
+    JSON.stringify(others.map((c) => ({ slot: sealedSlot(c), count: 1 }))),
   ]);
   const { rows: mine } = await run(people[1], "select slot, cards from public.secrets where item_id = $1", [itemId]);
   assert.deepEqual((mine as Array<{ slot: string }>).map((r) => r.slot), [roleSlot("s1")]);
+  const myRole = (mine as Array<{ cards: string[] }>)[0].cards[0];
   const { rows: dealer } = await run(people[0], "select slot from public.secrets where item_id = $1", [itemId]);
   assert.equal(dealer.length, 0, "the dealer can read somebody's role");
 
-  await assert.rejects(run(people[0], "select public.pile_reveal(p_item => $1, p_slots => $2, p_keep => true)", [itemId, [roleSlot("s1")]]));
-  await run(people[1], "select public.pile_reveal(p_item => $1, p_slots => $2, p_keep => true)", [itemId, [roleSlot("s1")]]);
+  // s1 dies: somebody else turns the sealed copy over, and it matches.
+  await run(people[2], "select public.pile_reveal(p_item => $1, p_slots => $2, p_keep => true)", [itemId, [sealedSlot("s1")]]);
   const { rows } = await db.query<{ data: { state: { revealed: Record<string, string[]> } } }>("select data from public.items where id = $1", [itemId]);
-  assert.equal(rows[0].data.state.revealed[roleSlot("s1")].length, 1);
+  assert.deepEqual(rows[0].data.state.revealed[sealedSlot("s1")], [myRole]);
 });
