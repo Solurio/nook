@@ -5,7 +5,8 @@ const config = [
   ...coreWebVitals,
   ...typescript,
   {
-    ignores: [".next/**", "node_modules/**", "next-env.d.ts", "functions/**"],
+    // out/ is the built site; the pdf.js worker is copied into public/ from node_modules.
+    ignores: [".next/**", "out/**", "node_modules/**", "next-env.d.ts", "functions/**", "public/pdf.worker.min.mjs"],
   },
   {
     rules: {

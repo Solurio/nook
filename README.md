@@ -37,17 +37,41 @@ it, and it all stays where you dropped it.
   rather than to one person's browser, so typing a new one moves it for
   everybody at once. Twitch, Vimeo, SoundCloud and Spotify links convert to the
   right player automatically.
-- **Games.** Chess (with check, mate and castling), checkers, connect four,
-  tic-tac-toe, **intransitive** (a race where the pieces beat each other in a
-  circle instead of a ladder), **dominoes**, **codenames** in English or
-  Portuguese, **coup**, and a **card table** you set up yourself: pick which
-  ranks and suits are in the deck, how many chairs, whether they play in pairs,
-  then shuffle and deal.
+- **Games with hidden cards.** **UNO**, **Coup** (with the Inquisitor, the
+  Reformation, guessing to eliminate and the two-player table), **BANG!** (all
+  sixteen characters, the eighty cards, roles, distances, jail and dynamite),
+  **Spyfall**, **The Resistance**, **Codenames** in English or Portuguese,
+  **dominoes** and **Buckshot Roulette**. Your hand is yours alone; see
+  [Hidden cards](#hidden-cards) for how.
+- **Board games.** Chess (with check, mate and castling), checkers, connect four,
+  tic-tac-toe, **rock paper scissors** for two to six with sealed throws,
+  **intransitive** (a race where the pieces beat each other in a circle instead
+  of a ladder), and **Bomb Party** in English, Portuguese or Spanish.
 
   Every game has chairs. Sit in one and the turns are yours; leave them all
   empty and whoever is holding the device plays every side, which is how one
-  phone gets passed round a room. The board turns to face whichever chair you
-  took.
+  phone gets passed round a room. A phone holding more than one hand asks before
+  it shows each one. The board turns to face whichever chair you took.
+- **A card table** for anything else: any deck (52, 54, 40, canasta, **tarot**
+  with reversals, or cards you make yourself, with your own backs), stacks you
+  drag, merge, split, cut, shuffle and deal from, face up or face down, and hands
+  held in a fan.
+- **Things for the table.** **Dice** that take real notation (`2d6+3`,
+  `4d6kh3`, `d20x2`, `(1d8+2)/2`, `3dF`, exploding `d6!`), land die by die in
+  their proper shapes and tell you the range and the average before you roll. A
+  **coin** with faces and metal of your choosing. A **wheel** whose slices are
+  as wide as their chance of coming up, which lands on the same spot on every
+  screen and can make winners sit out. **Pieces** and **grids** (squares or
+  hexes, over a map if you like): a piece let go over a grid settles into its
+  cell.
+- **Tying things together.** Tie any item to any other from its bar, a map to its
+  pieces or a note to its photo, and dragging one moves them all.
+- **Documents.** A PDF laid on the table **as a book**, the cover alone and then
+  spreads, pages turning over in 3D, or **on a clipboard** a sheet at a time.
+  Everyone reads the same page unless you choose to read on your own. Search,
+  the document's own contents, bookmarks, links inside and out, and a layer to
+  draw, highlight and pin notes on that belongs to the room rather than the file.
+  Pages are only fetched and drawn as they are looked at.
 - **Paint board.** Not a doodle pad: a raster painting app with everyone drawing
   at once. Brushes (pen, marker, spray, eraser), a **paint bucket**, size and
   opacity, **graphics tablet pressure** with adjustable sensitivity and palm
@@ -96,10 +120,41 @@ extrapolates from there on its own and, every second and a half, compares
 against its own player. If the gap passes 1.4s it corrects. That holds sync
 through people coming and going, and survives a tab sitting in the background.
 
+### Hidden cards
+
+A card game needs something a shared state cannot give: a hand only you can
+see. Everything else in a room is one JSON document everyone receives, so
+anything put there, a hidden flag or not, reaches every browser.
+
+So secrets live somewhere else. `secrets` is a table of piles: a hand, a deck,
+a role, a sealed vote. Row level security lets you read a pile only if it is
+yours, and nobody can write one directly. Every move is a Postgres function
+(`pile_setup`, `pile_deal`, `pile_draw`, `pile_move`, `pile_reveal`,
+`pile_peek`, `pile_test`, and a few more) that checks the move and does it in one
+transaction, then writes what the table is allowed to know back onto the item:
+how many cards each pile holds, and whatever has been turned over.
+
+- A deck is shuffled in the database, and nobody reads it, the dealer included.
+- Turning a card over is a public act. So is peeking (Buckshot's magnifying
+  glass), and asking whether a hand holds a card (Coup's embezzlement): the
+  table is told it happened, not what was seen.
+- Sealed piles (votes, missions, rock paper scissors) only turn over once every
+  one is in.
+- A pile dealt to an empty chair belongs to whoever dealt it, and is handed to
+  whoever sits down.
+- A browser saving a game cannot touch the pile sizes or claim a card was
+  turned over: a trigger puts those keys back unless one of the functions wrote
+  them.
+
+The functions are tested against a real Postgres running in WebAssembly
+([PGlite](https://pglite.dev)), with the same migrations and the same policies.
+
 ### Stack
 
 Next.js 16 (App Router) with React 19, TypeScript, Tailwind v4, and Zustand for
-room state. Supabase for the rest. It's exported as a static site
+room state. Supabase for the rest. [pdf.js](https://mozilla.github.io/pdf.js/)
+reads PDFs, loaded only when one is on the table; its worker is copied out of
+`node_modules` before every dev run and build (`scripts/copy-pdf-worker.mjs`). It's exported as a static site
 (`output: "export"`), so the whole app runs in the browser and hosts anywhere.
 The room to open arrives in the `?r=` query parameter (`/r/?r=cocoa-willow-7fk2`),
 so there's no dynamic route for a static host to trip over.
@@ -116,16 +171,18 @@ session, and the nickname and colour live in localStorage.
 
 ## Running it
 
-You need Node 20+ and a Supabase project (the free plan is enough).
+You need Node 22+ and a Supabase project (the free plan is enough).
 
 **1. Create the Supabase project.** At [supabase.com](https://supabase.com),
 create a new project. Pick the region closest to you, it feeds straight into
 realtime latency.
 
 **2. Run the migrations.** Open the project's SQL Editor and run the contents of
-`supabase/migrations/` in order. All of them, including the newest: `0005`
-widens what the upload bucket accepts, and without it a photo straight off a
-phone is refused for being HEIC. The first creates the tables, the RLS policies,
+`supabase/migrations/` in order. All of them, including the newest: `0006`
+creates the secret piles every hidden-card game runs on, adds pieces, grids and
+documents, and lets the upload bucket take PDFs. Without it those games say so
+instead of dealing. `0005` widens what the upload bucket accepts, and without it
+a photo straight off a phone is refused for being HEIC. The first creates the tables, the RLS policies,
 turns on realtime replication and creates the image bucket. The rest add the
 `strokes` table (without it the brush doesn't save) and widen the allowed item
 kinds. Run them in numeric order, and if you ever re-run an older one, run the
@@ -175,14 +232,18 @@ untouched for months, know that before you send the link to someone.
 ```bash
 npm run dev        # development
 npm run build      # production build
-npm run test       # pure logic tests (games, parsers, sync)
+npm run test       # logic tests, and the database ones against PGlite
 npm run check      # typecheck + lint + tests
 ```
 
-The tests cover what can be tested without a browser: win detection in the
-games, the YouTube link parser, playhead projection, slug normalisation. The
-rest (dragging, the player, real sync between two tabs) is tested by hand, with
-two windows open side by side.
+The tests cover what can be tested without a browser: the rules of every game,
+dice notation, the wheel's weights, the PDF book's spreads, grid snapping, the
+YouTube link parser, playhead projection, slug normalisation. The secret piles
+are tested against a real Postgres (PGlite, in WebAssembly): who can read what,
+who can move what, sealed reveals, peeks and tests. The database tests run one
+file at a time, since each starts its own Postgres. The rest (dragging, the
+player, real sync between two tabs) is tested by hand, with two windows open
+side by side.
 
 ### GIF and sticker keys (optional)
 
@@ -257,6 +318,30 @@ That's implemented here as an optional item ("shared browser" in the dock) using
 [Hyperbeam](https://hyperbeam.com). It's the only paid part, and it stays off
 until you paste your own key in. The walkthrough, including the cost brakes, is
 in [COBROWSE.md](COBROWSE.md). Without a key the rest of the app is unaffected.
+
+## Honest limits
+
+- **Public moves are trusted.** Hidden information is kept by the database, but
+  the moves that change the public state of a game (whose turn it is, what a
+  card did) are worked out in the browser and saved. Nobody can see your hand,
+  but a determined friend with the developer tools open could cheat at the
+  public part. This is a table among friends, not a casino.
+- **Dice, coins, wheels and the bomb's fuse** are rolled in the browser of
+  whoever rolls them, with the browser's proper random source. Fair, but not
+  provably so.
+- **Bomb Party has no dictionary yet.** A word with the letters, made of letters
+  and not said before is accepted; the table is the judge.
+- **Fuses and timers** are measured on each person's clock, so a phone whose
+  clock is badly off sees the fuse a little early or late.
+- **A role that leaves with its phone.** A role is turned over by the device
+  that holds it. If that device is gone when it is needed, the role stays hidden.
+
+## Next
+
+Prepared for, not built yet: **War** (Risk-style), **Catan**, **Detective**
+(Clue-style), **Werewolf** and **Monopoly**, all of which fit the secret piles
+and the chairs as they are. A dictionary for Bomb Party, an inventory for
+pieces, typing shown live to the table, and a proper undo.
 
 ## Things left out
 
