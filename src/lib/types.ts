@@ -255,27 +255,11 @@ export interface DominoesState {
   wins?: Record<string, number>;
 }
 
-/** A deck on a table, with whatever rules the players agree on. */
-export interface CardTableState {
-  config: {
-    ranks: ("A" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10" | "J" | "Q" | "K")[];
-    suits: ("S" | "H" | "D" | "C")[];
-    jokers: number;
-    copies: number;
-  };
-  /** Face down, top of the deck first. */
-  deck: string[];
-  /** Chair id to the cards held there. */
-  hands: Record<string, string[]>;
-  /** Face up in the middle. */
-  table: { card: string; by: string }[];
-  discard: string[];
-  seats: Record<string, string | null>;
-  seatCount: number;
-  /** 0 is everyone for themselves; 2 or more pairs the chairs up. */
-  teams: number;
-  dealEach: number;
-}
+/**
+ * The card table: decks, stacks on the felt, chairs. The shape lives in
+ * lib/table.ts; a table saved before stacks existed is upgraded on load.
+ */
+export type CardTableState = import("./table").TableState;
 
 export interface IntransitiveState {
   /** 81 cells, index = row*9+col, row 0 is red's back rank. */

@@ -2,7 +2,8 @@ import { emptyMedia } from "./media";
 import { initialBoard as initialChess } from "./chess";
 import { initialBoard as initialCheckers } from "./checkers";
 import { initialBoard as initialIntransitive } from "./intransitive";
-import { buildDeck, fullDeckConfig, seatIds } from "./cards";
+import { seatIds } from "./cards";
+import { emptyTable } from "./table";
 import { newGame as newCoup } from "./coup";
 import { DEFAULT_SECONDS as SPYFALL_SECONDS } from "./spyfall";
 import { newSetup as newCodenames } from "./codenames";
@@ -157,20 +158,7 @@ function emptyGameData(game: GameKind): ItemDataMap["game"] {
         },
       };
     case "cards":
-      return {
-        game: "cards",
-        state: {
-          config: fullDeckConfig(),
-          deck: buildDeck(fullDeckConfig()),
-          hands: {},
-          table: [],
-          discard: [],
-          seats: {},
-          seatCount: 4,
-          teams: 0,
-          dealEach: 5,
-        },
-      };
+      return { game: "cards", state: emptyTable("52") };
     case "intransitive":
       return {
         game: "intransitive",

@@ -35,6 +35,21 @@ export type PileFn =
   | "pile_give"
   | "pile_drop";
 
+/**
+ * The functions that can write the table's public state in the same breath as
+ * moving cards. The rest only touch piles; any public change that goes with
+ * them has to be written on its own.
+ */
+export const TAKES_PUBLIC: ReadonlySet<PileFn> = new Set<PileFn>([
+  "pile_setup",
+  "pile_deal",
+  "pile_move",
+  "pile_draw",
+  "pile_take",
+  "pile_put",
+  "pile_drop",
+]);
+
 /** The slots this person owns, among the ones the table knows about. */
 export function ownedSlots(meta: PileMeta | undefined, userId: string | null | undefined): string[] {
   if (!meta || !userId) return [];
