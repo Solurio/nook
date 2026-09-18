@@ -21,6 +21,7 @@ import {
 import { newId } from "@/lib/slug";
 import { useThrottled } from "@/lib/use-throttled";
 import { relayer, type ItemDraft, type Layering } from "@/lib/items";
+import { explainPileError, type PileFn } from "@/lib/piles";
 import { useRoomStore, viewportForItems } from "@/state/room-store";
 import type {
   AnyItem,
@@ -67,6 +68,18 @@ interface RoomApi {
   commitTransform: (patch: TransformPatch) => Promise<void>;
   broadcastTransform: (patch: TransformPatch) => void;
   updateData: <K extends ItemKind>(id: string, data: ItemDataMap[K]) => Promise<void>;
+  /**
+   * Calls one of the secret pile functions. Pass the new public state as
+   * p_public and it shows locally straight away, the way updateData does; if
+   * the database refuses the move, the item is read back so nothing is left
+   * showing that did not happen.
+   */
+  pile: <T = unknown>(
+    fn: PileFn,
+    args: Record<string, unknown>,
+  ) => Promise<{ data: T | null; error: string | null }>;
+  /** This visitor's own piles for an item. Row level security returns nothing else. */
+  readPiles: (itemId: string) => Promise<Record<string, unknown[]>>;
   /** Move an item through the stack: to the front, the back, or one step either way. */
   restack: (id: string, where: Layering) => Promise<void>;
 
@@ -555,6 +568,55 @@ export function RoomProvider({
     [supabase, store],
   );
 
+  const pile = useCallback(
+    async <T,>(fn: PileFn, args: Record<string, unknown>) => {
+      const itemId = args.p_item as string | undefined;
+      const nextPublic = args.p_public as Record<string, unknown> | undefined;
+
+      if (itemId && nextPublic) {
+        const live = store.getState().items[itemId];
+        if (live) {
+          // Keep the pile sizes we have until the database sends the real ones.
+          const liveState = (live.data as { state?: Record<string, unknown> }).state ?? {};
+          const state = (nextPublic.state as Record<string, unknown> | undefined) ?? {};
+          store.getState().upsertItem({
+            ...live,
+            data: {
+              ...nextPublic,
+              state: { ...state, piles: liveState.piles, revealed: state.revealed ?? liveState.revealed },
+            } as unknown as AnyItem["data"],
+          });
+        }
+      }
+
+      const { data, error: rpcError } = await supabase.rpc(fn, args);
+      if (rpcError) {
+        setError(explainPileError(rpcError.message));
+        if (itemId) {
+          const { data: row } = await supabase.from("items").select("*").eq("id", itemId).maybeSingle();
+          if (row) store.getState().upsertItem(row as AnyItem);
+        }
+        return { data: null, error: rpcError.message };
+      }
+      return { data: (data as T) ?? null, error: null };
+    },
+    [supabase, store],
+  );
+
+  const readPiles = useCallback(
+    async (itemId: string) => {
+      const { data, error: readError } = await supabase
+        .from("secrets")
+        .select("slot, cards")
+        .eq("item_id", itemId);
+      if (readError) return {};
+      return Object.fromEntries(
+        ((data ?? []) as Array<{ slot: string; cards: unknown[] }>).map((row) => [row.slot, row.cards]),
+      );
+    },
+    [supabase],
+  );
+
   const restack = useCallback(
     async (id: string, where: Layering) => {
       const moves = relayer(Object.values(store.getState().items), id, where);
@@ -846,6 +908,8 @@ export function RoomProvider({
     commitTransform,
     broadcastTransform,
     updateData,
+    pile,
+    readPiles,
     restack,
     updateBackground,
     renameRoom,

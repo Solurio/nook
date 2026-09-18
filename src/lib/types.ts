@@ -223,19 +223,36 @@ export interface CodenamesState {
   pack: "en" | "pt";
 }
 
-/** Dominoes on a double-six set, on your own or in pairs. */
+/**
+ * Dominoes on a double-six set, on your own or in pairs.
+ *
+ * The hands and the boneyard are not in here: they live in secret piles that
+ * only their owners can read (see lib/piles.ts). This is what the whole table
+ * is allowed to know.
+ */
 export interface DominoesState {
   /** Laid out left to right; touching halves match. */
   line: [number, number][];
-  hands: Record<string, [number, number][]>;
-  boneyard: [number, number][];
   seats: Record<string, string | null>;
+  /** Who is in each chair, by user id. Decides whose hand is whose. */
+  holders?: Record<string, string | null>;
   seatCount: number;
   teams: number;
   /** Chair id whose go it is. */
   turn: string;
-  wins: Record<string, number>;
   passes: number;
+  /** Counts up with every deal, so each round's result has a place to go. */
+  round?: number;
+  /** Round number to the chair that took it; null for a dead heat. */
+  results?: Record<string, string | null>;
+  /** Written by the database: who holds each pile, and how many tiles. */
+  piles?: import("./piles").PileMeta;
+  /** Written by the database: hands turned over at the end of a blocked round. */
+  revealed?: Record<string, unknown[]>;
+  /** From before hands were private. Ignored, and dropped on the next deal. */
+  hands?: Record<string, [number, number][]>;
+  boneyard?: [number, number][];
+  wins?: Record<string, number>;
 }
 
 /** A deck on a table, with whatever rules the players agree on. */

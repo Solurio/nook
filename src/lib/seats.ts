@@ -69,3 +69,66 @@ export function turnHint<K extends string>(
   if (seats[turn]) return `${seats[turn]} is thinking`;
   return `${label(turn)} to play · that chair is open`;
 }
+
+// ---------------------------------------------------------------------------
+// Chairs that know who is in them
+//
+// A name is fine for showing who sits where, but a hidden hand has to belong to
+// someone the database can recognise, and two visitors can share a name. So a
+// table with anything secret on it also records each chair's user id.
+// ---------------------------------------------------------------------------
+
+export type Holders<K extends string> = Record<K, string | null>;
+
+export interface Sitter {
+  name: string;
+  userId: string;
+}
+
+/**
+ * The same rules as takeSeat -- your own chair stands you up, somebody else's
+ * does not budge, and taking one lets go of any other -- keeping the names and
+ * the ids in step.
+ */
+export function claimChair<K extends string>(
+  seats: Seats<K>,
+  holders: Partial<Holders<K>> | undefined,
+  chair: NoInfer<K>,
+  me: Sitter,
+): { seats: Seats<K>; holders: Holders<K> } {
+  const ids = { ...(holders ?? {}) } as Holders<K>;
+  const mine = chairOf(seats, ids, me);
+
+  if (mine === chair) {
+    return { seats: { ...seats, [chair]: null }, holders: { ...ids, [chair]: null } };
+  }
+  if (seats[chair]) return { seats, holders: ids };
+
+  const nextSeats = { ...seats };
+  const nextIds = { ...ids };
+  if (mine) {
+    nextSeats[mine] = null;
+    nextIds[mine] = null;
+  }
+  nextSeats[chair] = me.name;
+  nextIds[chair] = me.userId;
+  return { seats: nextSeats, holders: nextIds };
+}
+
+/**
+ * Which chair is this person's. The id decides when there is one; a chair
+ * taken before ids were recorded falls back to the name, so an old table does
+ * not suddenly forget who was sitting at it.
+ */
+export function chairOf<K extends string>(
+  seats: Seats<K>,
+  holders: Partial<Holders<K>> | undefined,
+  me: Sitter | null | undefined,
+): K | null {
+  if (!me) return null;
+  for (const key of Object.keys(seats) as K[]) {
+    const id = holders?.[key];
+    if (id ? id === me.userId : seats[key] === me.name) return key;
+  }
+  return null;
+}

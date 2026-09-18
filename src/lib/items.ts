@@ -146,14 +146,14 @@ function emptyGameData(game: GameKind): ItemDataMap["game"] {
         game: "dominoes",
         state: {
           line: [],
-          hands: {},
-          boneyard: [],
           seats: {},
+          holders: {},
           seatCount: 4,
           teams: 2,
           turn: "s0",
-          wins: {},
           passes: 0,
+          round: 0,
+          results: {},
         },
       };
     case "cards":
