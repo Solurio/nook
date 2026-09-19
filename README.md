@@ -52,7 +52,9 @@ it, and it all stays where you dropped it.
   never knows whose is whose. Your hand is yours alone; see
   [Hidden cards](#hidden-cards) for how.
 - **Board games.** Chess (with check, mate and castling), checkers, connect four,
-  tic-tac-toe, **rock paper scissors** for two to six with sealed throws,
+  tic-tac-toe, **Quoridor** (Bloqueio here in Brazil) for two or four, with walls
+  that can never shut anyone in, **Quoridor** (Bloqueio here in Brazil) for two or four, with walls
+  that can never shut anyone in, **rock paper scissors** for two to six with sealed throws,
   **intransitive** (a race where the pieces beat each other in a circle instead
   of a ladder), and **Bomb Party** in English, Portuguese or Spanish: five-letter
   words, checked against a dictionary of each (see `public/words/NOTICE.txt`).

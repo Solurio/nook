@@ -232,6 +232,15 @@ body.is-room {
   }
 }
 
+@keyframes wall-down {
+  from {
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+}
+
 @keyframes bang {
   0%,
   100% {
@@ -368,6 +377,10 @@ body.is-room {
 
 .animate-bang {
   animation: bang 0.6s ease-out both;
+}
+
+.animate-wall-down {
+  animation: wall-down 0.25s ease-out both;
 }
 
 .animate-kick {
@@ -516,6 +529,7 @@ body.is-room {
   .animate-coin-toss,
   .animate-coin-shadow,
   .animate-bang,
+  .animate-wall-down,
   .animate-kick,
   .animate-rps-pump,
   .animate-rps-show,

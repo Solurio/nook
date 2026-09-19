@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import {
   Bomb,
+  BrickWall,
   BookOpen,
   Brush,
   CircleDot,
@@ -103,6 +104,7 @@ const GAMES: Array<{
   { kind: "bang", group: "secrets", title: "BANG!", hint: "the dice game: a sheriff, outlaws, arrows", icon: <Star /> },
   { kind: "buckshot", group: "secrets", title: "buckshot roulette", hint: "live or blank, and nobody knows", icon: <Crosshair /> },
   { kind: "dominoes", group: "secrets", title: "dominoes", hint: "double six, teams optional", icon: <GripVertical /> },
+  { kind: "quoridor", group: "boards", title: "quoridor (bloqueio)", hint: "cross first, wall everyone else in", icon: <BrickWall /> },
   { kind: "war", group: "boards", title: "WAR", hint: "42 territories, a secret objective", icon: <Earth /> },
   { kind: "chess", group: "boards", title: "chess", hint: "check, mate, castling", icon: <Crown /> },
   { kind: "checkers", group: "boards", title: "checkers", hint: "jump and crown", icon: <CircleDot /> },

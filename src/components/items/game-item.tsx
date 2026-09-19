@@ -23,6 +23,7 @@ import Bang from "@/components/games/bang";
 import Bomb from "@/components/games/bomb";
 import War from "@/components/games/war";
 import Cah from "@/components/games/cah";
+import Quoridor from "@/components/games/quoridor";
 
 export default function GameItem({ item }: { item: Item<"game"> }) {
   switch (item.data.game) {
@@ -70,6 +71,8 @@ export default function GameItem({ item }: { item: Item<"game"> }) {
       return <War item={item} state={item.data.state} />;
     case "cah":
       return <Cah item={item} state={item.data.state} />;
+    case "quoridor":
+      return <Quoridor item={item} state={item.data.state} />;
     default:
       return null;
   }
