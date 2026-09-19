@@ -16,6 +16,7 @@ import BackgroundPanel from "@/components/chrome/background-panel";
 import PeersPanel from "@/components/chrome/peers-panel";
 import Inspector from "@/components/chrome/inspector";
 import FocusView from "@/components/room/focus-view";
+import ChromeToggle from "@/components/chrome/chrome-toggle";
 
 export default function RoomShell({
   slug,
@@ -65,6 +66,7 @@ function NotConfigured() {
 function RoomBody() {
   const { status, error, joined } = useRoom();
   const panel = useRoomStore((s) => s.panel);
+  const chromeHidden = useRoomStore((s) => s.chromeHidden);
 
   if (status === "error") {
     return (
@@ -99,9 +101,14 @@ function RoomBody() {
   return (
     <main className="relative h-dvh w-full overflow-hidden">
       <Canvas />
-      <TopBar />
-      <Dock />
-      <Inspector />
+      {!chromeHidden && (
+        <>
+          <TopBar />
+          <Dock />
+          <Inspector />
+        </>
+      )}
+      <ChromeToggle />
       <FocusView />
       {panel === "chat" && <ChatPanel />}
       {panel === "background" && <BackgroundPanel />}

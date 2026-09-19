@@ -108,6 +108,8 @@ interface RoomState {
    * linked to it instead of selected.
    */
   linking: string | null;
+  /** The room's buttons and bars put away, leaving just the room. */
+  chromeHidden: boolean;
 
   viewport: Viewport;
   panel: PanelId;
@@ -137,6 +139,7 @@ interface RoomState {
   setReaction: (glyph: string | null) => void;
   focus: (id: string | null) => void;
   setLinking: (id: string | null) => void;
+  setChromeHidden: (hidden: boolean) => void;
 
   setMe: (me: Identity) => void;
   syncPeers: (peers: Peer[]) => void;
@@ -181,6 +184,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
   viewport: { x: 0, y: 0, scale: 1 },
   panel: null,
   linking: null,
+  chromeHidden: false,
   connection: "connecting",
   unreadChat: 0,
 
@@ -359,6 +363,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
 
   select: (id) => set((s) => ({ selectedId: id, editingId: s.editingId === id ? id : null })),
   setLinking: (id) => set({ linking: id }),
+  setChromeHidden: (hidden) => set({ chromeHidden: hidden }),
   setEditing: (id) => set({ editingId: id, ...(id ? { selectedId: id } : {}) }),
 
   grab: (id) =>

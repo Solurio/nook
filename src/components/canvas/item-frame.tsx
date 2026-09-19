@@ -59,6 +59,8 @@ function ItemFrame({
   const frameRef = useRef<HTMLDivElement>(null);
 
   const pinned = Boolean(item.data?.pinned);
+  // With the buttons put away, a selected thing shows no frame or handles either.
+  const bare = useRoomStore((s) => s.chromeHidden);
   const group = item.data?.group;
   // Whatever is tied to the selected thing is outlined along with it.
   const mate = useRoomStore((s) =>
@@ -366,14 +368,14 @@ function ItemFrame({
         />
       )}
 
-      {selected && canEdit && pinned && (
+      {selected && canEdit && pinned && !bare && (
         <div
           aria-hidden
           className="pointer-events-none absolute -inset-1.5 rounded-xl border-2 border-dashed border-warm/65"
         />
       )}
 
-      {selected && canEdit && !editing && !pinned && (
+      {selected && canEdit && !editing && !pinned && !bare && (
         <>
           <div
             aria-hidden
