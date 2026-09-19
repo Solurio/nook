@@ -15,6 +15,7 @@ import { emptyBomb } from "./bomb";
 import { emptyWar } from "./war";
 import { emptyCah } from "./cah";
 import { emptyQuoridor } from "./quoridor";
+import { emptyCatan } from "./catan";
 import { emptyPdf } from "./pdf";
 import { emptyGrid, emptyToken } from "./grid";
 import { DEFAULT_SECONDS as SPYFALL_SECONDS } from "./spyfall";
@@ -78,6 +79,7 @@ const GAME_SIZE: Record<GameKind, { width: number; height: number }> = {
   war: { width: 820, height: 640 },
   cah: { width: 640, height: 620 },
   quoridor: { width: 480, height: 560 },
+  catan: { width: 920, height: 660 },
 };
 
 function emptyGameData(game: GameKind): ItemDataMap["game"] {
@@ -153,6 +155,8 @@ function emptyGameData(game: GameKind): ItemDataMap["game"] {
       return { game: "cah", state: emptyCah(5) };
     case "quoridor":
       return { game: "quoridor", state: emptyQuoridor(2) };
+    case "catan":
+      return { game: "catan", state: emptyCatan(4) };
     case "resistance":
       return {
         game: "resistance",

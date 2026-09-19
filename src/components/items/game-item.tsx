@@ -24,6 +24,7 @@ import Bomb from "@/components/games/bomb";
 import War from "@/components/games/war";
 import Cah from "@/components/games/cah";
 import Quoridor from "@/components/games/quoridor";
+import Catan from "@/components/games/catan";
 
 export default function GameItem({ item }: { item: Item<"game"> }) {
   switch (item.data.game) {
@@ -73,6 +74,8 @@ export default function GameItem({ item }: { item: Item<"game"> }) {
       return <Cah item={item} state={item.data.state} />;
     case "quoridor":
       return <Quoridor item={item} state={item.data.state} />;
+    case "catan":
+      return <Catan item={item} state={item.data.state} />;
     default:
       return null;
   }

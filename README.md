@@ -50,7 +50,10 @@ it, and it all stays where you dropped it.
   Portuguese, an after-dark pack of each for grown-ups, and decks anyone can
   write card by card and save for everyone who uses the site -- ticked before a
   game or added in the middle of one. Answers go in face down and turn over together, mixed, so the czar
-  never knows whose is whose. Your hand is yours alone; see
+  never knows whose is whose. **Catan** for two to four, on a new island every
+  game: setup round and back, the robber, harbours, trading with the table,
+  the longest road, the largest army, and development cards from a hidden
+  deck. Your hand is yours alone; see
   [Hidden cards](#hidden-cards) for how.
 - **Board games.** Chess (with check, mate and castling), checkers, connect four,
   tic-tac-toe, **Quoridor** (Bloqueio here in Brazil) for two or four, with walls

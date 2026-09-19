@@ -104,6 +104,7 @@ const GAMES: Array<{
   { kind: "bang", group: "secrets", title: "BANG!", hint: "the dice game: a sheriff, outlaws, arrows", icon: <Star /> },
   { kind: "buckshot", group: "secrets", title: "buckshot roulette", hint: "live or blank, and nobody knows", icon: <Crosshair /> },
   { kind: "dominoes", group: "secrets", title: "dominoes", hint: "double six, teams optional", icon: <GripVertical /> },
+  { kind: "catan", group: "secrets", title: "catan", hint: "build, trade, and mind the robber", icon: <Hexagon /> },
   { kind: "quoridor", group: "boards", title: "quoridor (bloqueio)", hint: "cross first, wall everyone else in", icon: <BrickWall /> },
   { kind: "war", group: "boards", title: "WAR", hint: "42 territories, a secret objective", icon: <Earth /> },
   { kind: "chess", group: "boards", title: "chess", hint: "check, mate, castling", icon: <Crown /> },
