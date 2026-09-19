@@ -36,7 +36,9 @@ export interface CahState {
   seatCount: number;
   phase: "idle" | "play" | "over";
   packs: PackId[];
-  /** The table's own cards. */
+  /** Shared decks picked for this table (0007_decks.sql), by id. */
+  decks?: string[];
+  /** Cards written straight onto this table, from before there were decks. */
   custom: { black: string[]; white: string[] };
   /** Points to win. */
   goal: number;
@@ -132,10 +134,18 @@ export function parseCards(text: string, prompts = false): string[] {
   return out.slice(0, MAX_CUSTOM);
 }
 
-/** Every card the table will play with: the packs picked plus its own. */
-export function decksFor(state: Pick<CahState, "packs" | "custom">): { black: string[]; white: string[] } {
+/** Cards from somewhere else -- the shared decks -- fetched by whoever deals. */
+export interface ExtraCards {
+  black: string[];
+  white: string[];
+}
+
+/** Every card the table will play with: the packs picked, the shared decks, and its own. */
+export function decksFor(state: Pick<CahState, "packs" | "custom">, extra?: ExtraCards): { black: string[]; white: string[] } {
   const black = new Set<string>();
   const white = new Set<string>();
+  extra?.black.forEach((c) => black.add(normalizePrompt(c)));
+  extra?.white.forEach((c) => white.add(c));
   for (const id of state.packs) {
     const pack = PACKS[id];
     if (!pack) continue;
@@ -149,8 +159,8 @@ export function decksFor(state: Pick<CahState, "packs" | "custom">): { black: st
 }
 
 /** Why a game cannot start with these cards, if it cannot. */
-export function deckProblem(state: Pick<CahState, "packs" | "custom">, players: number): string | null {
-  const { black, white } = decksFor(state);
+export function deckProblem(state: Pick<CahState, "packs" | "custom">, players: number, extra?: ExtraCards): string | null {
+  const { black, white } = decksFor(state, extra);
   if (black.length < 1) return "there are no black cards: pick a pack or write a few";
   const need = players * HAND + players;
   if (white.length < need) return `${players} players need at least ${need} white cards; there are ${white.length}`;
@@ -196,10 +206,11 @@ export function startGame(
   chairs: string[],
   random: Random,
   name: Name = (c) => c,
+  extra?: ExtraCards,
 ): { state: CahState; whites: string[] } | { problem: string } {
-  const problem = deckProblem(state, chairs.length);
+  const problem = deckProblem(state, chairs.length, extra);
   if (problem) return { problem };
-  const { black, white } = decksFor(state);
+  const { black, white } = decksFor(state, extra);
   const czar = chairs[random(chairs.length)];
   // Rounds count on from the last game, so no answer pile is ever named twice.
   const round = (state.round || 0) + 1;

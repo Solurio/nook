@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
-import { BookOpen, Check, Crown, Minus, PenLine, Plus, X } from "lucide-react";
+import { BookOpen, Check, Crown, Layers, Minus, Plus, X } from "lucide-react";
 import { useRoom } from "@/realtime/room-provider";
 import { usePiles } from "@/realtime/use-piles";
 import { useHandOver } from "@/realtime/use-hand-over";
@@ -10,7 +10,7 @@ import { useRoomStore } from "@/state/room-store";
 import { chairOf, claimChair } from "@/lib/seats";
 import { randomBelow } from "@/lib/dice";
 import { sizeOf } from "@/lib/piles";
-import { PACKS, type PackId } from "@/lib/cah-packs";
+import type { PackId } from "@/lib/cah-packs";
 import {
   GOALS,
   HAND,
@@ -25,11 +25,9 @@ import {
   deckProblem,
   decksFor,
   emptyCah,
-  fill,
   handSlot,
   judgeable,
   nextRound,
-  parseCards,
   pickOf,
   pickWinner,
   playSlot,
@@ -40,72 +38,9 @@ import {
 } from "@/lib/cah";
 import type { Item } from "@/lib/types";
 import RulesSheet from "./rules-sheet";
-
-function BlackCard({ prompt, answers, small }: { prompt: string; answers?: string[]; small?: boolean }) {
-  return (
-    <div
-      className={clsx(
-        "flex flex-col justify-between rounded-xl bg-[#121014] font-semibold text-[#f4efe6] shadow-[0_6px_18px_rgba(0,0,0,0.45)] ring-1 ring-white/10",
-        small ? "min-h-20 p-2.5 text-[12px]" : "min-h-28 p-3.5 text-[14px] leading-snug",
-      )}
-    >
-      <p>
-        {fill(prompt, answers ?? []).map((part, i) =>
-          part.answer ? (
-            <span key={i} className="text-warm underline decoration-warm/40 underline-offset-2">
-              {part.text}
-            </span>
-          ) : (
-            <span key={i}>{part.text}</span>
-          ),
-        )}
-      </p>
-      {pickOf(prompt) > 1 && <p className="mt-2 self-end text-[10px] font-bold tracking-wide text-muted">PICK {pickOf(prompt)}</p>}
-    </div>
-  );
-}
-
-function WhiteCard({
-  text,
-  order,
-  chosen,
-  dim,
-  onClick,
-  className,
-}: {
-  text: string;
-  order?: number;
-  chosen?: boolean;
-  dim?: boolean;
-  onClick?: () => void;
-  className?: string;
-}) {
-  const look = clsx(
-    "relative flex min-h-16 flex-col rounded-lg bg-[#f4efe6] p-1.5 text-left text-[10.5px] leading-tight font-semibold text-[#141117] shadow-[0_3px_8px_rgba(0,0,0,0.35)] transition",
-    onClick && "hover:-translate-y-0.5",
-    chosen && "-translate-y-1 ring-3 ring-warm",
-    dim && "opacity-50",
-    className,
-  );
-  const badge = order !== undefined && (
-    <span className="absolute -top-1.5 -right-1.5 grid size-5 place-items-center rounded-full bg-warm text-[10px] font-bold text-ink-950">{order}</span>
-  );
-  // Only a card you can play is a button; one sitting inside an answer the czar taps is not.
-  if (!onClick) {
-    return (
-      <div className={look}>
-        {text}
-        {badge}
-      </div>
-    );
-  }
-  return (
-    <button type="button" onClick={onClick} className={look}>
-      {text}
-      {badge}
-    </button>
-  );
-}
+import { BlackCard, WhiteCard } from "./cah-cards";
+import { DeckEditor, DeckPicker, fetchDeckCards, useSharedDecks } from "./cah-decks";
+import type { DeckDraft } from "@/lib/decks";
 
 /**
  * Cards Against Humanity, with the starter cards, the table's own, or both.
@@ -120,10 +55,10 @@ export default function Cah({ item, state: raw }: { item: Item<"game">; state: u
 
   const [busy, setBusy] = useState(false);
   const [manual, setManual] = useState(false);
-  const [editing, setEditing] = useState(false);
-  const [blackText, setBlackText] = useState("");
-  const [whiteText, setWhiteText] = useState("");
   const [problem, setProblem] = useState<string | null>(null);
+  const [deckEdit, setDeckEdit] = useState<DeckDraft | { load: string; copy: boolean } | null>(null);
+  const [showDecks, setShowDecks] = useState(false);
+  const shared = useSharedDecks();
   const [holding, setHolding] = useState<string | null>(null);
   const [chosen, setChosen] = useState<{ key: string; cards: string[] }>({ key: "", cards: [] });
   const [preview, setPreview] = useState<{ key: string; chair: string | null }>({ key: "", chair: null });
@@ -166,7 +101,12 @@ export default function Cah({ item, state: raw }: { item: Item<"game">; state: u
   const deal = () =>
     run(async () => {
       if (!me) return;
-      const started = startGame(clean(state), chairs, randomBelow, label);
+      const extra = await fetchDeckCards(state.decks ?? []);
+      if ("problem" in extra) {
+        setProblem(extra.problem);
+        return;
+      }
+      const started = startGame(clean(state), chairs, randomBelow, label, extra);
       if ("problem" in started) {
         setProblem(started.problem);
         return;
@@ -185,34 +125,43 @@ export default function Cah({ item, state: raw }: { item: Item<"game">; state: u
       });
     });
 
-  const openEditor = () => {
-    setBlackText(state.custom.black.join("\n"));
-    setWhiteText(state.custom.white.join("\n"));
-    setEditing(true);
-  };
-
-  const saveCards = () =>
-    run(async () => {
-      const now = latest();
-      const custom = { black: parseCards(blackText, true), white: parseCards(whiteText) };
-      setEditing(false);
-      if (now.phase !== "play") {
-        await write({ ...now, custom });
-        return;
-      }
-      // A game already going: new cards join it -- black ones among those still to come,
-      // white ones shuffled into the deck.
-      const newBlack = custom.black.filter((c) => !now.custom.black.includes(c));
-      const newWhite = custom.white.filter((c) => !now.custom.white.includes(c) && !decksFor(now).white.includes(c));
-      // The state is written on its own: a pile call carrying it would replace the
-      // answers the database has turned over this round.
-      if (newWhite.length) await pile("pile_put", { p_item: item.id, p_to: WHITE_PILE, p_cards: newWhite, p_shuffle: true });
-      await write({ ...addBlacks(latest(), newBlack, randomBelow), custom });
-    });
-
   const togglePack = (id: PackId) => {
     const packs = state.packs.includes(id) ? state.packs.filter((p) => p !== id) : [...state.packs, id];
     void write({ ...state, packs });
+  };
+
+  /**
+   * Ticking a shared deck. Between games it is just a choice for the next deal;
+   * in the middle of one, the deck joins the game going on -- its questions
+   * among those still to come, its answers shuffled into the deck.
+   */
+  const toggleDeck = (id: string) =>
+    run(async () => {
+      const now = latest();
+      const chosen = now.decks ?? [];
+      if (now.phase !== "play") {
+        await write({ ...now, decks: chosen.includes(id) ? chosen.filter((d) => d !== id) : [...chosen, id] });
+        return;
+      }
+      if (chosen.includes(id)) return;
+      const [before, added] = await Promise.all([fetchDeckCards(chosen), fetchDeckCards([id])]);
+      if ("problem" in before || "problem" in added) {
+        setProblem("problem" in before ? before.problem : "problem" in added ? added.problem : null);
+        return;
+      }
+      const known = new Set(decksFor(now, before).white);
+      const fresh = [...new Set(added.white)].filter((c) => !known.has(c));
+      // The state is written on its own: a pile call carrying it would replace the
+      // answers the database has turned over this round.
+      if (fresh.length) await pile("pile_put", { p_item: item.id, p_to: WHITE_PILE, p_cards: fresh, p_shuffle: true });
+      await write({ ...addBlacks(latest(), added.black, randomBelow), decks: [...chosen, id] });
+    });
+
+  /** A deck saved: the list reads again, and a new one is ticked for this table straight away. */
+  const deckSaved = (id: string | null, wasNew: boolean) => {
+    shared.reload();
+    setDeckEdit(null);
+    if (id && wasNew && latest().phase !== "play") void toggleDeck(id);
   };
 
   // ---------------------------------------------------------------------------
@@ -327,8 +276,36 @@ export default function Cah({ item, state: raw }: { item: Item<"game">; state: u
   const decide = (chair: string) => run(() => write(pickWinner(latest(), chair, label)));
   const onward = () => run(() => write(nextRound(latest(), randomBelow, label)));
 
-  const decks = decksFor(state);
-  const deckIssue = state.phase !== "play" ? deckProblem(state, chairs.length) : null;
+  // Counted before the shared decks' cards are fetched, so only roughly: a card
+  // in two decks is counted twice. The deal counts properly.
+  const builtIn = decksFor(state);
+  const picked = shared.decks.filter((d) => (state.decks ?? []).includes(d.id));
+  const counts = {
+    black: builtIn.black.length + picked.reduce((n, d) => n + d.black_count, 0),
+    white: builtIn.white.length + picked.reduce((n, d) => n + d.white_count, 0),
+  };
+  const deckIssue =
+    state.phase === "play"
+      ? null
+      : picked.length
+        ? counts.black < 1
+          ? "there are no questions: pick a pack or a deck"
+          : null
+        : deckProblem(state, chairs.length);
+  const picker = (
+    <DeckPicker
+      packs={state.packs}
+      chosen={state.decks ?? []}
+      decks={shared.decks}
+      status={shared.status}
+      userId={me?.userId ?? null}
+      canEdit={canEdit && !busy}
+      playing={playing}
+      onPack={togglePack}
+      onDeck={(id) => void toggleDeck(id)}
+      onEdit={(start) => setDeckEdit(start)}
+    />
+  );
 
   return (
     <div className="surface grain relative flex size-full flex-col gap-2 overflow-hidden rounded-2xl p-2.5">
@@ -382,9 +359,11 @@ export default function Cah({ item, state: raw }: { item: Item<"game">; state: u
           );
         })}
         <span className="ml-auto flex items-center gap-0.5">
-          <button type="button" disabled={!canEdit} onClick={openEditor} className="flex min-h-7 items-center gap-1 rounded-lg px-1.5 hover:bg-white/8 hover:text-chalk disabled:opacity-40">
-            <PenLine className="size-3" /> your cards
-          </button>
+          {playing && (
+            <button type="button" onClick={() => setShowDecks(true)} className="flex min-h-7 items-center gap-1 rounded-lg px-1.5 hover:bg-white/8 hover:text-chalk">
+              <Layers className="size-3" /> decks
+            </button>
+          )}
           <button type="button" onClick={() => setManual(true)} className="flex min-h-7 items-center gap-1 rounded-lg px-1.5 hover:bg-white/8 hover:text-chalk">
             <BookOpen className="size-3" /> rules
           </button>
@@ -403,24 +382,18 @@ export default function Cah({ item, state: raw }: { item: Item<"game">; state: u
               )}
             </div>
           )}
-          <div className="flex flex-col gap-1.5 text-[11px]">
-            {(Object.keys(PACKS) as PackId[]).map((id) => (
-              <label key={id} className="flex min-h-8 items-center gap-2 text-muted">
-                <input type="checkbox" checked={state.packs.includes(id)} disabled={!canEdit} onChange={() => togglePack(id)} className="size-4 accent-warm" />
-                <span className="text-chalk">{PACKS[id].name}</span>
-                <span className="text-muted/60">
-                  {PACKS[id].black.length} black, {PACKS[id].white.length} white
-                </span>
-              </label>
-            ))}
-            <p className="text-muted">
-              your own: {state.custom.black.length} black, {state.custom.white.length} white ·{" "}
-              <button type="button" disabled={!canEdit} onClick={openEditor} className="text-glow underline-offset-2 hover:underline">
-                write some
-              </button>
-            </p>
-            <p className="text-muted/60">
-              in play: {decks.black.length} black, {decks.white.length} white
+          {picker}
+          <div className="flex flex-col gap-0.5 text-[11px] text-muted/70">
+            {(state.custom.black.length > 0 || state.custom.white.length > 0) && (
+              <p>
+                this table&apos;s own cards: {state.custom.black.length} / {state.custom.white.length} ·{" "}
+                <button type="button" disabled={!canEdit} onClick={() => void write({ ...state, custom: { black: [], white: [] } })} className="underline-offset-2 hover:underline">
+                  leave them out
+                </button>
+              </p>
+            )}
+            <p>
+              playing with about {counts.black} questions and {counts.white} answers
             </p>
           </div>
           <div className="flex items-center gap-1 text-[11px] text-muted">
@@ -600,43 +573,27 @@ export default function Cah({ item, state: raw }: { item: Item<"game">; state: u
         </div>
       )}
 
-      {editing && (
-        <div className="absolute inset-0 z-30 flex flex-col gap-2 rounded-2xl bg-ink-950/95 p-3 backdrop-blur-sm">
-          <div className="flex items-center justify-between">
-            <h3 className="text-[12px] font-semibold text-chalk">your own cards</h3>
-            <button type="button" onClick={() => setEditing(false)} aria-label="close" className="grid size-9 place-items-center rounded-lg text-muted hover:bg-white/8 hover:text-chalk">
+      {showDecks && playing && (
+        <div className="absolute inset-0 z-20 flex flex-col items-center gap-2 overflow-y-auto rounded-2xl bg-ink-950/95 p-3 backdrop-blur-sm">
+          <div className="flex w-full max-w-md items-center justify-between">
+            <h3 className="text-[12px] font-semibold text-chalk">decks</h3>
+            <button type="button" onClick={() => setShowDecks(false)} aria-label="close" className="grid size-9 place-items-center rounded-lg text-muted hover:bg-white/8 hover:text-chalk">
               <X className="size-4" />
             </button>
           </div>
-          <p className="text-[10px] text-muted">
-            One card a line. On a black card, underscores make a blank -- two blanks ask for two answers, none asks for one at the end.
-            {playing && " New cards join the game going on now; anything taken away stays in it until the next deal."}
-          </p>
-          <label className="flex min-h-0 flex-1 flex-col gap-1 text-[11px] text-muted">
-            black cards (questions)
-            <textarea
-              value={blackText}
-              onChange={(event) => setBlackText(event.target.value)}
-              placeholder={"What did the intern do this time? ___.\n___ and ___: a love story."}
-              className="min-h-0 flex-1 resize-none rounded-lg bg-[#121014] p-2 text-[12px] text-chalk outline-none ring-1 ring-white/10 focus:ring-warm/60"
-            />
-          </label>
-          <label className="flex min-h-0 flex-1 flex-col gap-1 text-[11px] text-muted">
-            white cards (answers)
-            <textarea
-              value={whiteText}
-              onChange={(event) => setWhiteText(event.target.value)}
-              placeholder={"The group chat at 3am.\nOur landlord's cat."}
-              className="min-h-0 flex-1 resize-none rounded-lg bg-[#f4efe6] p-2 text-[12px] text-[#141117] outline-none focus:ring-2 focus:ring-warm/60"
-            />
-          </label>
-          <div className="flex items-center gap-2 text-[10px] text-muted">
-            {parseCards(blackText, true).length} black, {parseCards(whiteText).length} white
-            <button type="button" disabled={busy} onClick={() => void saveCards()} className="ml-auto min-h-9 rounded-xl bg-chalk px-4 text-[12px] font-semibold text-ink-950">
-              save
-            </button>
-          </div>
+          <p className="w-full max-w-md text-[10px] text-muted">A deck ticked now joins this game. Changes to a deck count from the next deal.</p>
+          {picker}
         </div>
+      )}
+
+      {deckEdit && (
+        <DeckEditor
+          start={deckEdit}
+          author={me?.name ?? ""}
+          userId={me?.userId ?? null}
+          onClose={() => setDeckEdit(null)}
+          onSaved={(id) => deckSaved(id, !("load" in deckEdit) || deckEdit.copy)}
+        />
       )}
 
       {manual && (

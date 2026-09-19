@@ -2,8 +2,12 @@
 // play with these, with its own, or with both. A prompt's blanks are written
 // as four underscores; a prompt with none takes one answer at the end.
 
+import { PACK_EN_ADULT, PACK_PT_ADULT } from "./cah-after-dark";
+
 export interface Pack {
   name: string;
+  /** For grown-ups only: shown with a warning, never on by default. */
+  adult?: boolean;
   black: string[];
   white: string[];
 }
@@ -377,5 +381,5 @@ export const PACK_PT: Pack = {
   ],
 };
 
-export const PACKS = { en: PACK_EN, pt: PACK_PT } as const;
+export const PACKS = { en: PACK_EN, pt: PACK_PT, "en-adult": PACK_EN_ADULT, "pt-adult": PACK_PT_ADULT } as const;
 export type PackId = keyof typeof PACKS;

@@ -47,8 +47,9 @@ it, and it all stays where you dropped it.
   territory and continent, dice battles everyone watches, territory cards
   traded in at the going rate, and a secret objective each. **Cards Against
   Humanity** with starter cards written for this project, in English and
-  Portuguese, or cards the table writes itself -- before a game or in the middle
-  of one. Answers go in face down and turn over together, mixed, so the czar
+  Portuguese, an after-dark pack of each for grown-ups, and decks anyone can
+  write card by card and save for everyone who uses the site -- ticked before a
+  game or added in the middle of one. Answers go in face down and turn over together, mixed, so the czar
   never knows whose is whose. Your hand is yours alone; see
   [Hidden cards](#hidden-cards) for how.
 - **Board games.** Chess (with check, mate and castling), checkers, connect four,
@@ -197,7 +198,8 @@ create a new project. Pick the region closest to you, it feeds straight into
 realtime latency.
 
 **2. Run the migrations.** Open the project's SQL Editor and run the contents of
-`supabase/migrations/` in order. All of them, including the newest: `0006`
+`supabase/migrations/` in order. All of them, including the newest: `0007`
+keeps the Cards Against Humanity decks people write, for everyone. `0006`
 creates the secret piles every hidden-card game runs on, adds pieces, grids and
 documents, and lets the upload bucket take PDFs. Without it those games say so
 instead of dealing. `0005` widens what the upload bucket accepts, and without it
