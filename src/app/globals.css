@@ -232,6 +232,25 @@ body.is-room {
   }
 }
 
+@keyframes disc-flip {
+  0% {
+    scale: 1 1;
+  }
+  50% {
+    scale: 0 1;
+  }
+  100% {
+    scale: 1 1;
+  }
+}
+
+@keyframes disc-drop {
+  from {
+    scale: 1.35;
+    opacity: 0;
+  }
+}
+
 @keyframes wall-down {
   from {
     opacity: 0;
@@ -383,6 +402,14 @@ body.is-room {
   animation: wall-down 0.25s ease-out both;
 }
 
+.animate-disc-flip {
+  animation: disc-flip 0.35s ease-in-out both;
+}
+
+.animate-disc-drop {
+  animation: disc-drop 0.2s ease-out both;
+}
+
 .animate-kick {
   animation: kick 0.5s ease-out infinite;
 }
@@ -530,6 +557,8 @@ body.is-room {
   .animate-coin-shadow,
   .animate-bang,
   .animate-wall-down,
+  .animate-disc-flip,
+  .animate-disc-drop,
   .animate-kick,
   .animate-rps-pump,
   .animate-rps-show,

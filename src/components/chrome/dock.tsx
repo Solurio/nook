@@ -108,6 +108,7 @@ const GAMES: Array<{
   { kind: "quoridor", group: "boards", title: "quoridor (bloqueio)", hint: "cross first, wall everyone else in", icon: <BrickWall /> },
   { kind: "war", group: "boards", title: "WAR", hint: "42 territories, a secret objective", icon: <Earth /> },
   { kind: "chess", group: "boards", title: "chess", hint: "check, mate, castling", icon: <Crown /> },
+  { kind: "reversi", group: "boards", title: "reversi", hint: "close a line, flip it over", icon: <CircleDot /> },
   { kind: "checkers", group: "boards", title: "checkers", hint: "jump and crown", icon: <CircleDot /> },
   { kind: "bomb", group: "boards", title: "bomb party", hint: "a word with the letters, before it blows", icon: <Bomb /> },
   { kind: "rps", group: "boards", title: "rock paper scissors", hint: "sealed throws, shown together", icon: <Hand /> },
