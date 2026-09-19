@@ -54,6 +54,8 @@ interface ItemPayloads {
     align: "left" | "center" | "right";
     /** Absent means plain text; the rest animate. */
     effect?: TextEffect;
+    /** A font family (src/lib/fonts.ts); absent means the room's own. */
+    font?: string;
   };
   media: MediaData;
   /**

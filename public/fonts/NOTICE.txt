@@ -1,0 +1,11 @@
+Fonts served by nook for everyone to use on text in a room.
+
+SIL Open Font License 1.1 (https://openfontlicense.org):
+  blackcraft.ttf, helpme.ttf, hina-mincho-regular.ttf, itim-regular.ttf
+
+Creative Commons Zero, public domain (https://creativecommons.org/publicdomain/zero/1.0/):
+  manbow-clear.otf, manbow-dots.otf, manbow-fill.otf, manbow-lines.otf,
+  manbow-screen.otf, operational-amplifier.otf
+
+Every other font in the picker is only named, never shipped: it shows on a
+screen that already has it installed.

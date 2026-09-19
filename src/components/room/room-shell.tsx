@@ -1,5 +1,6 @@
 "use client";
 
+import { BUNDLED_CSS } from "@/lib/fonts";
 import { useEffect } from "react";
 import Link from "next/link";
 import { Loader2, X } from "lucide-react";
@@ -100,6 +101,7 @@ function RoomBody() {
 
   return (
     <main className="relative h-dvh w-full overflow-hidden">
+      <style>{BUNDLED_CSS}</style>
       <Canvas />
       {!chromeHidden && (
         <>

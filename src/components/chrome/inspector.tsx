@@ -1,5 +1,6 @@
 "use client";
 
+import FontPicker from "@/components/chrome/font-picker";
 import clsx from "clsx";
 import {
   AlignCenter,
@@ -411,6 +412,8 @@ function TextControls({ item }: { item: Item<"text"> }) {
       />
 
       <Divider />
+
+      <FontPicker value={data.font} onPick={(font) => void updateData(item.id, { ...data, font })} />
 
       <select
         value={data.effect ?? "none"}

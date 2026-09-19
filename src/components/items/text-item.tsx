@@ -1,5 +1,6 @@
 "use client";
 
+import { fontStack } from "@/lib/fonts";
 import { useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import { useRoom } from "@/realtime/room-provider";
@@ -10,6 +11,7 @@ import type { Item, TextEffect } from "@/lib/types";
 function typeStyle(data: Item<"text">["data"]): React.CSSProperties {
   return {
     fontSize: data.size,
+    fontFamily: fontStack(data.font),
     color: data.color,
     fontWeight: data.weight,
     textAlign: data.align,
