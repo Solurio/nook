@@ -12,7 +12,7 @@
  * with no new table and no migration.
  */
 
-import { TERRITORIES, TERRITORY_IDS, type Territory } from "@/lib/war";
+import { NEIGHBORS, TERRITORIES, TERRITORY_IDS, type Territory } from "@/lib/war";
 
 export const MAP_W = 1000;
 export const MAP_H = 560;
@@ -43,6 +43,18 @@ export type WarMapData = {
   /** The dashed lines between neighbours. */
   links: boolean;
   spots: Partial<Record<Territory, Spot>>;
+  /** What this room calls a territory, in place of its rules name. Cosmetic only. */
+  names: Partial<Record<Territory, string>>;
+  /**
+   * Extra connections this room has drawn, beyond the classic borders.
+   * Undirected, so [a,b] and [b,a] are the same connection.
+   *
+   * These widen who you can move reinforcements between (see `neighborsOf`).
+   * They do NOT currently widen who you can attack -- that check happens
+   * inside `lib/war`'s own `attack`/`canAttackFrom`, which this file has no
+   * hand in.
+   */
+  customLinks: Array<[Territory, Territory]>;
 };
 
 export const emptyMap = (): WarMapData => ({
@@ -53,6 +65,8 @@ export const emptyMap = (): WarMapData => ({
   labels: true,
   links: true,
   spots: {},
+  names: {},
+  customLinks: [],
 });
 
 // ---------------------------------------------------------------------------
@@ -301,8 +315,64 @@ export const shapeOf = (map: WarMapData, t: Territory): string | null => {
   return worldSpots[t]?.shape ?? null;
 };
 
-/** True once a room has drawn or moved anything of its own. */
-export const isCustom = (map: WarMapData): boolean => Boolean(map.image) || Object.keys(map.spots).length > 0;
+/** True once a room has drawn, moved, renamed or connected anything of its own. */
+export const isCustom = (map: WarMapData): boolean =>
+  Boolean(map.image) || Object.keys(map.spots).length > 0 || Object.keys(map.names).length > 0 || map.customLinks.length > 0;
+
+// ---------------------------------------------------------------------------
+// Renaming a territory -- cosmetic only, the rules never see this
+// ---------------------------------------------------------------------------
+
+/** What this room calls a territory: its own name if it set one, else the rules name. */
+export const nameOf = (map: WarMapData, t: Territory): string => map.names[t]?.trim() || TERRITORIES[t].name;
+
+export function rename(map: WarMapData, t: Territory, name: string): WarMapData {
+  const trimmed = name.trim().slice(0, 30);
+  const names = { ...map.names };
+  if (trimmed) names[t] = trimmed;
+  else delete names[t];
+  return { ...map, names };
+}
+
+// ---------------------------------------------------------------------------
+// Connections a room draws by hand, on top of the classic borders
+// ---------------------------------------------------------------------------
+
+const edgeKey = (a: Territory, b: Territory): string => (a < b ? `${a}|${b}` : `${b}|${a}`);
+
+/** Whether this room has connected these two by hand (in either direction). */
+export function linked(map: WarMapData, a: Territory, b: Territory): boolean {
+  const key = edgeKey(a, b);
+  return map.customLinks.some(([x, y]) => edgeKey(x, y) === key);
+}
+
+/** Draws, or erases, a connection between two territories. */
+export function toggleLink(map: WarMapData, a: Territory, b: Territory): WarMapData {
+  if (a === b) return map;
+  const key = edgeKey(a, b);
+  const already = map.customLinks.some(([x, y]) => edgeKey(x, y) === key);
+  return {
+    ...map,
+    customLinks: already ? map.customLinks.filter(([x, y]) => edgeKey(x, y) !== key) : [...map.customLinks, [a, b]],
+  };
+}
+
+/** Every connection touching this territory, removed in one go. */
+export function unlinkAll(map: WarMapData, t: Territory): WarMapData {
+  return { ...map, customLinks: map.customLinks.filter(([a, b]) => a !== t && b !== t) };
+}
+
+/**
+ * Who you can reach from here in one step: the classic borders, plus
+ * whatever this room has connected by hand. This is what decides where
+ * reinforcements can move -- see the note on `customLinks` about attacks.
+ */
+export function neighborsOf(map: WarMapData, t: Territory): Territory[] {
+  const base = NEIGHBORS[t] ?? [];
+  if (!map.customLinks.length) return base;
+  const extra = map.customLinks.filter(([a, b]) => a === t || b === t).map(([a, b]) => (a === t ? b : a));
+  return extra.length ? Array.from(new Set([...base, ...extra])) : base;
+}
 
 // ---------------------------------------------------------------------------
 // Carrying it in the game's own state
@@ -314,7 +384,7 @@ type WithMap = { map?: Partial<WarMapData> };
 export function readMap(state: unknown): WarMapData {
   const stored = (state as WithMap | undefined)?.map;
   if (!stored) return WORLD;
-  return { ...emptyMap(), ...stored, spots: stored.spots ?? {} };
+  return { ...emptyMap(), ...stored, spots: stored.spots ?? {}, names: stored.names ?? {}, customLinks: stored.customLinks ?? [] };
 }
 
 /** Carry a room's map across a state the rules built from scratch, like a new deal. */
@@ -351,7 +421,19 @@ export function importMap(text: string): WarMapData | null {
         shape: typeof spot.shape === "string" && points(spot.shape).length >= 3 ? spot.shape : undefined,
       };
     }
-    return { ...emptyMap(), ...parsed, spots };
+    const names: Partial<Record<Territory, string>> = {};
+    for (const id of TERRITORY_IDS) {
+      const value = (parsed.names as Record<string, unknown> | undefined)?.[id];
+      if (typeof value === "string" && value.trim()) names[id] = value.trim().slice(0, 30);
+    }
+    const known = new Set<string>(TERRITORY_IDS);
+    const customLinks: Array<[Territory, Territory]> = Array.isArray(parsed.customLinks)
+      ? (parsed.customLinks as unknown[]).filter((pair): pair is [Territory, Territory] => {
+          const [a, b] = Array.isArray(pair) ? pair : [];
+          return typeof a === "string" && typeof b === "string" && known.has(a) && known.has(b) && a !== b;
+        })
+      : [];
+    return { ...emptyMap(), ...parsed, spots, names, customLinks };
   } catch {
     return null;
   }

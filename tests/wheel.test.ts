@@ -84,7 +84,7 @@ test("editing keeps weights and labels in bounds", () => {
   assert.equal(state.slices[0].label.length, 24);
   assert.equal(removeSlice(removeSlice(state, "a"), "b").slices.length, 1, "one slice always stays");
   let full = weighted();
-  for (let i = 0; i < 40; i += 1) full = addSlice(full, `n${i}`);
+  for (let i = 0; i < 150; i += 1) full = addSlice(full, `n${i}`);
   assert.equal(full.slices.length, MAX_SLICES);
 });
 

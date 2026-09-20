@@ -64,7 +64,7 @@ export const PALETTE = [
   "#e8e2d6",
 ];
 
-export const MAX_SLICES = 24;
+export const MAX_SLICES = 100;
 export const MAX_WEIGHT = 99;
 export const LABEL_MAX = 24;
 export const HISTORY = 20;

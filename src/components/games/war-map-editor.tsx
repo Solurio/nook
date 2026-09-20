@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import clsx from "clsx";
-import { Check, ClipboardPaste, Copy, ImagePlus, Move, PenLine, RotateCcw, Trash2, Undo2, X } from "lucide-react";
+import { Check, ClipboardPaste, Copy, ImagePlus, Link2, Move, PenLine, RotateCcw, Trash2, Undo2, X } from "lucide-react";
 import { useRoom } from "@/realtime/room-provider";
 import { prepareImage } from "@/lib/image-upload";
 import { CONTINENTS, CONTINENT_IDS, TERRITORIES, TERRITORY_IDS, territoriesIn, type Territory } from "@/lib/war";
@@ -13,9 +13,14 @@ import {
   emptyMap,
   exportMap,
   importMap,
+  isCustom,
   middle,
+  nameOf,
+  rename,
   shapeOf,
   spotOf,
+  toggleLink,
+  unlinkAll,
   type WarMapData,
 } from "@/lib/war-map";
 
@@ -56,7 +61,7 @@ export default function WarMapEditor({
   const file = useRef<HTMLInputElement>(null);
 
   const [chosen, setChosen] = useState<Territory | null>(null);
-  const [mode, setMode] = useState<"move" | "draw">("move");
+  const [mode, setMode] = useState<"move" | "draw" | "link">("move");
   const [tracing, setTracing] = useState<Array<[number, number]>>([]);
   const [dragging, setDragging] = useState<Territory | null>(null);
   const [preview, setPreview] = useState<[number, number] | null>(null);
@@ -162,6 +167,25 @@ export default function WarMapEditor({
             />
           )}
 
+          {/* This room's own connections, drawn under the markers so they stay tappable */}
+          {map.customLinks.map(([a, b], i) => {
+            const A = spotOf(map, a);
+            const B = spotOf(map, b);
+            const touches = chosen !== null && (a === chosen || b === chosen);
+            return (
+              <line
+                key={`link-${i}`}
+                x1={A.x}
+                y1={A.y}
+                x2={B.x}
+                y2={B.y}
+                stroke="#f6c177"
+                strokeOpacity={touches ? 0.9 : 0.45}
+                strokeWidth={touches ? 2.6 : 1.6}
+              />
+            );
+          })}
+
           {TERRITORY_IDS.map((t) => {
             const spot = dragging === t && preview ? { x: preview[0], y: preview[1] } : spotOf(map, t);
             const shape = map.shapes ? shapeOf(map, t) : null;
@@ -186,12 +210,18 @@ export default function WarMapEditor({
                   onPointerDown={(event) => {
                     if (!canEdit) return;
                     event.stopPropagation();
+                    if (mode === "link" && chosen && chosen !== t) {
+                      onSave(toggleLink(map, chosen, t));
+                      return;
+                    }
                     setChosen(t);
                     setTracing([]);
-                    setDragging(t);
-                    setPreview([spot.x, spot.y]);
+                    if (mode !== "link") {
+                      setDragging(t);
+                      setPreview([spot.x, spot.y]);
+                    }
                   }}
-                  style={{ cursor: canEdit ? "grab" : "default" }}
+                  style={{ cursor: canEdit ? (mode === "link" ? "pointer" : "grab") : "default" }}
                 >
                   <circle
                     r={here ? 11 : 8}
@@ -202,7 +232,7 @@ export default function WarMapEditor({
                   />
                   {here && (
                     <text y={-15} textAnchor="middle" fontSize={11} fontWeight={700} fill="#f4efe6" stroke="#0c1826" strokeWidth={3} paintOrder="stroke">
-                      {TERRITORIES[t].name}
+                      {nameOf(map, t)}
                     </text>
                   )}
                 </g>
@@ -224,7 +254,11 @@ export default function WarMapEditor({
         {chosen && (
           <div className="pointer-events-none absolute inset-x-0 bottom-1 flex justify-center">
             <span className="rounded-lg bg-ink-950/80 px-2 py-1 text-[10px] text-muted">
-              {mode === "draw" ? "tap the map to trace its border" : "tap the map to move it, or drag any marker"}
+              {mode === "draw"
+                ? "tap the map to trace its border"
+                : mode === "link"
+                  ? "tap another territory to connect or disconnect it"
+                  : "tap the map to move it, or drag any marker"}
             </span>
           </div>
         )}
@@ -362,7 +396,7 @@ export default function WarMapEditor({
                       chosen === t ? "bg-warm/25 text-chalk ring-1 ring-warm" : own ? "bg-white/10 text-chalk" : "bg-white/4 text-muted",
                     )}
                   >
-                    {TERRITORIES[t].name}
+                    {nameOf(map, t)}
                     {map.spots[t]?.shape && <span className="ml-1 text-glow">◆</span>}
                   </button>
                 );
@@ -373,56 +407,94 @@ export default function WarMapEditor({
 
         {/* What happens to the one you picked */}
         {chosen && (
-          <div className="sticky bottom-0 flex flex-wrap items-center gap-1 rounded-lg bg-white/8 p-1">
-            <span className="px-1 text-chalk">{TERRITORIES[chosen].name}</span>
-            <button
-              type="button"
-              onClick={() => {
-                setMode("move");
-                setTracing([]);
-              }}
-              className={clsx("flex min-h-8 items-center gap-1 rounded-lg px-2", mode === "move" ? "bg-chalk text-ink-950" : "text-muted")}
-            >
-              <Move className="size-3" /> place it
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setMode("draw");
-                setTracing([]);
-              }}
-              className={clsx("flex min-h-8 items-center gap-1 rounded-lg px-2", mode === "draw" ? "bg-chalk text-ink-950" : "text-muted")}
-            >
-              <PenLine className="size-3" /> trace it
-            </button>
-            {mode === "draw" && (
-              <>
-                <button
-                  type="button"
-                  disabled={!tracing.length}
-                  onClick={() => setTracing(tracing.slice(0, -1))}
-                  aria-label="one point back"
-                  className="grid size-8 place-items-center rounded-lg text-muted disabled:opacity-30"
-                >
-                  <Undo2 className="size-3" />
-                </button>
-                <button
-                  type="button"
-                  disabled={tracing.length < 3}
-                  onClick={finishShape}
-                  className="min-h-8 rounded-lg bg-glow/20 px-2 text-glow disabled:opacity-30"
-                >
-                  close the outline
-                </button>
-              </>
-            )}
-            <button
-              type="button"
-              onClick={() => clearOne(chosen)}
-              className="ml-auto flex min-h-8 items-center gap-1 rounded-lg px-2 text-muted hover:text-chalk"
-            >
-              <RotateCcw className="size-3" /> put it back
-            </button>
+          <div className="sticky bottom-0 space-y-1 rounded-lg bg-white/8 p-1">
+            <div className="flex items-center gap-1.5 px-0.5">
+              <input
+                key={chosen}
+                defaultValue={map.names[chosen] ?? ""}
+                placeholder={TERRITORIES[chosen].name}
+                maxLength={30}
+                disabled={!canEdit}
+                onBlur={(event) => onSave(rename(map, chosen, event.target.value))}
+                onKeyDown={(event) => event.key === "Enter" && (event.target as HTMLInputElement).blur()}
+                className="h-8 min-w-0 flex-1 rounded-lg bg-white/6 px-2 text-[11px] text-chalk outline-none placeholder:text-muted/50"
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setMode("move");
+                  setTracing([]);
+                }}
+                className={clsx("flex min-h-8 items-center gap-1 rounded-lg px-2", mode === "move" ? "bg-chalk text-ink-950" : "text-muted")}
+              >
+                <Move className="size-3" /> place it
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMode("draw");
+                  setTracing([]);
+                }}
+                className={clsx("flex min-h-8 items-center gap-1 rounded-lg px-2", mode === "draw" ? "bg-chalk text-ink-950" : "text-muted")}
+              >
+                <PenLine className="size-3" /> trace it
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMode("link");
+                  setTracing([]);
+                }}
+                className={clsx("flex min-h-8 items-center gap-1 rounded-lg px-2", mode === "link" ? "bg-chalk text-ink-950" : "text-muted")}
+              >
+                <Link2 className="size-3" /> connect it
+              </button>
+              {mode === "draw" && (
+                <>
+                  <button
+                    type="button"
+                    disabled={!tracing.length}
+                    onClick={() => setTracing(tracing.slice(0, -1))}
+                    aria-label="one point back"
+                    className="grid size-8 place-items-center rounded-lg text-muted disabled:opacity-30"
+                  >
+                    <Undo2 className="size-3" />
+                  </button>
+                  <button
+                    type="button"
+                    disabled={tracing.length < 3}
+                    onClick={finishShape}
+                    className="min-h-8 rounded-lg bg-glow/20 px-2 text-glow disabled:opacity-30"
+                  >
+                    close the outline
+                  </button>
+                </>
+              )}
+              {mode === "link" && (
+                <>
+                  <span className="text-[10px] text-muted">
+                    {map.customLinks.filter(([a, b]) => a === chosen || b === chosen).length} connected
+                  </span>
+                  <button
+                    type="button"
+                    disabled={!map.customLinks.some(([a, b]) => a === chosen || b === chosen)}
+                    onClick={() => onSave(unlinkAll(map, chosen))}
+                    className="min-h-8 rounded-lg px-2 text-muted hover:text-chalk disabled:opacity-30"
+                  >
+                    clear its connections
+                  </button>
+                </>
+              )}
+              <button
+                type="button"
+                onClick={() => clearOne(chosen)}
+                className="ml-auto flex min-h-8 items-center gap-1 rounded-lg px-2 text-muted hover:text-chalk"
+              >
+                <RotateCcw className="size-3" /> put it back
+              </button>
+            </div>
           </div>
         )}
 
@@ -432,10 +504,14 @@ export default function WarMapEditor({
               no outline matched {UNPLACED.map((t) => TERRITORIES[t].name).join(", ")} -- they stand as markers until you place them
             </span>
           )}
-          <span className="text-[10px]">{placedCount ? `${placedCount} of your own` : "the world, as it comes"}</span>
+          <span className="text-[10px]">
+            {placedCount ? `${placedCount} of your own` : "the world, as it comes"}
+            {Object.keys(map.names).length > 0 && ` · ${Object.keys(map.names).length} renamed`}
+            {map.customLinks.length > 0 && ` · ${map.customLinks.length} connection${map.customLinks.length === 1 ? "" : "s"}`}
+          </span>
           <button
             type="button"
-            disabled={!canEdit || !placedCount}
+            disabled={!canEdit || !isCustom(map)}
             onClick={() => {
               onSave({ ...emptyMap(), name: map.name });
               setChosen(null);

@@ -14,7 +14,7 @@ import {
   type Territory,
   type WarState,
 } from "@/lib/war";
-import { CONTINENT_SPOT, MAP_H, MAP_W, shapeOf, spotOf, type WarMapData } from "@/lib/war-map";
+import { CONTINENT_SPOT, MAP_H, MAP_W, nameOf, shapeOf, spotOf, type WarMapData } from "@/lib/war-map";
 
 type Placed = Partial<Record<Territory, number>>;
 
@@ -166,6 +166,13 @@ export default function WarBoard({
           );
         })}
 
+      {/* This room's own connections, drawn solid so they read as a path troops can use */}
+      {map.customLinks.map(([a, b], i) => {
+        const A = spotOf(map, a);
+        const B = spotOf(map, b);
+        return <line key={`link-${i}`} x1={A.x} y1={A.y} x2={B.x} y2={B.y} stroke="#f6c177" strokeOpacity={0.6} strokeWidth={2.4} />;
+      })}
+
       {/* The territories */}
       {TERRITORY_IDS.map((t) => {
         const info = TERRITORIES[t];
@@ -188,7 +195,7 @@ export default function WarBoard({
             key={t}
             onClick={() => onTap(t)}
             style={{ cursor: active ? "pointer" : "default" }}
-            aria-label={`${info.name}: ${armiesOn(state, t)} ${armiesOn(state, t) === 1 ? "army" : "armies"}`}
+            aria-label={`${nameOf(map, t)}: ${armiesOn(state, t)} ${armiesOn(state, t) === 1 ? "army" : "armies"}`}
           >
             {shape ? (
               <>
@@ -265,7 +272,7 @@ export default function WarBoard({
                   strokeWidth={3}
                   paintOrder="stroke"
                 >
-                  {info.name}
+                  {nameOf(map, t)}
                 </text>
               )}
             </g>

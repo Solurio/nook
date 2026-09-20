@@ -20,7 +20,6 @@ import {
   MAX_SEATS,
   MIN_SEATS,
   MUST_TRADE_AT,
-  NEIGHBORS,
   OBJECTIVES_PILE,
   SEALED_PILE,
   SHAPE_OF,
@@ -63,7 +62,7 @@ import {
   type WarState,
 } from "@/lib/war";
 import type { Item } from "@/lib/types";
-import { keepMap, readMap, withMap, type WarMapData } from "@/lib/war-map";
+import { keepMap, neighborsOf, readMap, withMap, type WarMapData } from "@/lib/war-map";
 import DieFace from "./die-face";
 import RulesSheet from "./rules-sheet";
 import WarBoard from "./war-board";
@@ -388,7 +387,7 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
 
   const attackTargets = myTurn && state.step === "attack" && sel.from ? targetsFrom(state, sel.from) : [];
   const moveTargets =
-    myTurn && state.step === "move" && sel.from ? NEIGHBORS[sel.from].filter((n) => state.owner[n] === state.turn) : [];
+    myTurn && state.step === "move" && sel.from ? neighborsOf(map, sel.from).filter((n) => state.owner[n] === state.turn) : [];
   const chosenTo = sel.to && (attackTargets.includes(sel.to) || moveTargets.includes(sel.to)) ? sel.to : null;
   const maxDice = sel.from ? attackDice(state, sel.from) : 0;
   const maxMove = sel.from && state.step === "move" ? movable(state, sel.from) : 0;
