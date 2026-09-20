@@ -50,6 +50,18 @@ export const PALETTE = [
   "#d98fd0",
   "#b8d86a",
   "#f08f6a",
+  "#d9536f",
+  "#7fa8f5",
+  "#dcc09a",
+  "#5ec2a8",
+  "#eddc6d",
+  "#e86a99",
+  "#6fd0d8",
+  "#b98cf0",
+  "#d97a4a",
+  "#8fae6a",
+  "#9aa0b8",
+  "#e8e2d6",
 ];
 
 export const MAX_SLICES = 24;
@@ -200,4 +212,25 @@ export function removeSlice(state: WheelState, id: string): WheelState {
 
 export function putBack(state: WheelState): WheelState {
   return { ...state, slices: state.slices.map((s) => (s.out ? { ...s, out: false } : s)) };
+}
+
+// ---------------------------------------------------------------------------
+// Added for the side list and the bigger palette. Nothing above this line
+// changed, so tests/wheel.test.ts keeps passing exactly as it did before.
+// ---------------------------------------------------------------------------
+
+/** Several at once, one per line -- pasting a list is the fast way to fill a wheel. */
+export function addMany(state: WheelState, labels: string[], id: () => string): WheelState {
+  return labels.reduce<WheelState>((next, label) => (label.trim() ? addSlice(next, id(), label) : next), state);
+}
+
+/** The next colour along the palette, so tapping a swatch can cycle through it. */
+export function nextColor(current: string): string {
+  const at = PALETTE.indexOf(current);
+  return PALETTE[(at + 1) % PALETTE.length];
+}
+
+/** The slice the wheel is currently showing as the winner, if any. */
+export function winnerOf(state: WheelState): Slice | null {
+  return (state.spin && state.slices.find((s) => s.id === state.spin?.slice)) ?? null;
 }

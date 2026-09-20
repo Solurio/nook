@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
-import { BookOpen, Eye, EyeOff, Minus, Plus, Skull, Undo2 } from "lucide-react";
+import { BookOpen, Eye, EyeOff, Map as MapIcon, Minus, Plus, Skull, Undo2 } from "lucide-react";
 import { useRoom } from "@/realtime/room-provider";
 import { usePiles } from "@/realtime/use-piles";
 import { useHandOver } from "@/realtime/use-hand-over";
@@ -14,11 +14,9 @@ import {
   COLORS,
   COLOR_HEX,
   CONTINENTS,
-  CONTINENT_IDS,
   DECK,
   DECK_PILE,
   DISCARD_PILE,
-  EDGES,
   MAX_SEATS,
   MIN_SEATS,
   MUST_TRADE_AT,
@@ -27,10 +25,8 @@ import {
   SEALED_PILE,
   SHAPE_OF,
   TERRITORIES,
-  TERRITORY_IDS,
   adjacent,
   alive,
-  armiesOn,
   attack,
   attackDice,
   canAttackFrom,
@@ -57,7 +53,6 @@ import {
   stillToPlace,
   stopAttacking,
   targetsFrom,
-  territoriesIn,
   trade,
   tradeValue,
   validSet,
@@ -68,20 +63,13 @@ import {
   type WarState,
 } from "@/lib/war";
 import type { Item } from "@/lib/types";
+import { keepMap, readMap, withMap, type WarMapData } from "@/lib/war-map";
 import DieFace from "./die-face";
 import RulesSheet from "./rules-sheet";
+import WarBoard from "./war-board";
+import WarMapEditor from "./war-map-editor";
 
 type Placed = Partial<Record<Territory, number>>;
-
-/** Where each continent's name sits on the board. */
-const CONTINENT_LABEL: Record<string, { x: number; y: number; anchor?: "end" }> = {
-  na: { x: 16, y: 30 },
-  sa: { x: 300, y: 545 },
-  eu: { x: 430, y: 18 },
-  af: { x: 380, y: 470 },
-  as: { x: 640, y: 30 },
-  oc: { x: 985, y: 548, anchor: "end" },
-};
 
 function ShapeMark({ shape, size = 10, color = "currentColor" }: { shape: Shape; size?: number; color?: string }) {
   return (
@@ -139,9 +127,11 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
   const { updateData, pile, canEdit } = useRoom();
   const me = useRoomStore((s) => s.me);
   const state = useMemo<WarState>(() => ({ ...emptyWar(), ...(raw as Partial<WarState>) }) as WarState, [raw]);
+  const map = useMemo(() => readMap(state), [state]);
 
   const [busy, setBusy] = useState(false);
   const [manual, setManual] = useState(false);
+  const [mapping, setMapping] = useState(false);
   const [looking, setLooking] = useState<string | null>(null);
   const [picked, setPicked] = useState<Card[]>([]);
   const [dice, setDice] = useState(3);
@@ -177,6 +167,7 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
       setBusy(false);
     }
   };
+  const saveMap = (next: WarMapData) => void write(withMap(latest(), next));
 
   // What is being chosen on the board belongs to this turn and this step only.
   const stepKey = `${state.round}:${state.turn}:${state.step}`;
@@ -202,7 +193,7 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
           { slot: OBJECTIVES_PILE, cards: objectives, shuffle: true, copies: [{ slot: SEALED_PILE }] },
           { slot: DECK_PILE, cards: DECK, shuffle: true },
         ],
-        p_public: publicState(game),
+        p_public: publicState(keepMap(state, game)),
       });
       if (set.error) return;
       // The same order into both: each player's objective, and its sealed copy.
@@ -518,154 +509,35 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
             </button>
           );
         })}
-        <button type="button" onClick={() => setManual(true)} className="ml-auto flex min-h-7 items-center gap-1 rounded-lg px-1.5 hover:bg-white/8 hover:text-chalk">
+        <button
+          type="button"
+          onClick={() => setMapping(true)}
+          className="ml-auto flex min-h-7 items-center gap-1 rounded-lg px-1.5 hover:bg-white/8 hover:text-chalk"
+        >
+          <MapIcon className="size-3" /> map
+        </button>
+        <button type="button" onClick={() => setManual(true)} className="flex min-h-7 items-center gap-1 rounded-lg px-1.5 hover:bg-white/8 hover:text-chalk">
           <BookOpen className="size-3" /> rules
         </button>
       </div>
 
       {/* The map */}
       <div className="relative min-h-0 flex-1 overflow-hidden rounded-xl inset-ring inset-ring-white/8">
-        <svg viewBox="0 0 1000 560" className="size-full" preserveAspectRatio="xMidYMid meet" role="img" aria-label="the WAR map">
-          <defs>
-            <radialGradient id={seaId} cx="50%" cy="45%" r="75%">
-              <stop offset="0%" stopColor="#1b3a55" />
-              <stop offset="100%" stopColor="#0c1826" />
-            </radialGradient>
-            <marker id={`${seaId}-head`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-              <path d="M0 0 L10 5 L0 10 Z" fill="#ff6b5e" />
-            </marker>
-          </defs>
-          <rect width="1000" height="560" fill={`url(#${seaId})`} />
-
-          {/* Land: each continent a soft shape round its territories */}
-          {CONTINENT_IDS.map((c) => (
-            <g key={c} opacity={0.2}>
-              {territoriesIn(c).map((t) => (
-                <circle key={t} cx={TERRITORIES[t].x} cy={TERRITORIES[t].y} r={46} fill={CONTINENTS[c].tint} />
-              ))}
-            </g>
-          ))}
-          {CONTINENT_IDS.map((c) => (
-            <text
-              key={c}
-              x={CONTINENT_LABEL[c].x}
-              y={CONTINENT_LABEL[c].y}
-              textAnchor={CONTINENT_LABEL[c].anchor ?? "start"}
-              fontSize={11}
-              fontWeight={700}
-              letterSpacing={1.4}
-              fill={CONTINENTS[c].tint}
-              opacity={0.9}
-            >
-              {CONTINENTS[c].name.toUpperCase()} +{CONTINENTS[c].bonus}
-            </text>
-          ))}
-
-          {/* Borders and sea routes */}
-          {EDGES.map(([a, b]) => {
-            const A = TERRITORIES[a];
-            const B = TERRITORIES[b];
-            const sea = A.continent !== B.continent;
-            if (a === "alaska" && b === "vladivostok") {
-              return (
-                <g key={`${a}-${b}`} stroke="#e8e0d0" strokeOpacity={0.3} strokeWidth={1.6} strokeDasharray="5 5">
-                  <line x1={A.x} y1={A.y} x2={0} y2={A.y} />
-                  <line x1={B.x} y1={B.y} x2={1000} y2={B.y} />
-                </g>
-              );
-            }
-            return (
-              <line
-                key={`${a}-${b}`}
-                x1={A.x}
-                y1={A.y}
-                x2={B.x}
-                y2={B.y}
-                stroke="#e8e0d0"
-                strokeOpacity={sea ? 0.3 : 0.2}
-                strokeWidth={1.6}
-                strokeDasharray={sea ? "5 5" : undefined}
-              />
-            );
-          })}
-
-          {/* The attack */}
-          {arrow && (
-            <line
-              x1={TERRITORIES[arrow.from].x}
-              y1={TERRITORIES[arrow.from].y}
-              x2={TERRITORIES[arrow.to].x + (TERRITORIES[arrow.from].x - TERRITORIES[arrow.to].x) * 0.25}
-              y2={TERRITORIES[arrow.to].y + (TERRITORIES[arrow.from].y - TERRITORIES[arrow.to].y) * 0.25}
-              stroke="#ff6b5e"
-              strokeWidth={4}
-              strokeLinecap="round"
-              markerEnd={`url(#${seaId}-head)`}
-              opacity={battle ? 0.9 : 0.6}
-            />
-          )}
-
-          {/* The territories */}
-          {TERRITORY_IDS.map((t) => {
-            const info = TERRITORIES[t];
-            const owner = state.owner[t];
-            const color = owner ? COLOR_HEX[colorOf(state, owner)] : { fill: "#3a3444", ink: "#f4efe6" };
-            const extra = current.placed[t] ?? 0;
-            const active = tappable(t);
-            const isFrom = sel.from === t;
-            const isTarget = attackTargets.includes(t);
-            const isTo = chosenTo === t;
-            const hit = battle && (battle.from === t || battle.to === t);
-            return (
-              <g
-                key={t}
-                transform={`translate(${info.x} ${info.y})`}
-                onClick={() => tap(t)}
-                style={{ cursor: active ? "pointer" : "default" }}
-                aria-label={`${info.name}: ${armiesOn(state, t)} ${armiesOn(state, t) === 1 ? "army" : "armies"}`}
-              >
-                {(isFrom || isTo || isTarget || moveTargets.includes(t)) && (
-                  <circle
-                    r={23}
-                    fill="none"
-                    stroke={isFrom ? "#f6c177" : isTarget || isTo ? "#ff6b5e" : "#9ee6a8"}
-                    strokeWidth={isTo || isFrom ? 3.5 : 2}
-                    strokeDasharray={isTo || isFrom ? undefined : "4 3"}
-                  />
-                )}
-                {state.step === "place" && active && <circle r={21} fill="#f6c177" opacity={0.18} />}
-                <circle r={16} fill={color.fill} stroke={CONTINENTS[info.continent].tint} strokeWidth={2.5} />
-                <text
-                  y={5}
-                  textAnchor="middle"
-                  fontSize={14}
-                  fontWeight={800}
-                  fill={color.ink}
-                  className={clsx(hit && freshBattle && "animate-die-land")}
-                  key={hit ? `${battle?.n}` : "still"}
-                >
-                  {owner ? armiesOn(state, t) + extra : ""}
-                </text>
-                {extra > 0 && (
-                  <text x={15} y={-13} fontSize={12} fontWeight={800} fill="#f6c177" stroke="#100d16" strokeWidth={3} paintOrder="stroke">
-                    +{extra}
-                  </text>
-                )}
-                <text
-                  y={30}
-                  textAnchor="middle"
-                  fontSize={10}
-                  fill="#f4efe6"
-                  fillOpacity={0.8}
-                  stroke="#0c1826"
-                  strokeWidth={3}
-                  paintOrder="stroke"
-                >
-                  {info.name}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
+        <WarBoard
+          state={state}
+          map={map}
+          placed={current.placed}
+          from={sel.from}
+          to={chosenTo}
+          attackTargets={attackTargets}
+          moveTargets={moveTargets}
+          arrow={arrow}
+          battle={battle}
+          freshBattle={freshBattle}
+          tappable={tappable}
+          onTap={tap}
+          seaId={seaId}
+        />
 
         {/* The dice, for everyone */}
         {battle && (
@@ -939,6 +811,8 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
           )}
         </div>
       )}
+
+      {mapping && <WarMapEditor map={map} canEdit={canEdit} onSave={saveMap} onClose={() => setMapping(false)} />}
 
       {manual && (
         <RulesSheet title="WAR" onClose={() => setManual(false)}>
