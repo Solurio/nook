@@ -22,7 +22,17 @@ export interface GridData {
   unit?: Unit;
   /** Areas laid on the map -- a fireball, a cone of cold, a wall -- for everyone to see. */
   areas?: Area[];
+  /** How see-through the areas are filled, 0 to 1. */
+  areaAlpha?: number;
+  /** How strongly the map underneath shows, 0 to 1. */
+  imageAlpha?: number;
+  /** Where an area starts from: a corner of a square, the middle of one, or wherever you press. */
+  anchor?: AreaAnchor;
 }
+
+export type AreaAnchor = "corner" | "center" | "free";
+
+export const AREA_ANCHORS: AreaAnchor[] = ["corner", "center", "free"];
 
 export interface Unit {
   size: number;
@@ -214,8 +224,10 @@ export function distanceText(cells: number, unit: Unit | undefined): string {
 }
 
 /** Where an area starts: on a corner for squares, the middle of a hex for hexes. */
-export function areaAnchor(shape: GridShape, cell: number, x: number, y: number): { x: number; y: number } {
+export function areaAnchor(shape: GridShape, cell: number, x: number, y: number, anchor: AreaAnchor = "corner"): { x: number; y: number } {
+  if (anchor === "free") return { x, y };
   if (shape === "hex") return snapHex(x, y, cell);
+  if (anchor === "center") return { x: (Math.floor(x / cell) + 0.5) * cell, y: (Math.floor(y / cell) + 0.5) * cell };
   return { x: Math.round(x / cell) * cell, y: Math.round(y / cell) * cell };
 }
 

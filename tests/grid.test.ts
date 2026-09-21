@@ -124,3 +124,10 @@ test("a cube goes out the way it was dragged; a line is one cell wide", () => {
   const line = areaShape({ id: "l", kind: "line", x: 0, y: 0, tx: 0, ty: 300, color: "#f00" }, 50);
   assert.ok("points" in line && Math.abs(line.points[0][0] - line.points[3][0]) === 50);
 });
+
+test("an area can start at a corner, the middle of a square, or anywhere", async () => {
+  const { areaAnchor } = await import("../src/lib/grid.ts");
+  assert.deepEqual(areaAnchor("square", 50, 62, 74), { x: 50, y: 50 });
+  assert.deepEqual(areaAnchor("square", 50, 62, 74, "center"), { x: 75, y: 75 });
+  assert.deepEqual(areaAnchor("square", 50, 62, 74, "free"), { x: 62, y: 74 });
+});

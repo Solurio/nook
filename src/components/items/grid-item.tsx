@@ -2,11 +2,12 @@
 
 import { useMemo, useRef, useState } from "react";
 import clsx from "clsx";
-import { Circle, Eraser, Minus, Ruler, Square, Trash2, Triangle } from "lucide-react";
+import { Circle, Eraser, Minus, Ruler, SlidersHorizontal, Square, Trash2, Triangle } from "lucide-react";
 import { useRoom } from "@/realtime/room-provider";
 import { newId } from "@/lib/slug";
 import type { Item } from "@/lib/types";
 import {
+  AREA_ANCHORS,
   AREA_COLORS,
   MAX_AREAS,
   areaAnchor,
@@ -55,6 +56,9 @@ export default function GridItem({ item }: { item: Item<"grid"> }) {
   const [tool, setTool] = useState<Tool | null>(null);
   const [drag, setDrag] = useState<{ x: number; y: number; tx: number; ty: number } | null>(null);
   const [color, setColor] = useState(AREA_COLORS[0]);
+  const [tuning, setTuning] = useState(false);
+  const areaAlpha = data.areaAlpha ?? 0.26;
+  const imageAlpha = data.imageAlpha ?? 1;
   const surface = useRef<HTMLDivElement>(null);
 
   const lines = useMemo(() => {
@@ -111,7 +115,7 @@ export default function GridItem({ item }: { item: Item<"grid"> }) {
     event.stopPropagation();
     event.preventDefault();
     const at = local(event);
-    const start = tool === "measure" ? at : areaAnchor(data.shape, cell, at.x, at.y);
+    const start = tool === "measure" ? at : areaAnchor(data.shape, cell, at.x, at.y, data.anchor);
     setDrag({ x: start.x, y: start.y, tx: at.x, ty: at.y });
     // Keeps the drag going if the pointer leaves the grid; not every pointer can be held.
     try {
@@ -145,7 +149,7 @@ export default function GridItem({ item }: { item: Item<"grid"> }) {
     const shape = areaShape(area, cell);
     const common = {
       fill: area.color,
-      fillOpacity: faint ? 0.18 : 0.26,
+      fillOpacity: faint ? areaAlpha * 0.7 : areaAlpha,
       stroke: area.color,
       strokeWidth: 2,
       vectorEffect: "non-scaling-stroke" as const,
@@ -172,12 +176,15 @@ export default function GridItem({ item }: { item: Item<"grid"> }) {
   return (
     <div
       className="relative size-full overflow-hidden rounded-md"
-      style={{
-        background: data.image
-          ? `center / cover no-repeat url("${data.image.replace(/"/g, "%22")}"), #2a2233`
-          : "color-mix(in oklab, #2a2233 70%, transparent)",
-      }}
+      style={{ background: data.image ? "#2a2233" : "color-mix(in oklab, #2a2233 70%, transparent)" }}
     >
+      {data.image && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{ background: `center / cover no-repeat url("${data.image.replace(/"/g, "%22")}")`, opacity: imageAlpha }}
+        />
+      )}
       <svg className="pointer-events-none absolute inset-0 size-full" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" aria-hidden>
         <path d={lines} fill="none" stroke={data.color} strokeOpacity={data.opacity} strokeWidth={1.2} vectorEffect="non-scaling-stroke" />
         {labels.map((l) => (
@@ -208,6 +215,48 @@ export default function GridItem({ item }: { item: Item<"grid"> }) {
         <div ref={surface} className="absolute inset-0 cursor-crosshair touch-none" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => setDrag(null)} />
       )}
       {(!tool || tool === "erase") && <div ref={surface} className="pointer-events-none absolute inset-0" />}
+
+      {tuning && canEdit && (
+        <div
+          className="absolute top-11 left-1.5 z-10 flex w-52 flex-col gap-1.5 rounded-lg bg-ink-950/85 p-2 text-[10px] text-muted backdrop-blur-sm"
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          <span>areas start at</span>
+          <span className="flex rounded-md bg-white/6 p-0.5">
+            {AREA_ANCHORS.map((a) => (
+              <button
+                key={a}
+                type="button"
+                onClick={() => save({ anchor: a })}
+                className={clsx("min-h-7 flex-1 rounded px-1", (data.anchor ?? "corner") === a ? "bg-chalk text-ink-950" : "text-muted hover:text-chalk")}
+              >
+                {a === "corner" ? "a corner" : a === "center" ? "a middle" : "anywhere"}
+              </button>
+            ))}
+          </span>
+          {(
+            [
+              ["areas", areaAlpha, 0.05, 0.9, (v: number) => save({ areaAlpha: v })],
+              ["map", imageAlpha, 0, 1, (v: number) => save({ imageAlpha: v })],
+              ["lines", data.opacity, 0, 1, (v: number) => save({ opacity: v })],
+            ] as Array<[string, number, number, number, (v: number) => void]>
+          ).map(([name, value, min, max, set]) => (
+            <label key={name} className="flex items-center gap-2">
+              <span className="w-9">{name}</span>
+              <input
+                type="range"
+                min={min}
+                max={max}
+                step={0.05}
+                value={value}
+                onChange={(event) => set(Number(event.target.value))}
+                className="min-w-0 flex-1 accent-[#f6c177]"
+              />
+              <span className="w-7 text-right tabular-nums">{Math.round(value * 100)}%</span>
+            </label>
+          ))}
+        </div>
+      )}
 
       {/* The tools */}
       <div
@@ -255,6 +304,20 @@ export default function GridItem({ item }: { item: Item<"grid"> }) {
         >
           1 = {unitText(data.unit)}
         </button>
+        {canEdit && (
+          <button
+            type="button"
+            title="see-through and where areas start"
+            aria-label="grid settings"
+            onClick={() => setTuning(!tuning)}
+            className={clsx(
+              "grid size-7 place-items-center rounded-md transition [&_svg]:size-3.5",
+              tuning ? "bg-warm/25 text-warm" : "text-muted hover:bg-white/10 hover:text-chalk",
+            )}
+          >
+            <SlidersHorizontal />
+          </button>
+        )}
         {canEdit && areas.length > 0 && (
           <button
             type="button"
