@@ -85,6 +85,8 @@ interface RoomState {
   liveInk: Record<string, InkDraft>;
 
   selectedId: string | null;
+  /** More than one thing picked at once, on a computer: Shift-click, Shift-drag a box, or Ctrl+A. */
+  picked: string[];
   editingId: string | null;
   /** Items this client is mid-drag on; remote updates for these are ignored. */
   grabbed: Set<string>;
@@ -146,6 +148,8 @@ interface RoomState {
   setPeerCursor: (userId: string, cursor: { x: number; y: number }) => void;
 
   select: (id: string | null) => void;
+  setPicked: (ids: string[]) => void;
+  togglePicked: (id: string) => void;
   setEditing: (id: string | null) => void;
   grab: (id: string) => void;
   release: (id: string) => void;
@@ -173,6 +177,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
   liveInk: {},
 
   selectedId: null,
+  picked: [],
   editingId: null,
   grabbed: new Set<string>(),
 
@@ -237,6 +242,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
       return {
         items: next,
         selectedId: s.selectedId === id ? null : s.selectedId,
+        picked: s.picked.includes(id) ? s.picked.filter((x) => x !== id) : s.picked,
         editingId: s.editingId === id ? null : s.editingId,
         // Someone else deleting what you have open should close it, not leave
         // you staring at a blank screen with no way back.
@@ -361,7 +367,16 @@ export const useRoomStore = create<RoomState>((set, get) => ({
       return { peers: { ...s.peers, [userId]: { ...peer, cursor } } };
     }),
 
-  select: (id) => set((s) => ({ selectedId: id, editingId: s.editingId === id ? id : null })),
+  // Picking something already in the group keeps the group, so it can be dragged as one.
+  select: (id) =>
+    set((s) => ({ selectedId: id, editingId: s.editingId === id ? id : null, picked: id && s.picked.includes(id) ? s.picked : [] })),
+  setPicked: (ids) => set({ picked: ids.length > 1 ? ids : [], selectedId: ids[0] ?? null, editingId: null }),
+  togglePicked: (id) =>
+    set((s) => {
+      const base = s.picked.length ? s.picked : s.selectedId ? [s.selectedId] : [];
+      const next = base.includes(id) ? base.filter((x) => x !== id) : [...base, id];
+      return { picked: next.length > 1 ? next : [], selectedId: next.includes(id) ? id : (next[0] ?? null), editingId: null };
+    }),
   setLinking: (id) => set({ linking: id }),
   setChromeHidden: (hidden) => set({ chromeHidden: hidden }),
   setEditing: (id) => set({ editingId: id, ...(id ? { selectedId: id } : {}) }),

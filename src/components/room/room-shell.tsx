@@ -18,6 +18,7 @@ import PeersPanel from "@/components/chrome/peers-panel";
 import Inspector from "@/components/chrome/inspector";
 import FocusView from "@/components/room/focus-view";
 import ChromeToggle from "@/components/chrome/chrome-toggle";
+import MultiBar from "@/components/chrome/multi-bar";
 
 export default function RoomShell({
   slug,
@@ -108,6 +109,7 @@ function RoomBody() {
           <TopBar />
           <Dock />
           <Inspector />
+          <MultiBar />
         </>
       )}
       <ChromeToggle />

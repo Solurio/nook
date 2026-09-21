@@ -44,10 +44,13 @@ function spin(x: number, y: number, deg: number) {
 function ItemFrame({
   item,
   selected,
+  picked,
   editing,
 }: {
   item: AnyItem;
   selected: boolean;
+  /** One of several things picked together. */
+  picked?: boolean;
   editing: boolean;
 }) {
   const { canEdit, broadcastTransform, commitTransform, updateData, setNotice } = useRoom();
@@ -114,10 +117,16 @@ function ItemFrame({
         pivotX,
         pivotY,
         startAngle: Math.atan2(event.clientY - pivotY, event.clientX - pivotX),
+        // Whatever moves with it: things tied to it, and everything picked along with it.
         followers:
-          mode === "move" && group
+          mode === "move"
             ? Object.values(useRoomStore.getState().items)
-                .filter((other) => other.id !== item.id && other.data?.group === group && !other.data?.pinned)
+                .filter((other) => {
+                  if (other.id === item.id || other.data?.pinned) return false;
+                  const tied = Boolean(group) && other.data?.group === group;
+                  const { picked } = useRoomStore.getState();
+                  return tied || (picked.includes(item.id) && picked.includes(other.id));
+                })
                 .map((other) => ({ id: other.id, x: other.x, y: other.y, width: other.width, height: other.height, rotation: other.rotation }))
             : [],
         dx: 0,
@@ -328,6 +337,12 @@ function ItemFrame({
           select(item.id);
           return;
         }
+        // Shift-click, on a computer: add it to what is picked, or take it out.
+        if (event.shiftKey && event.pointerType === "mouse") {
+          event.stopPropagation();
+          useRoomStore.getState().togglePicked(item.id);
+          return;
+        }
         // A pinned item still answers to a tap -- there has to be a way back
         // to the button that unpins it -- it just refuses to budge. So does
         // everything in a locked room: you cannot change it, but you can still
@@ -368,6 +383,10 @@ function ItemFrame({
           className="pointer-events-none absolute rounded-xl border-dashed border-glow/60"
           style={{ inset: -5 * inv, borderWidth: 2 * inv }}
         />
+      )}
+
+      {picked && !bare && (
+        <div aria-hidden className="pointer-events-none absolute -inset-2 rounded-xl border-2 border-dashed border-glow/85 bg-glow/5" />
       )}
 
       {selected && canEdit && pinned && !bare && (

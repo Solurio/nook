@@ -57,6 +57,8 @@ export default function Canvas() {
   const select = useRoomStore((s) => s.select);
   const setEditing = useRoomStore((s) => s.setEditing);
   const selectedId = useRoomStore((s) => s.selectedId);
+  const picked = useRoomStore((s) => s.picked);
+  const pickedSet = useMemo(() => new Set(picked), [picked]);
   const editingId = useRoomStore((s) => s.editingId);
   const tool = useRoomStore((s) => s.tool);
   const reaction = useRoomStore((s) => s.reaction);
@@ -71,6 +73,8 @@ export default function Canvas() {
   const [spaceHeld, setSpaceHeld] = useState(false);
   const [panning, setPanning] = useState(false);
   const panState = useRef<{ pointerId: number; lastX: number; lastY: number } | null>(null);
+  // Shift-drag on the room, with a mouse: a box to pick everything it touches.
+  const [box, setBox] = useState<{ pointerId: number; x0: number; y0: number; x1: number; y1: number } | null>(null);
   const touches = useRef(new Map<number, { x: number; y: number }>());
   const pinch = useRef<{ dist: number; cx: number; cy: number } | null>(null);
 
@@ -81,6 +85,14 @@ export default function Canvas() {
   const onPointerDown = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
       const isBackground = event.target === event.currentTarget;
+      if (isBackground && event.button === 0 && event.shiftKey && event.pointerType === "mouse" && !spaceHeld) {
+        const rect = event.currentTarget.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        setBox({ pointerId: event.pointerId, x0: x, y0: y, x1: x, y1: y });
+        event.currentTarget.setPointerCapture(event.pointerId);
+        return;
+      }
       const wantsPan = event.button === 1 || spaceHeld || (event.button === 0 && isBackground);
       if (!wantsPan) return;
 
@@ -125,6 +137,10 @@ export default function Canvas() {
   const onPointerMove = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
       if (gestureLock.pinching) return;
+      if (box && box.pointerId === event.pointerId) {
+        const r = event.currentTarget.getBoundingClientRect();
+        setBox({ ...box, x1: event.clientX - r.left, y1: event.clientY - r.top });
+      }
       const pan = panState.current;
       if (pan && pan.pointerId === event.pointerId) {
         panBy(event.clientX - pan.lastX, event.clientY - pan.lastY);
@@ -141,17 +157,29 @@ export default function Canvas() {
       );
       moveCursor(world.x, world.y);
     },
-    [moveCursor, panBy],
+    [moveCursor, panBy, box],
   );
 
   const endPan = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (box && box.pointerId === event.pointerId) {
+      const vp = useRoomStore.getState().viewport;
+      const a = screenToWorld(vp, Math.min(box.x0, box.x1), Math.min(box.y0, box.y1));
+      const b = screenToWorld(vp, Math.max(box.x0, box.x1), Math.max(box.y0, box.y1));
+      const hits = Object.values(useRoomStore.getState().items)
+        .filter((it) => it.x < b.x && it.x + it.width > a.x && it.y < b.y && it.y + it.height > a.y)
+        .map((it) => it.id);
+      useRoomStore.getState().setPicked(hits);
+      setBox(null);
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+      return;
+    }
     if (panState.current?.pointerId !== event.pointerId) return;
     panState.current = null;
     setPanning(false);
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
-  }, []);
+  }, [box]);
 
   // Wheel needs a non-passive listener to keep the browser from zooming the page.
   useEffect(() => {
@@ -294,6 +322,20 @@ export default function Canvas() {
       if (typing(event.target)) return;
 
       const id = useRoomStore.getState().selectedId;
+      const picked = useRoomStore.getState().picked;
+
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "a") {
+        event.preventDefault();
+        useRoomStore.getState().setPicked(Object.keys(useRoomStore.getState().items));
+        return;
+      }
+
+      if ((event.key === "Delete" || event.key === "Backspace") && picked.length > 1 && canEdit) {
+        event.preventDefault();
+        const items = useRoomStore.getState().items;
+        for (const pid of picked) if (items[pid] && !KEEPS_KEYS.has(items[pid].kind) && !items[pid].data?.pinned) void deleteItem(pid);
+        return;
+      }
 
       if (event.key === "Escape") {
         useRoomStore.getState().select(null);
@@ -556,6 +598,7 @@ export default function Canvas() {
             key={item.id}
             item={item}
             selected={selectedId === item.id}
+            picked={pickedSet.has(item.id)}
             editing={editingId === item.id}
           />
         ))}
@@ -563,6 +606,19 @@ export default function Canvas() {
         <Cursors />
         <PingLayer />
       </div>
+
+      {box && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute rounded-md border border-dashed border-glow bg-glow/10"
+          style={{
+            left: Math.min(box.x0, box.x1),
+            top: Math.min(box.y0, box.y1),
+            width: Math.abs(box.x1 - box.x0),
+            height: Math.abs(box.y1 - box.y0),
+          }}
+        />
+      )}
 
       {/* Space is held to pan, so the ink surface steps aside for it. */}
       {tool !== "select" && !spaceHeld && <InkOverlay />}
