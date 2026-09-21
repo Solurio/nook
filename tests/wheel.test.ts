@@ -111,3 +111,19 @@ test("a face says what it was given, or what side it is", () => {
   assert.equal(faceLabel("", "tails"), "tails");
   assert.equal(faceLabel("a very long name", "heads").length, 10);
 });
+
+test("wheels are kept in the wheel: saved by name, put back, forgotten", async () => {
+  const { saveWheel, loadWheel, forgetWheel, emptyWheel, addSlice } = await import("../src/lib/wheel.ts");
+  let state = { ...emptyWheel(), title: "lunch" };
+  state = saveWheel(state, "a", 1);
+  assert.equal(state.saved?.length, 1);
+  state = addSlice({ ...state, title: "chores" }, "x", "dishes");
+  state = saveWheel(state, "b", 2);
+  assert.deepEqual(state.saved?.map((w) => w.title), ["chores", "lunch"]);
+  state = saveWheel({ ...state, title: "Lunch" }, "c", 3);
+  assert.equal(state.saved?.length, 2, "the same name is written over");
+  const back = loadWheel(state, "b");
+  assert.equal(back.title, "chores");
+  assert.ok(back.slices.some((s) => s.label === "dishes"));
+  assert.equal(forgetWheel(back, "b").saved?.length, 1);
+});

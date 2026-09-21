@@ -35,6 +35,53 @@ export interface WheelState {
   history: WheelSpin[];
   /** Winners sit out the next spins, for drawing an order or a name from a hat. */
   removeWinners: boolean;
+  /** Wheels kept in this one, to put back on it whenever. */
+  saved?: SavedWheel[];
+}
+
+/** A wheel put away: its name, its slices, and how it deals with winners. */
+export interface SavedWheel {
+  id: string;
+  title: string;
+  slices: Slice[];
+  removeWinners: boolean;
+  at: number;
+}
+
+export const MAX_SAVED = 40;
+
+/**
+ * Keeps the wheel as it is now in the list. A wheel of the same name is
+ * written over, so saving again after a change updates it.
+ */
+export function saveWheel(state: WheelState, id: string, now: number, title?: string): WheelState {
+  const name = (title ?? state.title).trim().slice(0, 40) || `wheel ${(state.saved?.length ?? 0) + 1}`;
+  const entry: SavedWheel = {
+    id,
+    title: name,
+    slices: state.slices.map((s) => ({ ...s, out: undefined })),
+    removeWinners: state.removeWinners,
+    at: now,
+  };
+  const rest = (state.saved ?? []).filter((w) => w.title.toLowerCase() !== name.toLowerCase());
+  return { ...state, title: name, saved: [entry, ...rest].slice(0, MAX_SAVED) };
+}
+
+/** Puts a kept wheel back on: its slices, all in again, and its name. */
+export function loadWheel(state: WheelState, id: string): WheelState {
+  const found = state.saved?.find((w) => w.id === id);
+  if (!found) return state;
+  return {
+    ...state,
+    title: found.title,
+    slices: found.slices.map((s) => ({ ...s, out: undefined })),
+    removeWinners: found.removeWinners,
+    spin: null,
+  };
+}
+
+export function forgetWheel(state: WheelState, id: string): WheelState {
+  return { ...state, saved: (state.saved ?? []).filter((w) => w.id !== id) };
 }
 
 export const PALETTE = [

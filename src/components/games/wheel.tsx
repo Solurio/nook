@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
-import { Check, Minus, Pencil, Plus, RotateCcw, Trash2, X } from "lucide-react";
+import { Bookmark, Check, Minus, Pencil, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import { useRoom } from "@/realtime/room-provider";
 import { useRoomStore } from "@/state/room-store";
 import { newId } from "@/lib/slug";
@@ -25,6 +25,9 @@ import {
   winnerOf,
   type Arc,
   type WheelState,
+  forgetWheel,
+  loadWheel,
+  saveWheel,
 } from "@/lib/wheel";
 import type { Item } from "@/lib/types";
 
@@ -158,6 +161,7 @@ export default function Wheel({ item, state: raw }: { item: Item<"game">; state:
   const state = useMemo(() => ({ ...emptyWheel(), ...(raw as Partial<WheelState>) }) as WheelState, [raw]);
 
   const [editing, setEditing] = useState(false);
+  const [shelf, setShelf] = useState(false);
   const [landed, setLanded] = useState<string | null>(() => state.spin?.id ?? null);
   const [adding, setAdding] = useState("");
   const [picking, setPicking] = useState<string | null>(null);
@@ -240,6 +244,13 @@ export default function Wheel({ item, state: raw }: { item: Item<"game">; state:
         </span>
         <button
           type="button"
+          onClick={() => setShelf(true)}
+          className="flex min-h-9 items-center gap-1 rounded-lg px-2 text-[11px] text-muted transition hover:bg-white/8 hover:text-chalk"
+        >
+          <Bookmark className="size-3" /> saved{state.saved?.length ? ` ${state.saved.length}` : ""}
+        </button>
+        <button
+          type="button"
           onClick={() => setEditing(true)}
           disabled={!canEdit}
           className="flex min-h-9 items-center gap-1 rounded-lg px-2 text-[11px] text-muted transition hover:bg-white/8 hover:text-chalk disabled:opacity-30"
@@ -310,6 +321,20 @@ export default function Wheel({ item, state: raw }: { item: Item<"game">; state:
           </p>
         )}
       </div>
+
+      {shelf && (
+        <Shelf
+          state={state}
+          canEdit={canEdit}
+          onSave={(title) => void write(saveWheel(live(), newId(), Date.now(), title))}
+          onLoad={(id) => {
+            void write(loadWheel(live(), id));
+            setShelf(false);
+          }}
+          onForget={(id) => void write(forgetWheel(live(), id))}
+          onClose={() => setShelf(false)}
+        />
+      )}
 
       {editing && (
         <Editor
@@ -648,6 +673,77 @@ function Editor({
           paste a list
         </button>
       </div>
+    </div>
+  );
+}
+// ---------------------------------------------------------------------------
+// Wheels kept in this one
+// ---------------------------------------------------------------------------
+
+function Shelf({
+  state,
+  canEdit,
+  onSave,
+  onLoad,
+  onForget,
+  onClose,
+}: {
+  state: WheelState;
+  canEdit: boolean;
+  onSave: (title: string) => void;
+  onLoad: (id: string) => void;
+  onForget: (id: string) => void;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState(state.title);
+  const saved = state.saved ?? [];
+  return (
+    <div className="absolute inset-0 z-20 flex flex-col gap-2 rounded-2xl bg-ink-950/95 p-3 backdrop-blur-sm">
+      <div className="flex items-center justify-between">
+        <h3 className="text-[12px] font-semibold text-chalk">saved wheels</h3>
+        <button type="button" onClick={onClose} aria-label="close" className="grid size-9 place-items-center rounded-lg text-muted hover:bg-white/8 hover:text-chalk">
+          <X className="size-4" />
+        </button>
+      </div>
+      <form
+        className="flex gap-1"
+        onSubmit={(event) => {
+          event.preventDefault();
+          onSave(name);
+        }}
+      >
+        <input
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          placeholder="a name for this wheel"
+          maxLength={40}
+          disabled={!canEdit}
+          className="h-9 min-w-0 flex-1 rounded-lg bg-white/7 px-2 text-[12px] text-chalk outline-none ring-1 ring-white/10 focus:ring-glow/45"
+        />
+        <button type="submit" disabled={!canEdit} className="min-h-9 rounded-lg bg-chalk px-3 text-[12px] font-semibold text-ink-950 disabled:opacity-40">
+          save this one
+        </button>
+      </form>
+      <p className="text-[10px] text-muted/70">Saving under a name that is already there writes over it. Putting one back keeps the spins so far.</p>
+      <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto">
+        {saved.length === 0 && <li className="text-[11px] text-muted/60">nothing kept yet</li>}
+        {saved.map((w) => (
+          <li key={w.id} className="flex items-center gap-2 rounded-lg bg-white/5 p-1.5">
+            <span className="flex -space-x-1">
+              {w.slices.slice(0, 6).map((s) => (
+                <span key={s.id} className="size-3 rounded-full ring-1 ring-ink-950" style={{ background: s.color }} />
+              ))}
+            </span>
+            <button type="button" disabled={!canEdit} onClick={() => onLoad(w.id)} className="min-w-0 flex-1 truncate text-left text-[12px] text-chalk hover:underline disabled:cursor-default">
+              {w.title}
+              <span className="ml-1.5 text-[10px] text-muted">{w.slices.length} slices</span>
+            </button>
+            <button type="button" disabled={!canEdit} onClick={() => onForget(w.id)} aria-label={`forget ${w.title}`} className="grid size-8 place-items-center rounded-lg text-muted hover:bg-white/8 hover:text-[#f2a4b8] disabled:opacity-30">
+              <Trash2 className="size-3.5" />
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
