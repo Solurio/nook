@@ -26,7 +26,6 @@ import { useRoomStore, viewportForItems } from "@/state/room-store";
 import type {
   AnyItem,
   Background,
-  DoodleStroke,
   Identity,
   ItemDataMap,
   ItemKind,
@@ -38,6 +37,7 @@ import type {
   TransformPatch,
 } from "@/lib/types";
 import type { Signal } from "@/lib/webrtc";
+import type { StrokeOp } from "@/lib/studio/ops";
 
 export interface Ping {
   id: string;
@@ -97,8 +97,8 @@ interface RoomApi {
   sendPing: (x: number, y: number, glyph: string) => void;
   pings: Ping[];
 
-  broadcastStroke: (itemId: string, stroke: DoodleStroke) => void;
-  liveStrokes: Record<string, DoodleStroke[]>;
+  broadcastStroke: (itemId: string, stroke: StrokeOp) => void;
+  liveStrokes: Record<string, StrokeOp[]>;
 
   createStroke: (color: string, size: number, points: number[]) => Promise<void>;
   eraseStroke: (id: string) => Promise<void>;
@@ -155,7 +155,7 @@ export function RoomProvider({
   const [error, setError] = useState<string | null>(null);
   const [joined, setJoined] = useState(false);
   const [pings, setPings] = useState<Ping[]>([]);
-  const [liveStrokes, setLiveStrokes] = useState<Record<string, DoodleStroke[]>>({});
+  const [liveStrokes, setLiveStrokes] = useState<Record<string, StrokeOp[]>>({});
 
   const channelRef = useRef<RealtimeChannel | null>(null);
   const identityRef = useRef<Identity | null>(null);
@@ -332,11 +332,14 @@ export function RoomProvider({
             pushPing({ ...p, id: newId() });
           })
           .on("broadcast", { event: "stroke" }, ({ payload }) => {
-            const { itemId, stroke } = payload as { itemId: string; stroke: DoodleStroke };
+            const { itemId, stroke } = payload as { itemId: string; stroke: StrokeOp };
             setLiveStrokes((current) => {
               const existing = current[itemId] ?? [];
               const index = existing.findIndex((s) => s.id === stroke.id);
-              const next = index >= 0 ? existing.slice() : [...existing, stroke];
+              // Boards that keep their ops in rows never rewrite the item, so
+              // nothing else clears these: only the last few are kept, which
+              // is every stroke still being drawn.
+              const next = index >= 0 ? existing.slice() : [...existing, stroke].slice(-12);
               if (index >= 0) next[index] = stroke;
               return { ...current, [itemId]: next };
             });
@@ -490,7 +493,7 @@ export function RoomProvider({
   );
 
   const broadcastStroke = useCallback(
-    (itemId: string, stroke: DoodleStroke) => {
+    (itemId: string, stroke: StrokeOp) => {
       ephemeral("stroke", { itemId, stroke });
     },
     [ephemeral],

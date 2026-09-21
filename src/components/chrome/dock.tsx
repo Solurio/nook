@@ -94,7 +94,7 @@ const GAMES: Array<{
   },
   { kind: "token", group: "table", title: "piece", hint: "a mini, a marker, a counter", icon: <CircleUser /> },
   { kind: "grid", group: "table", title: "grid", hint: "squares or hexes, over a map", icon: <Hexagon /> },
-  { kind: "doodle", group: "table", title: "paint board", hint: "draw together", icon: <Pencil /> },
+  { kind: "doodle", group: "table", title: "paint studio", hint: "layers, brushes, selections, together", icon: <Pencil /> },
   { kind: "uno", group: "secrets", title: "uno", hint: "match the colour, empty your hand", icon: <Layers /> },
   { kind: "coup", group: "secrets", title: "coup", hint: "lie well, or lose a card", icon: <VenetianMask /> },
   { kind: "spyfall", group: "secrets", title: "spyfall", hint: "everyone knows where but one", icon: <MapPin /> },

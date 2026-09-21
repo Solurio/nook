@@ -97,11 +97,32 @@ it, and it all stays where you dropped it.
 - **A radio.** A player loaded with a playlist, on repeat for the whole room. The
   songs live in the project's own storage (`music/omori/` in the decorations
   bucket), not in this repository; `src/lib/radio.ts` only lists their names.
-- **Paint board.** Not a doodle pad: a raster painting app with everyone drawing
-  at once. Brushes (pen, marker, spray, eraser), a **paint bucket**, size and
-  opacity, **graphics tablet pressure** with adjustable sensitivity and palm
-  rejection, a full colour picker, **layers** (add, hide, opacity, hue), and
-  export as a PNG or as a **looping gif of the drawing being made**.
+- **Paint studio.** A painting app in the room, in the spirit of ibisPaint and
+  Clip Studio, with everyone drawing on the same picture at once.
+  - **Brushes.** Nineteen of them (ink, pencil, crayon, watercolour, airbrush,
+    spray, calligraphy, pixel and more), and a brush editor to make your own:
+    tip, hardness, spacing, jitter, scatter, taper, grain and pressure. The ones
+    you make are kept on the board for everyone.
+  - **Tools.** Smudge, blur and liquify for pushing paint around, a paint
+    bucket with tolerance, a "this layer or all layers" choice and gap closing,
+    gradients, shapes, text with the room's fonts, an eyedropper, symmetry up
+    to a kaleidoscope, and a stabiliser for steady lines.
+  - **Selections.** Box, ellipse, lasso and a magic wand. You can add to one or
+    take away from it, invert it, fill it, clear it, filter it, copy or cut it
+    to a new layer, and move, scale, turn and flip what is inside.
+  - **Layers.** Blend modes, opacity, clipping, alpha lock, locking, effects
+    (blur, brightness, contrast, saturation, hue, sepia and more), reordering,
+    duplicating and merging.
+  - **Colour.** A colour wheel, a second colour to swap to, the colours you
+    used last, and palettes you can build and share.
+  - **Files.** Export PNG (with or without the paper, or at twice the size),
+    JPG, or a looping gif of the picture being made. A project file saves the
+    layers and history and opens again later. Pictures can be pasted or dropped
+    in as layers.
+  - **Canvas.** Zoom, turn and mirror the view without touching the picture;
+    two fingers pinch, and a two-finger tap undoes. A graphics tablet gets
+    pressure and palm rejection. There is a full-screen mode, and the usual
+    keyboard shortcuts (B, E, G, M, W, V, ctrl+Z and so on).
 - **Decorating.** A solid colour, a gradient, or your own image, either
   stretched or tiled, with a dimmer.
 - **Chat**, named cursors for everyone online, and reactions that float up the
@@ -203,9 +224,12 @@ create a new project. Pick the region closest to you, it feeds straight into
 realtime latency.
 
 **2. Run the migrations.** Open the project's SQL Editor and run the contents of
-`supabase/migrations/` in order. All of them, including the newest: `0008`
-keeps the WAR maps people make, and `0007` the Cards Against Humanity decks
-people write, both for everyone. `0006`
+`supabase/migrations/` in order. All of them, including the newest: `0009`
+gives the paint studio a table of its own, so each stroke is one small row
+instead of a rewrite of the whole picture. Without it the studio still works,
+but keeps everything inside the board and slows down as the picture grows.
+`0008` keeps the WAR maps people make, and `0007` the Cards Against Humanity
+decks people write, both for everyone. `0006`
 creates the secret piles every hidden-card game runs on, adds pieces, grids and
 documents, and lets the upload bucket take PDFs. Without it those games say so
 instead of dealing. `0005` widens what the upload bucket accepts, and without it

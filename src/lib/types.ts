@@ -1,3 +1,8 @@
+import type { BrushSpec } from "./studio/brush";
+import type { Palette } from "./studio/color";
+import type { PaintOp } from "./studio/ops";
+import type { StudioDoc, StudioLayer } from "./studio/render";
+
 export type ItemKind =
   | "image"
   | "note"
@@ -398,9 +403,19 @@ export interface DoodleLayer {
 }
 
 export interface DoodleState {
-  strokes: DoodleStroke[];
+  /**
+   * What was done to the picture, in order, when it is kept in the item: old
+   * boards' strokes, and everything when the paint_ops table (0009) is not
+   * there. With the table, new ops are rows of their own.
+   */
+  strokes: PaintOp[];
   /** Absent on old boards; treated as a single base layer. */
-  layers?: DoodleLayer[];
+  layers?: StudioLayer[];
+  /** The picture's size and paper. Old boards get theirs the first time someone draws. */
+  doc?: StudioDoc;
+  /** Brushes people made on this board. */
+  brushes?: BrushSpec[];
+  palettes?: Palette[];
 }
 
 export interface Item<K extends ItemKind = ItemKind> {

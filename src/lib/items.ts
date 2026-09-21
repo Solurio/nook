@@ -77,7 +77,7 @@ const DEFAULT_SIZE: Record<ItemKind, { width: number; height: number }> = {
 const GAME_SIZE: Record<GameKind, { width: number; height: number }> = {
   tictactoe: { width: 320, height: 390 },
   connectfour: { width: 400, height: 430 },
-  doodle: { width: 460, height: 400 },
+  doodle: { width: 860, height: 620 },
   chess: { width: 380, height: 440 },
   checkers: { width: 380, height: 440 },
   intransitive: { width: 420, height: 480 },
