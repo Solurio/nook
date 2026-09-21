@@ -12,7 +12,7 @@
  * with no new table and no migration.
  */
 
-import { NEIGHBORS, TERRITORIES, TERRITORY_IDS, type Territory } from "@/lib/war";
+import { NEIGHBORS, TERRITORIES, TERRITORY_IDS, type Territory } from "./war-classic";
 
 export const MAP_W = 1000;
 export const MAP_H = 560;

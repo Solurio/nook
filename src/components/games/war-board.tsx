@@ -1,26 +1,14 @@
 "use client";
 
 import clsx from "clsx";
-import {
-  COLOR_HEX,
-  CONTINENTS,
-  CONTINENT_IDS,
-  EDGES,
-  TERRITORIES,
-  TERRITORY_IDS,
-  armiesOn,
-  colorOf,
-  territoriesIn,
-  type Territory,
-  type WarState,
-} from "@/lib/war";
-import { CONTINENT_SPOT, MAP_H, MAP_W, nameOf, shapeOf, spotOf, type WarMapData } from "@/lib/war-map";
+import { COLOR_HEX, armiesOn, colorOf, type Territory, type WarState } from "@/lib/war";
+import { MAP_H, MAP_W, indexOf, labelSpot, type WarWorld } from "@/lib/war-world";
 
 type Placed = Partial<Record<Territory, number>>;
 
 export type BoardProps = {
   state: WarState;
-  map: WarMapData;
+  world: WarWorld;
   /** Armies the player is putting down but has not committed yet. */
   placed: Placed;
   from: Territory | null;
@@ -40,15 +28,13 @@ export type BoardProps = {
 const FIT = { cover: "xMidYMid slice", contain: "xMidYMid meet", stretch: "none" } as const;
 
 /**
- * The world, or whatever the room put in its place.
- *
- * Nothing here knows the rules: it is handed who owns what and what is lit up,
- * and draws it. Which is why the same board serves the painted world, a
- * photograph of a hand-drawn map, and a set of markers dropped onto one.
+ * Whatever world the game is on, drawn. Nothing here knows the rules: it is
+ * handed who owns what and what is lit up, and draws it -- the classic board,
+ * ancient Greece, or markers dropped on a photograph of a campaign map.
  */
 export default function WarBoard({
   state,
-  map,
+  world,
   placed,
   from,
   to,
@@ -61,8 +47,14 @@ export default function WarBoard({
   onTap,
   seaId,
 }: BoardProps) {
-  const image = map.image;
-  const painted = !image;
+  const index = indexOf(world);
+  const image = world.image;
+  const spot = (t: Territory) => index.byId.get(t) ?? { x: MAP_W / 2, y: MAP_H / 2, shape: undefined };
+  const shapeOf = (t: Territory) => (world.shapes ? (index.byId.get(t)?.shape ?? null) : null);
+  const tintOf = (t: Territory) => index.continents.get(index.byId.get(t)?.continent ?? "")?.tint ?? "#888";
+
+  const borders: Array<[string, string]> = [];
+  for (const [a, list] of index.neighbors) for (const b of list) if (a < b) borders.push([a, b]);
 
   return (
     <svg
@@ -70,7 +62,7 @@ export default function WarBoard({
       className="size-full"
       preserveAspectRatio="xMidYMid meet"
       role="img"
-      aria-label={map.name ? `the ${map.name} map` : "the WAR map"}
+      aria-label={`the ${world.name || "WAR"} map`}
     >
       <defs>
         <radialGradient id={seaId} cx="50%" cy="45%" r="75%">
@@ -85,7 +77,7 @@ export default function WarBoard({
         </clipPath>
       </defs>
 
-      <rect width={MAP_W} height={MAP_H} fill={map.sea ?? `url(#${seaId})`} />
+      <rect width={MAP_W} height={MAP_H} fill={world.sea ?? `url(#${seaId})`} />
 
       {image && (
         <image
@@ -99,48 +91,51 @@ export default function WarBoard({
         />
       )}
 
-      {/* Land: a haze of the continent's colour under its territories */}
-      {painted &&
-        map.shapes &&
-        CONTINENT_IDS.map((c) => (
-          <g key={c} fill={CONTINENTS[c].tint} fillOpacity={0.14} stroke={CONTINENTS[c].tint} strokeOpacity={0.1} strokeWidth={10} strokeLinejoin="round">
-            {territoriesIn(c).map((t) => {
-              const shape = shapeOf(map, t);
-              const spot = spotOf(map, t);
-              return shape ? <polygon key={t} points={shape} /> : <circle key={t} cx={spot.x} cy={spot.y} r={40} stroke="none" />;
-            })}
-          </g>
-        ))}
+      {/* Land: a haze of each continent's colour under its territories */}
+      {!image &&
+        index.continentIds.map((c) => {
+          const tint = index.continents.get(c)?.tint ?? "#888";
+          return (
+            <g key={c} fill={tint} fillOpacity={0.14} stroke={tint} strokeOpacity={0.1} strokeWidth={10} strokeLinejoin="round">
+              {(index.members.get(c) ?? []).map((t) => {
+                const shape = shapeOf(t);
+                const at = spot(t);
+                return shape ? <polygon key={t} points={shape} /> : <circle key={t} cx={at.x} cy={at.y} r={40} stroke="none" />;
+              })}
+            </g>
+          );
+        })}
 
-      {map.labels &&
-        CONTINENT_IDS.map((c) => {
-          const at = CONTINENT_SPOT[c] ?? { x: 20, y: 20 };
+      {world.labels &&
+        index.continentIds.map((c) => {
+          const at = labelSpot(world, c);
+          const info = index.continents.get(c);
           return (
             <text
               key={c}
               x={at.x}
               y={at.y}
-              textAnchor={at.anchor ?? "start"}
+              textAnchor={at.x > MAP_W * 0.8 ? "end" : at.x < MAP_W * 0.2 ? "start" : "middle"}
               fontSize={11}
               fontWeight={700}
               letterSpacing={1.4}
-              fill={CONTINENTS[c].tint}
+              fill={info?.tint}
               opacity={0.9}
               stroke="#0c1826"
               strokeWidth={image ? 3 : 0}
               paintOrder="stroke"
             >
-              {CONTINENTS[c].name.toUpperCase()} +{CONTINENTS[c].bonus}
+              {(info?.name ?? c).toUpperCase()} +{info?.bonus ?? 0}
             </text>
           );
         })}
 
       {/* Borders and sea routes */}
-      {map.links &&
-        EDGES.map(([a, b]) => {
-          const A = spotOf(map, a);
-          const B = spotOf(map, b);
-          const sea = TERRITORIES[a].continent !== TERRITORIES[b].continent;
+      {world.links &&
+        borders.map(([a, b]) => {
+          const A = spot(a);
+          const B = spot(b);
+          const sea = index.byId.get(a)?.continent !== index.byId.get(b)?.continent;
           // A crossing that leaves one side of the world and comes back the other.
           if (Math.abs(A.x - B.x) > MAP_W * 0.55) {
             const [west, east] = A.x < B.x ? [A, B] : [B, A];
@@ -166,18 +161,10 @@ export default function WarBoard({
           );
         })}
 
-      {/* This room's own connections, drawn solid so they read as a path troops can use */}
-      {map.customLinks.map(([a, b], i) => {
-        const A = spotOf(map, a);
-        const B = spotOf(map, b);
-        return <line key={`link-${i}`} x1={A.x} y1={A.y} x2={B.x} y2={B.y} stroke="#f6c177" strokeOpacity={0.6} strokeWidth={2.4} />;
-      })}
-
       {/* The territories */}
-      {TERRITORY_IDS.map((t) => {
-        const info = TERRITORIES[t];
-        const spot = spotOf(map, t);
-        const shape = shapeOf(map, t);
+      {index.ids.map((t) => {
+        const at = spot(t);
+        const shape = shapeOf(t);
         const owner = state.owner[t];
         const color = owner ? COLOR_HEX[colorOf(state, owner)] : { fill: "#3a3444", ink: "#f4efe6" };
         const extra = placed[t] ?? 0;
@@ -189,13 +176,14 @@ export default function WarBoard({
         const ring = isFrom ? "#f6c177" : isTarget || isTo ? "#ff6b5e" : "#9ee6a8";
         const hit = battle && (battle.from === t || battle.to === t);
         const badge = shape ? 12 : 16;
+        const name = index.byId.get(t)?.name ?? t;
 
         return (
           <g
             key={t}
             onClick={() => onTap(t)}
             style={{ cursor: active ? "pointer" : "default" }}
-            aria-label={`${nameOf(map, t)}: ${armiesOn(state, t)} ${armiesOn(state, t) === 1 ? "army" : "armies"}`}
+            aria-label={`${name}: ${armiesOn(state, t)} ${armiesOn(state, t) === 1 ? "army" : "armies"}`}
           >
             {shape ? (
               <>
@@ -203,7 +191,7 @@ export default function WarBoard({
                   points={shape}
                   fill={color.fill}
                   fillOpacity={image ? 0.6 : 0.92}
-                  stroke={CONTINENTS[info.continent].tint}
+                  stroke={tintOf(t)}
                   strokeOpacity={0.85}
                   strokeWidth={1.2}
                   strokeLinejoin="round"
@@ -224,8 +212,8 @@ export default function WarBoard({
               <>
                 {lit && (
                   <circle
-                    cx={spot.x}
-                    cy={spot.y}
+                    cx={at.x}
+                    cy={at.y}
                     r={23}
                     fill="none"
                     stroke={ring}
@@ -233,15 +221,15 @@ export default function WarBoard({
                     strokeDasharray={isTo || isFrom ? undefined : "4 3"}
                   />
                 )}
-                {state.step === "place" && active && <circle cx={spot.x} cy={spot.y} r={21} fill="#f6c177" opacity={0.18} />}
+                {state.step === "place" && active && <circle cx={at.x} cy={at.y} r={21} fill="#f6c177" opacity={0.18} />}
               </>
             )}
 
-            <g transform={`translate(${spot.x} ${spot.y})`}>
+            <g transform={`translate(${at.x} ${at.y})`}>
               <circle
                 r={badge}
                 fill={color.fill}
-                stroke={shape ? "#100d16" : CONTINENTS[info.continent].tint}
+                stroke={shape ? "#100d16" : tintOf(t)}
                 strokeWidth={shape ? 1.6 : 2.5}
                 fillOpacity={shape && !owner && !image ? 0.85 : 1}
               />
@@ -261,18 +249,9 @@ export default function WarBoard({
                   +{extra}
                 </text>
               )}
-              {map.labels && (
-                <text
-                  y={badge + 14}
-                  textAnchor="middle"
-                  fontSize={10}
-                  fill="#f4efe6"
-                  fillOpacity={0.85}
-                  stroke="#0c1826"
-                  strokeWidth={3}
-                  paintOrder="stroke"
-                >
-                  {nameOf(map, t)}
+              {world.labels && (
+                <text y={badge + 14} textAnchor="middle" fontSize={10} fill="#f4efe6" fillOpacity={0.85} stroke="#0c1826" strokeWidth={3} paintOrder="stroke">
+                  {name}
                 </text>
               )}
             </g>
@@ -283,10 +262,10 @@ export default function WarBoard({
       {/* The attack, over the top of everything */}
       {arrow && (
         <line
-          x1={spotOf(map, arrow.from).x}
-          y1={spotOf(map, arrow.from).y}
-          x2={spotOf(map, arrow.to).x + (spotOf(map, arrow.from).x - spotOf(map, arrow.to).x) * 0.25}
-          y2={spotOf(map, arrow.to).y + (spotOf(map, arrow.from).y - spotOf(map, arrow.to).y) * 0.25}
+          x1={spot(arrow.from).x}
+          y1={spot(arrow.from).y}
+          x2={spot(arrow.to).x + (spot(arrow.from).x - spot(arrow.to).x) * 0.25}
+          y2={spot(arrow.to).y + (spot(arrow.from).y - spot(arrow.to).y) * 0.25}
           stroke="#ff6b5e"
           strokeWidth={4}
           strokeLinecap="round"

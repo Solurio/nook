@@ -3,15 +3,8 @@ import assert from "node:assert/strict";
 import type { PGlite } from "@electric-sql/pglite";
 import { as, freshDatabase, newUser, tableFor } from "./support/database.ts";
 import {
-  CONTINENTS,
-  CONTINENT_IDS,
-  DECK,
   DECK_PILE,
   DISCARD_PILE,
-  EDGES,
-  NEIGHBORS,
-  TERRITORIES,
-  TERRITORY_IDS,
   attack,
   canPlaceOn,
   claimWin,
@@ -24,7 +17,6 @@ import {
   moveArmies,
   movable,
   objectiveMet,
-  objectivesFor,
   occupy,
   place,
   placementProblem,
@@ -32,13 +24,26 @@ import {
   startGame,
   stillToPlace,
   stopAttacking,
-  territoriesIn,
   trade,
   tradeValue,
   validSet,
-  type Territory,
   type WarState,
+  deckFor,
 } from "../src/lib/war.ts";
+import {
+  CONTINENTS,
+  CONTINENT_IDS,
+  EDGES,
+  NEIGHBORS,
+  TERRITORIES,
+  TERRITORY_IDS,
+  territoriesIn,
+  type Territory,
+} from "../src/lib/war-classic.ts";
+import { CLASSIC, DEFAULT_RULES, dealObjectives } from "../src/lib/war-world.ts";
+
+const DECK = deckFor(CLASSIC);
+const objectivesFor = (colors: string[]) => dealObjectives(CLASSIC, colors, DEFAULT_RULES);
 
 const first = () => 0;
 /** Dice that come up exactly as listed (1 to 6), then repeat. */
@@ -109,7 +114,7 @@ test("dealing: every territory to someone with one army, and whoever follows the
     // Colours nobody plays take their card out: 8 plus one per player.
     assert.equal(objectives.length, 8 + n);
   }
-  assert.deepEqual(objectivesFor(["blue", "red", "green"]).filter((o) => o.startsWith("kill")), ["kill-blue", "kill-red", "kill-green"]);
+  assert.deepEqual(objectivesFor(["blue", "red", "green"]).filter((o) => o.startsWith("kill:")), ["kill:blue", "kill:red", "kill:green"]);
 });
 
 test("reinforcements: half the territories, three at least, and every continent held", () => {

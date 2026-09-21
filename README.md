@@ -42,10 +42,12 @@ it, and it all stays where you dropped it.
   Game** (five dice rolled for everyone to see, arrows and the Indians, dynamite,
   the Gatling, all sixteen characters, and hidden roles),
   **Spyfall**, **The Resistance**, **Codenames** in English or Portuguese,
-  **dominoes**, **Buckshot Roulette** and **WAR** -- the Brazilian one: 42
-  territories on six continents, three to six armies, reinforcements by
-  territory and continent, dice battles everyone watches, territory cards
-  traded in at the going rate, and a secret objective each. **Cards Against
+  **dominoes**, **Buckshot Roulette** and **WAR** -- the Brazilian one, on any
+  map: the classic 42 territories, ancient Greece, or a world a table makes
+  itself, with its own continents, territories, borders, outlines and a picture
+  underneath. Objectives name the map's own continents; the rules (reinforcements,
+  trades, dice, cards, secret objectives or last one standing) are the table's
+  to set. Maps are saved for everyone. **Cards Against
   Humanity** with starter cards written for this project, in English and
   Portuguese, an after-dark pack of each for grown-ups, and decks anyone can
   write card by card and save for everyone who uses the site -- ticked before a
@@ -201,8 +203,9 @@ create a new project. Pick the region closest to you, it feeds straight into
 realtime latency.
 
 **2. Run the migrations.** Open the project's SQL Editor and run the contents of
-`supabase/migrations/` in order. All of them, including the newest: `0007`
-keeps the Cards Against Humanity decks people write, for everyone. `0006`
+`supabase/migrations/` in order. All of them, including the newest: `0008`
+keeps the WAR maps people make, and `0007` the Cards Against Humanity decks
+people write, both for everyone. `0006`
 creates the secret piles every hidden-card game runs on, adds pieces, grids and
 documents, and lets the upload bucket take PDFs. Without it those games say so
 instead of dealing. `0005` widens what the upload bucket accepts, and without it

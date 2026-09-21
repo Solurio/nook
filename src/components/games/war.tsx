@@ -13,17 +13,12 @@ import { sizeOf } from "@/lib/piles";
 import {
   COLORS,
   COLOR_HEX,
-  CONTINENTS,
-  DECK,
   DECK_PILE,
   DISCARD_PILE,
   MAX_SEATS,
   MIN_SEATS,
-  MUST_TRADE_AT,
   OBJECTIVES_PILE,
   SEALED_PILE,
-  SHAPE_OF,
-  TERRITORIES,
   adjacent,
   alive,
   attack,
@@ -34,6 +29,7 @@ import {
   colorOf,
   emptyWar,
   endTurn,
+  figureOf,
   handSlot,
   held,
   inheritance,
@@ -41,6 +37,7 @@ import {
   lastStanding,
   moveArmies,
   movable,
+  neighborsOf,
   objectiveMet,
   objectiveSlot,
   objectiveText,
@@ -62,13 +59,23 @@ import {
   type WarState,
 } from "@/lib/war";
 import type { Item } from "@/lib/types";
-import { keepMap, neighborsOf, readMap, withMap, type WarMapData } from "@/lib/war-map";
+import {
+  continentName,
+  dealObjectives,
+  indexOf,
+  rulesOf,
+  territoryName,
+  worldOf,
+  worldProblem,
+  type WarRules,
+  type WarWorld,
+} from "@/lib/war-world";
 import DieFace from "./die-face";
 import RulesSheet from "./rules-sheet";
 import WarBoard from "./war-board";
 import WarMapEditor from "./war-map-editor";
 
-type Placed = Partial<Record<Territory, number>>;
+type Placed = Record<Territory, number>;
 
 function ShapeMark({ shape, size = 10, color = "currentColor" }: { shape: Shape; size?: number; color?: string }) {
   return (
@@ -85,9 +92,10 @@ function ShapeMark({ shape, size = 10, color = "currentColor" }: { shape: Shape;
 }
 
 /** One territory card, as its holder sees it. */
-function TerritoryCard({ card, picked, onClick }: { card: Card; picked?: boolean; onClick?: () => void }) {
+function TerritoryCard({ world, card, picked, onClick }: { world: WarWorld; card: Card; picked?: boolean; onClick?: () => void }) {
   const joker = isJoker(card);
-  const info = joker ? null : TERRITORIES[card as Territory];
+  const info = joker ? null : (indexOf(world).byId.get(card) ?? null);
+  const tint = info ? (indexOf(world).continents.get(info.continent)?.tint ?? "#888") : "";
   return (
     <button
       type="button"
@@ -97,8 +105,8 @@ function TerritoryCard({ card, picked, onClick }: { card: Card; picked?: boolean
         "flex h-16 w-12 shrink-0 flex-col items-center justify-between rounded-lg border bg-[#1d2436] px-1 py-1.5 text-center transition disabled:cursor-default",
         picked ? "-translate-y-1.5 border-warm shadow-[0_0_12px_rgba(246,193,119,0.35)]" : "border-white/12",
       )}
-      style={info ? { borderTopColor: CONTINENTS[info.continent].tint, borderTopWidth: 3 } : undefined}
-      title={info ? `${info.name}, ${CONTINENTS[info.continent].name}` : "joker: any figure"}
+      style={info ? { borderTopColor: tint, borderTopWidth: 3 } : undefined}
+      title={info ? `${info.name}, ${continentName(world, info.continent)}` : "joker: any figure"}
     >
       <span className="line-clamp-2 text-[8.5px] leading-tight text-chalk">{info ? info.name : "joker"}</span>
       {joker ? (
@@ -109,7 +117,7 @@ function TerritoryCard({ card, picked, onClick }: { card: Card; picked?: boolean
         </span>
       ) : (
         <span className="text-[#e0655c]">
-          <ShapeMark shape={SHAPE_OF[card as Territory]} size={11} />
+          <ShapeMark shape={figureOf(world, card) ?? "square"} size={11} />
         </span>
       )}
     </button>
@@ -126,7 +134,9 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
   const { updateData, pile, canEdit } = useRoom();
   const me = useRoomStore((s) => s.me);
   const state = useMemo<WarState>(() => ({ ...emptyWar(), ...(raw as Partial<WarState>) }) as WarState, [raw]);
-  const map = useMemo(() => readMap(state), [state]);
+  const world = useMemo(() => worldOf(state), [state]);
+  const rules = useMemo(() => rulesOf(state), [state]);
+  const tname = (t: Territory) => territoryName(world, t);
 
   const [busy, setBusy] = useState(false);
   const [manual, setManual] = useState(false);
@@ -166,7 +176,12 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
       setBusy(false);
     }
   };
-  const saveMap = (next: WarMapData) => void write(withMap(latest(), next));
+  /** A new world, or new rules, for this table. The world only changes whole between games. */
+  const saveWorld = (next: WarWorld, nextRules?: WarRules) => {
+    const now = latest();
+    void write({ ...now, world: next, ...(nextRules ? { rules: nextRules } : {}) });
+  };
+  const setupProblem = !playing ? worldProblem(world, chairs.length) : null;
 
   // What is being chosen on the board belongs to this turn and this step only.
   const stepKey = `${state.round}:${state.turn}:${state.step}`;
@@ -185,16 +200,17 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
   const deal = () =>
     run(async () => {
       if (!me) return;
-      const { state: game, objectives } = startGame(clean(state), chairs, randomBelow, label);
+      if (worldProblem(world, chairs.length)) return;
+      const { state: game, objectives, deck } = startGame(clean(state), chairs, randomBelow, label);
       const set = await pile("pile_setup", {
         p_item: item.id,
         p_piles: [
-          { slot: OBJECTIVES_PILE, cards: objectives, shuffle: true, copies: [{ slot: SEALED_PILE }] },
-          { slot: DECK_PILE, cards: DECK, shuffle: true },
+          ...(objectives.length ? [{ slot: OBJECTIVES_PILE, cards: objectives, shuffle: true, copies: [{ slot: SEALED_PILE }] }] : []),
+          ...(deck.length ? [{ slot: DECK_PILE, cards: deck, shuffle: true }] : []),
         ],
-        p_public: publicState(keepMap(state, game)),
+        p_public: publicState(game),
       });
-      if (set.error) return;
+      if (set.error || !objectives.length) return;
       // The same order into both: each player's objective, and its sealed copy.
       await pile("pile_deal", {
         p_item: item.id,
@@ -214,7 +230,7 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
 
   const handOf = (chair: string) => (mine[handSlot(chair)] as Card[] | undefined) ?? null;
   const turnHand = handOf(state.turn);
-  const mustTrade = playing && state.step === "place" && sizeOf(state.piles, handSlot(state.turn)) >= MUST_TRADE_AT && turnHand !== null;
+  const mustTrade = playing && state.step === "place" && sizeOf(state.piles, handSlot(state.turn)) >= rules.mustTradeAt && turnHand !== null;
   const left = stillToPlace(state, current.placed);
   const toPlace = left.free + Object.values(left.continent).reduce((s, n) => s + (n ?? 0), 0);
   const problem = playing && state.step === "place" ? placementProblem(state, current.placed) : null;
@@ -243,7 +259,7 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
     run(async () => {
       const now = latest();
       const cards = picked.filter((c) => turnHand?.includes(c));
-      if (!validSet(cards)) return;
+      if (!validSet(cards, world)) return;
       const next = trade(now, cards, label);
       if (next === now) return;
       setPicked([]);
@@ -264,7 +280,7 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
   const inherit = async (victim: string, heir: string) => {
     if (!me) return;
     const piles = latest().piles;
-    const { take, discard } = inheritance(sizeOf(piles, handSlot(heir)), sizeOf(piles, handSlot(victim)));
+    const { take, discard } = inheritance(sizeOf(piles, handSlot(heir)), sizeOf(piles, handSlot(victim)), rules.mustTradeAt);
     if (take) {
       await pile("pile_move", {
         p_item: item.id,
@@ -319,7 +335,7 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
       const now = latest();
       const next = endTurn(now, label);
       if (next === now) return;
-      if (!now.conquered || now.round <= 1) {
+      if (!now.conquered || !rules.cards || (now.round <= 1 && rules.placeFirstRound)) {
         await write(next);
         return;
       }
@@ -387,7 +403,7 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
 
   const attackTargets = myTurn && state.step === "attack" && sel.from ? targetsFrom(state, sel.from) : [];
   const moveTargets =
-    myTurn && state.step === "move" && sel.from ? neighborsOf(map, sel.from).filter((n) => state.owner[n] === state.turn) : [];
+    myTurn && state.step === "move" && sel.from ? neighborsOf(state, sel.from).filter((n) => state.owner[n] === state.turn) : [];
   const chosenTo = sel.to && (attackTargets.includes(sel.to) || moveTargets.includes(sel.to)) ? sel.to : null;
   const maxDice = sel.from ? attackDice(state, sel.from) : 0;
   const maxMove = sel.from && state.step === "move" ? movable(state, sel.from) : 0;
@@ -401,13 +417,13 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
       if (mineHere) {
         if (canAttackFrom(state, t)) {
           select(sel.from === t ? null : t);
-          setDice(Math.min(3, attackDice(state, t)));
+          setDice(Math.min(rules.attackDice, attackDice(state, t)));
         }
       } else if (sel.from && targetsFrom(state, sel.from).includes(t)) {
         select(sel.from, t);
       }
     } else if (state.step === "move" && mineHere) {
-      if (sel.from && sel.from !== t && adjacent(sel.from, t)) {
+      if (sel.from && sel.from !== t && adjacent(state, sel.from, t)) {
         select(sel.from, t);
         setCount(movable(state, sel.from));
       } else if (movable(state, t) > 0) select(sel.from === t ? null : t);
@@ -434,17 +450,17 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
   const handChair = turnHand ? state.turn : myChair && handOf(myChair) ? myChair : null;
   const hand = handChair ? (handOf(handChair) ?? []) : [];
   const canTrade = myTurn && state.step === "place" && handChair === state.turn;
-  const tradeReady = canTrade && validSet(picked.filter((c) => hand.includes(c)));
+  const tradeReady = canTrade && rules.cards && validSet(picked.filter((c) => hand.includes(c)), world);
 
   const statusLine = (): string => {
     if (!playing) return "";
     const who = label(state.turn);
     if (state.step === "place") {
-      if (state.round <= 1) return `${who} places their first armies`;
+      if (state.round <= 1 && rules.placeFirstRound) return `${who} places their first armies`;
       return `${who} is placing reinforcements`;
     }
     if (state.step === "attack") return `${who} is on the attack`;
-    if (state.step === "occupy") return `${who} took ${TERRITORIES[state.occupy?.to ?? "brazil"].name}`;
+    if (state.step === "occupy") return `${who} took ${state.occupy ? tname(state.occupy.to) : "it"}`;
     return `${who} is moving armies`;
   };
 
@@ -513,7 +529,7 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
           onClick={() => setMapping(true)}
           className="ml-auto flex min-h-7 items-center gap-1 rounded-lg px-1.5 hover:bg-white/8 hover:text-chalk"
         >
-          <MapIcon className="size-3" /> map
+          <MapIcon className="size-3" /> {`${world.name || "map"} & rules`}
         </button>
         <button type="button" onClick={() => setManual(true)} className="flex min-h-7 items-center gap-1 rounded-lg px-1.5 hover:bg-white/8 hover:text-chalk">
           <BookOpen className="size-3" /> rules
@@ -524,7 +540,7 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
       <div className="relative min-h-0 flex-1 overflow-hidden rounded-xl inset-ring inset-ring-white/8">
         <WarBoard
           state={state}
-          map={map}
+          world={world}
           placed={current.placed}
           from={sel.from}
           to={chosenTo}
@@ -585,11 +601,17 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
             {state.phase === "over" && state.winner && (
               <span className="text-warm">
                 <b>{label(state.winner)}</b> wins
-                {objectiveOf(state.winner) ? `: ${objectiveText(objectiveOf(state.winner) as Objective)}` : ""}
+                {objectiveOf(state.winner) ? `: ${objectiveText(world, objectiveOf(state.winner) as Objective)}` : ""}
               </span>
             )}
-            {state.phase !== "over" && <span className="text-muted/75">three to six armies. Empty chairs play from whoever deals; sit down to keep your own objective.</span>}
-            <button type="button" disabled={!canEdit || busy} onClick={() => void deal()} className="ml-auto min-h-9 rounded-xl bg-chalk px-4 text-[12px] font-semibold text-ink-950 disabled:opacity-40">
+            {state.phase !== "over" && (
+              <span className="text-muted/75">
+                on <b className="text-chalk">{world.name || "a map"}</b> ({world.territories.length} territories,{" "}
+                {rules.goal === "conquest" ? "last one standing wins" : "secret objectives"}). Empty chairs play from whoever deals.
+              </span>
+            )}
+            {setupProblem && <span className="w-full text-[#f2a4b8]">{setupProblem}</span>}
+            <button type="button" disabled={!canEdit || busy || Boolean(setupProblem)} onClick={() => void deal()} className="ml-auto min-h-9 rounded-xl bg-chalk px-4 text-[12px] font-semibold text-ink-950 disabled:opacity-40">
               {state.phase === "over" ? "deal again" : "deal"}
             </button>
           </>
@@ -605,11 +627,11 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
               <>
                 <span className="text-muted">
                   {mustTrade
-                    ? "five cards: trade three first"
+                    ? `${rules.mustTradeAt} cards: trade three first`
                     : toPlace > 0
                       ? `${toPlace} to place${Object.entries(left.continent)
                           .filter(([, n]) => n)
-                          .map(([c, n]) => ` · ${n} in ${CONTINENTS[c as keyof typeof CONTINENTS].name}`)
+                          .map(([c, n]) => ` · ${n} in ${continentName(world, c)}`)
                           .join("")} -- tap your territories`
                       : "all placed"}
                 </span>
@@ -641,14 +663,14 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
                   {!sel.from
                     ? "tap one of yours with two or more armies"
                     : !chosenTo
-                      ? `from ${TERRITORIES[sel.from].name}: tap a neighbour to attack`
-                      : `${TERRITORIES[sel.from].name} -> ${TERRITORIES[chosenTo].name}`}
+                      ? `from ${tname(sel.from)}: tap a neighbour to attack`
+                      : `${tname(sel.from)} -> ${tname(chosenTo)}`}
                 </span>
                 <span className="ml-auto flex flex-wrap items-center gap-1">
                   {chosenTo && (
                     <>
                       <span className="flex rounded-lg bg-white/6 p-0.5">
-                        {[1, 2, 3].map((n) => (
+                        {Array.from({ length: rules.attackDice }, (_, i) => i + 1).map((n) => (
                           <button
                             key={n}
                             type="button"
@@ -695,7 +717,7 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
             {myTurn && state.step === "move" && (
               <>
                 <span className="text-muted">
-                  {!sel.from ? "move between your neighbours, or end the turn" : !chosenTo ? `from ${TERRITORIES[sel.from].name} to...` : ""}
+                  {!sel.from ? "move between your neighbours, or end the turn" : !chosenTo ? `from ${tname(sel.from)} to...` : ""}
                 </span>
                 <span className="ml-auto flex flex-wrap items-center gap-1">
                   {sel.from && chosenTo && (
@@ -710,7 +732,7 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
                         </button>
                       </span>
                       <button type="button" disabled={busy} onClick={() => void march()} className="min-h-9 rounded-xl bg-chalk px-3 text-[12px] font-semibold text-ink-950">
-                        move to {TERRITORIES[chosenTo].name}
+                        move to {tname(chosenTo)}
                       </button>
                     </>
                   )}
@@ -727,8 +749,8 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
                 {label(state.traded.chair)} traded
                 {state.traded.cards.map((c) => (
                   <span key={c} className="flex items-center gap-0.5 rounded bg-white/6 px-1 text-chalk">
-                    {isJoker(c) ? "joker" : TERRITORIES[c as Territory].name}
-                    {!isJoker(c) && <ShapeMark shape={SHAPE_OF[c as Territory]} size={7} color="#e0655c" />}
+                    {isJoker(c) ? "joker" : tname(c)}
+                    {!isJoker(c) && <ShapeMark shape={figureOf(world, c) ?? "square"} size={7} color="#e0655c" />}
                   </span>
                 ))}
                 for {state.traded.armies}
@@ -752,7 +774,7 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
                 {looking === shownObjectiveChair ? (
                   <span>
                     {shownObjectiveChair === myChair ? "your objective" : `${label(shownObjectiveChair)}'s objective`}:{" "}
-                    <b className="text-chalk">{objectiveText(objectiveOf(shownObjectiveChair) as Objective)}</b>
+                    <b className="text-chalk">{objectiveText(world, objectiveOf(shownObjectiveChair) as Objective)}</b>
                   </span>
                 ) : (
                   <span>{shownObjectiveChair === myChair ? "your objective" : `${label(shownObjectiveChair)}'s objective`} (tap to look)</span>
@@ -774,14 +796,14 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
                     </button>
                   ))}
                   {looking && ownedObjectives.includes(looking) && (
-                    <b className="w-full text-chalk">{objectiveText(objectiveOf(looking) as Objective)}</b>
+                    <b className="w-full text-chalk">{objectiveText(world, objectiveOf(looking) as Objective)}</b>
                   )}
                 </span>
               )
             )}
             {canTrade && hand.length >= 3 && (
               <span className="text-[10px] text-muted/70">
-                three alike or one of each ({tradeValue(state.trades)} armies, +2 on any pictured land you hold)
+                three alike or one of each ({tradeValue(state.trades, rules)} armies{rules.ownedCardBonus ? `, +${rules.ownedCardBonus} on any pictured land you hold` : ""})
               </span>
             )}
           </div>
@@ -791,6 +813,7 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
               {hand.map((card) => (
                 <TerritoryCard
                   key={card}
+                  world={world}
                   card={card}
                   picked={picked.includes(card)}
                   onClick={canTrade ? () => setPicked(picked.includes(card) ? picked.filter((c) => c !== card) : [...picked, card].slice(-3)) : undefined}
@@ -811,55 +834,84 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
         </div>
       )}
 
-      {mapping && <WarMapEditor map={map} canEdit={canEdit} onSave={saveMap} onClose={() => setMapping(false)} />}
+      {mapping && (
+        <WarMapEditor world={world} rules={rules} playing={playing} canEdit={canEdit} onSave={saveWorld} onClose={() => setMapping(false)} />
+      )}
 
       {manual && (
-        <RulesSheet title="WAR" onClose={() => setManual(false)}>
+        <RulesSheet title={`WAR on ${world.name || "this map"}`} onClose={() => setManual(false)}>
           <p>
-            Every player gets a secret <b>objective</b>. The territories are dealt out, one army on each. Reach your objective and
-            you win -- it is shown to the table the moment you do.
+            {rules.goal === "conquest" ? (
+              <>The last army standing wins: take every territory there is.</>
+            ) : (
+              <>
+                Every player gets a secret <b>objective</b>. Reach yours and you win -- it is shown to the table the moment you do.
+              </>
+            )}{" "}
+            The territories are dealt out, one army on each.
           </p>
           <p>
-            The <b>first round</b> is only placing armies. From then on, a turn goes: <b>reinforce</b>, <b>attack</b> if you like,
-            <b> move</b> if you like, and <b>draw a card</b> if you took at least one territory.
+            {rules.placeFirstRound && (
+              <>
+                The <b>first round</b> is only placing armies.{" "}
+              </>
+            )}
+            A turn goes: <b>reinforce</b>, <b>attack</b> if you like, <b>move</b> if you like
+            {rules.cards && (
+              <>
+                , and <b>draw a card</b> if you took at least one territory
+              </>
+            )}
+            .
           </p>
           <h4>reinforcements</h4>
           <p>
-            Half the territories you hold (three at least), plus every continent you hold whole -- those armies go inside that
-            continent. North America and Europe 5, Asia 7, Africa 3, South America and Oceania 2.
+            The territories you hold divided by {rules.divisor} ({rules.minimum} at least), plus every continent you hold whole --
+            those armies go inside that continent:{" "}
+            {world.continents
+              .filter((c) => c.bonus > 0 && world.territories.some((t) => t.continent === c.id))
+              .map((c) => `${c.name} ${c.bonus}`)
+              .join(", ")}
+            .
           </p>
-          <h4>cards</h4>
-          <p>
-            Three cards of the same figure, or one of each, trade for armies at the start of your turn. The first trade in the game
-            is worth 4, then 6, 8, 10, 12, 15, and five more each time after. A card showing a territory you hold puts two more
-            armies there. Jokers are any figure. With five cards you have to trade.
-          </p>
+          {rules.cards && (
+            <>
+              <h4>cards</h4>
+              <p>
+                Three cards of the same figure, or one of each, trade for armies at the start of your turn: {rules.trades.join(", ")}
+                {rules.tradeStep ? `, then ${rules.tradeStep} more each time` : ""}, counted across the whole table.
+                {rules.ownedCardBonus > 0 && ` A card showing a territory you hold puts ${rules.ownedCardBonus} more armies there.`}
+                {rules.jokers > 0 && ` ${rules.jokers} jokers are any figure.`} With {rules.mustTradeAt} cards you have to trade.
+              </p>
+            </>
+          )}
           <h4>attacking</h4>
           <p>
-            From a territory with two or more armies, into a neighbour -- a shared border or a line across the sea. Up to three
-            dice, never counting the army that has to stay behind. The defence rolls one for each army there, up to three.
-            Highest against highest, then the next: whoever is lower loses an army, and a tie goes to the defence.
+            From a territory with two or more armies, into a neighbour. Up to {rules.attackDice} dice, never counting the army that
+            has to stay behind; the defence rolls one for each army there, up to {rules.defendDice}. Highest against highest, then
+            the next: whoever is lower loses an army, and a tie goes to the {rules.tiesToDefence ? "defence" : "attacker"}.
           </p>
           <p>
             Empty a territory and it is yours: march in at least one army, and no more than fought in the last throw. You can
             carry on attacking from there.
           </p>
           <h4>moving</h4>
-          <p>
-            After attacking, armies can move to neighbouring territories of yours. One always stays behind, and an army moves once
-            a turn.
-          </p>
+          <p>After attacking, armies can move to neighbouring territories of yours. One always stays behind, and an army moves once a turn.</p>
           <h4>knocking someone out</h4>
           <p>
-            Take someone&apos;s last territory and their cards are yours -- up to five in your hand, drawn blind. If your objective
-            was to destroy a colour and someone else did it first (or it was your own), you need 24 territories instead.
+            Take someone&apos;s last territory and their cards are yours -- up to {rules.mustTradeAt} in your hand, drawn blind.
           </p>
-          <div className="space-y-1 border-t border-white/8 pt-2">
-            <h4>the objectives</h4>
-            {(["eu-oc-any", "eu-sa-any", "as-sa", "as-af", "na-af", "na-oc", "t24", "t18", "kill-blue"] as Objective[]).map((o) => (
-              <p key={o}>{objectiveText(o)}{o === "kill-blue" ? " (one of these for each colour at the table)" : ""}</p>
-            ))}
-          </div>
+          {rules.goal === "objectives" && (
+            <div className="space-y-1 border-t border-white/8 pt-2">
+              <h4>the objectives on this map</h4>
+              {dealObjectives(world, rules.destroyObjectives ? ["blue"] : [], rules).map((o) => (
+                <p key={o}>
+                  {objectiveText(world, o)}
+                  {o.startsWith("kill:") ? " (one of these for each colour at the table)" : ""}
+                </p>
+              ))}
+            </div>
+          )}
         </RulesSheet>
       )}
     </div>
