@@ -42,6 +42,10 @@ function newQueue(
   };
 }
 
+
+/** Kinds that the Delete and Backspace keys never remove: they are busy with keys of their own. */
+const KEEPS_KEYS = new Set(["game", "media", "embed", "cobrowse", "screencast", "pdf"]);
+
 export default function Canvas() {
   const rootRef = useRef<HTMLDivElement>(null);
   const room = useRoomStore((s) => s.room);
@@ -306,6 +310,13 @@ export default function Canvas() {
       if (event.key.toLowerCase() === "e" && canEdit) useRoomStore.getState().setTool("erase");
 
       if ((event.key === "Delete" || event.key === "Backspace") && id && canEdit) {
+        // Games, players, documents and windows take keys of their own -- a word
+        // being typed, a page being turned -- and a box that loses focus for a
+        // moment would hand the next Backspace to the room. Those only go by the
+        // bin. And anything with focus inside an item is left alone.
+        const kind = useRoomStore.getState().items[id]?.kind;
+        const busyItem = document.activeElement instanceof HTMLElement && document.activeElement.closest("[data-item-id]");
+        if (!kind || KEEPS_KEYS.has(kind) || busyItem) return;
         event.preventDefault();
         void deleteItem(id);
         return;

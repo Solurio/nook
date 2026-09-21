@@ -2,6 +2,7 @@
 
 import { memo, useCallback, useRef } from "react";
 import clsx from "clsx";
+import { RotateCw } from "lucide-react";
 import { useRoom } from "@/realtime/room-provider";
 import { gestureLock, useRoomStore } from "@/state/room-store";
 import { clampSize } from "@/lib/items";
@@ -315,6 +316,7 @@ function ItemFrame({
         transform: `rotate(${item.rotation}deg)`,
         zIndex: item.z,
       }}
+      data-item-id={item.id}
       onPointerDown={(event) => {
         if (event.button !== 0 && event.pointerType === "mouse") return;
         // Waiting to link something: this tap is the other end.
@@ -411,9 +413,12 @@ function ItemFrame({
             {...handleProps}
             style={{ right: -48 * inv, bottom: -48 * inv, ...counter }}
             className="absolute grid size-11 cursor-alias touch-none place-items-center"
-            title="Drag to rotate"
+            title="drag to turn it"
+            aria-label="drag to turn it"
           >
-            <span className="size-5 rounded-full bg-warm ring-2 ring-ink-950/45" />
+            <span className="grid size-6 place-items-center rounded-full bg-warm text-ink-950 shadow-md ring-2 ring-ink-950/45">
+              <RotateCw className="size-3.5" strokeWidth={2.8} />
+            </span>
           </div>
 
           {(["nw", "ne", "se", "sw"] as const).map((handle) => (

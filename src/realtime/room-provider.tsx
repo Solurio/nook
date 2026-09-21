@@ -20,7 +20,7 @@ import {
 } from "@/lib/identity";
 import { newId } from "@/lib/slug";
 import { useThrottled } from "@/lib/use-throttled";
-import { relayer, type ItemDraft, type Layering } from "@/lib/items";
+import { keepItemFlags, relayer, type ItemDraft, type Layering } from "@/lib/items";
 import { explainPileError, keepTableState, type PileFn } from "@/lib/piles";
 import { useRoomStore, viewportForItems } from "@/state/room-store";
 import type {
@@ -592,7 +592,9 @@ export function RoomProvider({
   );
 
   const updateData = useCallback(
-    async <K extends ItemKind>(id: string, data: ItemDataMap[K]) => {
+    async <K extends ItemKind>(id: string, sent: ItemDataMap[K]) => {
+      // A pin or a link the save knows nothing about stays where it was.
+      const data = keepItemFlags(store.getState().items[id]?.data, sent);
       // Pile sizes and whatever has been turned over belong to the database,
       // which keeps them whatever a save says (see 0006_tabletop.sql). Kept
       // here too, so they do not blink out until the saved row comes back.
@@ -609,7 +611,10 @@ export function RoomProvider({
   const pile = useCallback(
     async <T,>(fn: PileFn, args: Record<string, unknown>, options?: { quiet?: boolean }) => {
       const itemId = args.p_item as string | undefined;
-      const nextPublic = args.p_public as Record<string, unknown> | undefined;
+      const sentPublic = args.p_public as Record<string, unknown> | undefined;
+      // The public state replaces the item's data whole: keep its pin and its links.
+      const nextPublic = sentPublic && itemId ? keepItemFlags(store.getState().items[itemId]?.data, sentPublic) : sentPublic;
+      if (nextPublic && nextPublic !== sentPublic) args = { ...args, p_public: nextPublic };
 
       if (itemId && nextPublic) {
         const live = store.getState().items[itemId];

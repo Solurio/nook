@@ -481,9 +481,8 @@ function LinkActions({ item, thumb }: { item: AnyItem; thumb?: boolean }) {
     for (const id of unlink(groups, item.id)) {
       const live = items[id];
       if (!live) continue;
-      const data = { ...live.data } as Record<string, unknown>;
-      delete data.group;
-      void updateData(id, data as never);
+      // Null, not left out: a save that leaves a link out keeps it.
+      void updateData(id, { ...live.data, group: null } as never);
     }
   };
 

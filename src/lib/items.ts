@@ -42,6 +42,24 @@ export interface ItemDraft {
   data: ItemDataMap[ItemKind];
 }
 
+/**
+ * Things about an item that no game knows it is carrying: stuck to the wall,
+ * tied to other things. A game saves its data whole -- { game, state } -- and
+ * would drop them every time anybody made a move. So a save that does not
+ * mention one keeps it as it was; to clear one, a save says null.
+ */
+export const ITEM_FLAGS = ["pinned", "group"] as const;
+
+export function keepItemFlags<T extends object>(live: object | undefined, next: T): T {
+  const out = { ...next } as Record<string, unknown>;
+  const was = (live ?? {}) as Record<string, unknown>;
+  for (const key of ITEM_FLAGS) {
+    if (!(key in out) && was[key] !== undefined && was[key] !== null) out[key] = was[key];
+    if (out[key] === null || out[key] === undefined) delete out[key];
+  }
+  return out as T;
+}
+
 const DEFAULT_SIZE: Record<ItemKind, { width: number; height: number }> = {
   image: { width: 320, height: 240 },
   note: { width: 240, height: 240 },
