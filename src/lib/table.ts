@@ -363,6 +363,8 @@ export interface Step {
   call?: Call;
   /** Some moves take two database calls in order, the second after the first lands. */
   then?: Call;
+  /** How to put the table right if that second call never lands. */
+  undo?: (live: TableState) => TableState;
 }
 
 function withStack(table: TableState, stack: Stack): TableState {
@@ -486,42 +488,46 @@ export function removeIfEmpty(table: TableState, id: string): TableState {
  * secret pile to another; face up it was public already, so it is simply
  * put into the hand.
  */
-export function drawToHand(table: TableState, id: string, chair: string, owner: string): Step {
+export function drawToHand(table: TableState, id: string, chair: string, owner: string, count = 1): Step {
   const stack = find(table, id);
+  const many = Math.max(1, Math.min(52, count));
   if (stack.face === "down") {
     return {
       table,
       call: {
         fn: "pile_move",
-        args: { p_from: stackSlot(id), p_to: handSlot(chair), p_count: 1, p_to_owner: owner },
+        args: { p_from: stackSlot(id), p_to: handSlot(chair), p_count: many, p_to_owner: owner },
       },
     };
   }
-  const [top, ...rest] = stack.cards ?? [];
-  if (!top) return { table };
+  const cards = stack.cards ?? [];
+  const taken = cards.slice(0, many);
+  if (taken.length === 0) return { table };
   return {
-    table: replaced(table, { ...stack, cards: rest }),
-    call: { fn: "pile_put", args: { p_to: handSlot(chair), p_cards: [top], p_to_owner: owner } },
+    table: replaced(table, { ...stack, cards: cards.slice(taken.length) }),
+    call: { fn: "pile_put", args: { p_to: handSlot(chair), p_cards: taken, p_to_owner: owner } },
   };
 }
 
 export type Placement =
-  | { kind: "new"; x: number; y: number; face: Facing; mine?: { chair: string; owner: string } }
+  | { kind: "new"; x: number; y: number; face: Facing; layout?: Layout; mine?: { chair: string; owner: string } }
   | { kind: "onto"; id: string };
 
 /**
- * A card from your hand onto the felt: into a new stack wherever you put it,
+ * Cards from your hand onto the felt: into a new stack wherever you put them,
  * face up or face down (and, face down, optionally still yours to read), or
- * onto a stack already there, taking that stack's facing.
+ * onto a stack already there, taking that stack's facing. Several at once go
+ * down together, in the order they were picked up.
  */
-export function playFromHand(
+export function playCards(
   table: TableState,
   chair: string,
-  card: string,
+  cards: string[],
   where: Placement,
   random: () => number = Math.random,
 ): Step {
   const from = handSlot(chair);
+  if (cards.length === 0) return { table };
 
   if (where.kind === "onto") {
     const target = find(table, where.id);
@@ -529,17 +535,17 @@ export function playFromHand(
       return {
         table: replaced(table, {
           ...target,
-          cards: [card, ...(target.cards ?? [])],
+          cards: [...cards, ...(target.cards ?? [])],
           z: topZ(table.stacks),
         }),
-        call: { fn: "pile_take", args: { p_from: from, p_cards: [card] } },
+        call: { fn: "pile_take", args: { p_from: from, p_cards: cards } },
       };
     }
     return {
       table: replaced(table, { ...target, z: topZ(table.stacks) }),
       call: {
         fn: "pile_move",
-        args: { p_from: from, p_to: stackSlot(target.id), p_cards: [card] },
+        args: { p_from: from, p_to: stackSlot(target.id), p_cards: cards },
       },
     };
   }
@@ -550,14 +556,14 @@ export function playFromHand(
     x: clamp01(where.x),
     y: clamp01(where.y),
     face: where.face,
-    layout: "stack",
+    layout: where.layout ?? (cards.length > 1 ? "fan" : "stack"),
     z: topZ(table.stacks),
   };
 
   if (where.face === "up") {
     return {
-      table: withStack(table, { ...base, cards: [card] }),
-      call: { fn: "pile_take", args: { p_from: from, p_cards: [card] } },
+      table: withStack(table, { ...base, cards: [...cards] }),
+      call: { fn: "pile_take", args: { p_from: from, p_cards: cards } },
     };
   }
 
@@ -568,11 +574,22 @@ export function playFromHand(
       args: {
         p_from: from,
         p_to: stackSlot(id),
-        p_cards: [card],
+        p_cards: cards,
         p_to_owner: where.mine?.owner ?? null,
       },
     },
   };
+}
+
+/** One card from your hand onto the felt. */
+export function playFromHand(
+  table: TableState,
+  chair: string,
+  card: string,
+  where: Placement,
+  random: () => number = Math.random,
+): Step {
+  return playCards(table, chair, [card], where, random);
 }
 
 /**
@@ -770,14 +787,15 @@ export function dealFrom(
   };
 }
 
-/** Passes a card from your hand to another chair's. Only its new holder learns what. */
-export function giveCard(
+/** Passes cards from your hand to another chair's. Only their new holder learns what. */
+export function giveCards(
   table: TableState,
   fromChair: string,
   toChair: string,
-  card: string,
+  cards: string[],
   dealer: string,
 ): Step {
+  if (cards.length === 0) return { table };
   return {
     table,
     call: {
@@ -785,11 +803,21 @@ export function giveCard(
       args: {
         p_from: handSlot(fromChair),
         p_to: handSlot(toChair),
-        p_cards: [card],
+        p_cards: cards,
         p_to_owner: table.holders?.[toChair] ?? dealer,
       },
     },
   };
+}
+
+export function giveCard(
+  table: TableState,
+  fromChair: string,
+  toChair: string,
+  card: string,
+  dealer: string,
+): Step {
+  return giveCards(table, fromChair, toChair, [card], dealer);
 }
 
 /** Lays a whole hand down face up in front of its chair -- a showdown. */
@@ -817,23 +845,59 @@ export function showHand(
 }
 
 /**
- * Takes a face-up card out of the middle of a spread stack and into a hand --
- * picking up the card you want from a fanned discard pile.
+ * Takes face-up cards out of a spread stack and into a hand -- picking the
+ * ones you want out of a fanned discard pile.
  */
-export function takeCard(
+export function takeCards(
   table: TableState,
   id: string,
-  index: number,
+  indices: number[],
   chair: string,
   owner: string,
 ): Step {
   const stack = find(table, id);
   const cards = stack.cards ?? [];
-  const card = cards[index];
-  if (stack.face !== "up" || card === undefined) return { table };
+  const wanted = new Set(indices.filter((i) => i >= 0 && i < cards.length));
+  if (stack.face !== "up" || wanted.size === 0) return { table };
+  const taken = cards.filter((_, i) => wanted.has(i));
   return {
-    table: replaced(table, { ...stack, cards: cards.filter((_, i) => i !== index) }),
-    call: { fn: "pile_put", args: { p_to: handSlot(chair), p_cards: [card], p_to_owner: owner } },
+    table: replaced(table, { ...stack, cards: cards.filter((_, i) => !wanted.has(i)) }),
+    call: { fn: "pile_put", args: { p_to: handSlot(chair), p_cards: taken, p_to_owner: owner } },
+  };
+}
+
+export function takeCard(table: TableState, id: string, index: number, chair: string, owner: string): Step {
+  return takeCards(table, id, [index], chair, owner);
+}
+
+/**
+ * Cards out of your hand for cards off a face-up stack, in one move: a
+ * draw-and-discard turn, or swapping what you are holding for what is lying
+ * there. The hand gives first, so a refusal leaves the table as it was.
+ */
+export function swapCards(
+  table: TableState,
+  chair: string,
+  give: string[],
+  id: string,
+  indices: number[],
+  owner: string,
+): Step {
+  const stack = find(table, id);
+  const cards = stack.cards ?? [];
+  const wanted = new Set(indices.filter((i) => i >= 0 && i < cards.length));
+  if (stack.face !== "up" || give.length === 0 || wanted.size === 0) return { table };
+  const taken = cards.filter((_, i) => wanted.has(i));
+  const kept = cards.filter((_, i) => !wanted.has(i));
+  return {
+    table: replaced(table, { ...stack, cards: [...give, ...kept], z: topZ(table.stacks) }),
+    call: { fn: "pile_take", args: { p_from: handSlot(chair), p_cards: give } },
+    then: { fn: "pile_put", args: { p_to: handSlot(chair), p_cards: taken, p_to_owner: owner } },
+    undo: (live: TableState) => {
+      const there = live.stacks.find((s) => s.id === id);
+      if (!there || there.face !== "up") return live;
+      return replaced(live, { ...there, cards: [...taken, ...(there.cards ?? [])] });
+    },
   };
 }
 
@@ -859,4 +923,108 @@ export function upgrade(state: unknown): TableState {
   table.teams = typeof s.teams === "number" ? s.teams : 0;
   table.dealEach = typeof s.dealEach === "number" ? s.dealEach : 5;
   return table;
+}
+
+// ---------------------------------------------------------------------------
+// Holding a hand
+//
+// The order of a hand is nobody else's business, so it is kept on the device
+// holding it rather than in the pile. These work out what that order means
+// when cards come and go.
+// ---------------------------------------------------------------------------
+
+export type SortBy = "dealt" | "rank" | "suit" | "deck";
+
+/** Where a card sits when a hand is sorted: deck, then suit, then rank. */
+function cardOrder(card: string, decks: DeckDef[]): [number, number, number, string] {
+  const { deck, face } = readFace(card, decks);
+  const deckAt = Math.max(0, decks.findIndex((d) => d.id === deck?.id));
+  switch (face.kind) {
+    case "standard":
+      return [deckAt, SUITS.indexOf(face.suit), RANKS.indexOf(face.rank), card];
+    case "joker":
+      return [deckAt, SUITS.length, face.n, card];
+    case "major":
+      return [deckAt, -1, face.n, card];
+    case "minor":
+      return [deckAt, TAROT_SUITS.indexOf(face.suit), face.n, card];
+    case "custom": {
+      const at = deck?.custom?.findIndex((c) => c.id === face.card.id) ?? 0;
+      return [deckAt, 0, at, card];
+    }
+    default:
+      return [deckAt, 99, 99, card];
+  }
+}
+
+/** A hand put in order: by rank across suits, by suit, or by which deck it came from. */
+export function sortHand(cards: string[], decks: DeckDef[], by: SortBy): string[] {
+  if (by === "dealt") return [...cards];
+  const keyed = cards.map((card) => ({ card, key: cardOrder(card, decks) }));
+  keyed.sort((a, b) => {
+    const [ad, as_, ar, at] = a.key;
+    const [bd, bs, br, bt] = b.key;
+    if (by === "deck" && ad !== bd) return ad - bd;
+    if (by === "rank" && ar !== br) return ar - br;
+    if (as_ !== bs) return as_ - bs;
+    if (ar !== br) return ar - br;
+    if (ad !== bd) return ad - bd;
+    return at.localeCompare(bt);
+  });
+  return keyed.map((k) => k.card);
+}
+
+/**
+ * The hand as its holder arranged it. Cards they have moved keep their place;
+ * cards they have not seen before -- just drawn, just given -- go on the end,
+ * where a hand picks them up. Identical cards count one apiece.
+ */
+export function arrangeHand(cards: string[], order: string[] | null | undefined): string[] {
+  if (!order || order.length === 0) return [...cards];
+  const left = new Map<string, number>();
+  for (const card of cards) left.set(card, (left.get(card) ?? 0) + 1);
+  const out: string[] = [];
+  for (const card of order) {
+    const have = left.get(card) ?? 0;
+    if (have <= 0) continue;
+    left.set(card, have - 1);
+    out.push(card);
+  }
+  for (const card of cards) {
+    const have = left.get(card) ?? 0;
+    if (have <= 0) continue;
+    left.set(card, have - 1);
+    out.push(card);
+  }
+  return out;
+}
+
+/** The same cards with one run of them moved to sit before another place. */
+export function reorderHand(cards: string[], from: number[], to: number): string[] {
+  const moving = from.filter((i) => i >= 0 && i < cards.length).sort((a, b) => a - b);
+  if (moving.length === 0) return [...cards];
+  const taken = moving.map((i) => cards[i]);
+  const rest = cards.filter((_, i) => !moving.includes(i));
+  // Where the gap lands once the moved cards are out of the way.
+  const before = moving.filter((i) => i < to).length;
+  const at = Math.max(0, Math.min(rest.length, to - before));
+  return [...rest.slice(0, at), ...taken, ...rest.slice(at)];
+}
+
+/**
+ * How many cards the table can account for against how many it was set with.
+ * Face-up stacks carry their cards; everything else is a pile, and the table
+ * is told each pile's size. A difference means a move went astray, and the
+ * way back is to gather everything up and deal again.
+ */
+export function tally(table: TableState, piles: PileMeta | undefined): { held: number; expected: number } {
+  let held = 0;
+  for (const stack of table.stacks) {
+    if (stack.face === "up") held += stack.cards?.length ?? 0;
+  }
+  for (const [slot, info] of Object.entries(piles ?? {})) {
+    if (slot.startsWith("stack:") || slot.startsWith("hand:")) held += info?.size ?? 0;
+  }
+  const expected = table.decks.reduce((sum, deck) => sum + deckCards(deck).length, 0);
+  return { held, expected };
 }

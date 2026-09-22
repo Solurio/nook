@@ -14,8 +14,13 @@ import {
   handSlot,
   mergeStacks,
   moveStacks,
+  arrangeHand,
+  playCards,
   playFromHand,
   presetDecks,
+  reorderHand,
+  sortHand,
+  swapCards,
   readFace,
   settle,
   setTable,
@@ -23,6 +28,8 @@ import {
   splitStack,
   stackSlot,
   takeCard,
+  takeCards,
+  tally,
   turnTopUp,
   upgrade,
   type Stack,
@@ -413,4 +420,82 @@ test("a face-down card on the felt is unreadable, until turned over for everyone
   const settled = settle(rows[0].data.state);
   assert.ok(settled);
   assert.deepEqual(settled.table.stacks.find((s) => s.id === faceDown.id)?.cards, [hand[0]]);
+});
+
+// ---------------------------------------------------------------------------
+// A handful at a time
+// ---------------------------------------------------------------------------
+
+test("several cards go down together, in the order they were picked up", () => {
+  const { table } = laid();
+  const step = playCards(table, "s0", ["d1|7C", "d1|8C"], { kind: "new", x: 0.5, y: 0.7, face: "up" }, seeded(3));
+  const placed = step.table.stacks.at(-1) as Stack;
+  assert.deepEqual(placed.cards, ["d1|7C", "d1|8C"]);
+  assert.equal(placed.layout, "fan", "more than one lies spread out, so it can be read");
+  assert.deepEqual(step.call, { fn: "pile_take", args: { p_from: handSlot("s0"), p_cards: ["d1|7C", "d1|8C"] } });
+});
+
+test("cards picked out of a spread come into the hand and leave the rest in order", () => {
+  const { table, discard } = laid();
+  const shown = {
+    ...table,
+    stacks: table.stacks.map((s) => (s.id === discard.id ? { ...s, cards: ["d1|AS", "d1|2H", "d1|3D", "d1|4C"] } : s)),
+  };
+  const step = takeCards(shown, discard.id, [2, 0], "s0", "alice");
+  assert.deepEqual(step.table.stacks.find((s) => s.id === discard.id)?.cards, ["d1|2H", "d1|4C"]);
+  assert.deepEqual(step.call?.args.p_cards, ["d1|AS", "d1|3D"]);
+});
+
+test("a swap gives before it takes, and puts the cards back if the taking never lands", () => {
+  const { table, discard } = laid();
+  const shown = {
+    ...table,
+    stacks: table.stacks.map((s) => (s.id === discard.id ? { ...s, cards: ["d1|AS", "d1|2H", "d1|3D"] } : s)),
+  };
+  const step = swapCards(shown, "s0", ["d1|KH"], discard.id, [1], "alice");
+  assert.equal(step.call?.fn, "pile_take", "the hand gives first");
+  assert.deepEqual(step.call?.args.p_cards, ["d1|KH"]);
+  assert.equal(step.then?.fn, "pile_put");
+  assert.deepEqual(step.then?.args.p_cards, ["d1|2H"]);
+  assert.deepEqual(step.table.stacks.find((s) => s.id === discard.id)?.cards, ["d1|KH", "d1|AS", "d1|3D"]);
+  const mended = step.undo?.(step.table) as TableState;
+  assert.deepEqual(mended.stacks.find((s) => s.id === discard.id)?.cards, ["d1|2H", "d1|KH", "d1|AS", "d1|3D"]);
+});
+
+// ---------------------------------------------------------------------------
+// Holding a hand
+// ---------------------------------------------------------------------------
+
+test("a hand put in order groups the suits, and by rank runs across them", () => {
+  const decks = presetDecks("52");
+  const hand = ["d1|KH", "d1|2S", "d1|2H", "d1|AS"];
+  assert.deepEqual(sortHand(hand, decks, "suit"), ["d1|AS", "d1|2S", "d1|2H", "d1|KH"]);
+  assert.deepEqual(sortHand(hand, decks, "rank"), ["d1|AS", "d1|2S", "d1|2H", "d1|KH"]);
+  assert.deepEqual(sortHand(["d1|5H", "d1|4S"], decks, "rank"), ["d1|4S", "d1|5H"]);
+  assert.deepEqual(sortHand(hand, decks, "dealt"), hand, "dealt order is the order it came in");
+});
+
+test("the order a hand was arranged in survives cards coming and going", () => {
+  const order = ["d1|KH", "d1|2S", "d1|AS"];
+  // A card played is simply missing; a card drawn goes on the end, where a hand takes it.
+  assert.deepEqual(arrangeHand(["d1|2S", "d1|AS", "d1|9D"], order), ["d1|2S", "d1|AS", "d1|9D"]);
+  // Two of the same card are two cards, not one.
+  assert.deepEqual(arrangeHand(["d1|JK1", "d1|JK1"], ["d1|JK1"]), ["d1|JK1", "d1|JK1"]);
+  assert.deepEqual(arrangeHand(["d1|2S"], null), ["d1|2S"]);
+});
+
+test("cards moved about in the hand land where the gap was", () => {
+  const hand = ["a", "b", "c", "d"];
+  assert.deepEqual(reorderHand(hand, [3], 1), ["a", "d", "b", "c"]);
+  assert.deepEqual(reorderHand(hand, [0], 4), ["b", "c", "d", "a"]);
+  assert.deepEqual(reorderHand(hand, [0, 1], 3), ["c", "a", "b", "d"]);
+  assert.deepEqual(reorderHand(hand, [], 2), hand);
+});
+
+test("the table counts what it can account for against what it was set with", () => {
+  const { table, deck, discard } = laid();
+  const piles = { [stackSlot(deck.id)]: { owner: null, size: 50, at: 0, sealed: false }, [handSlot("s0")]: { owner: "alice", size: 1, at: 0, sealed: false } };
+  const shown = { ...table, stacks: table.stacks.map((s) => (s.id === discard.id ? { ...s, cards: ["d1|AS"] } : s)) };
+  assert.deepEqual(tally(shown, piles), { held: 52, expected: 52 });
+  assert.equal(tally(shown, undefined).held, 1, "with no pile sizes, only what is face up can be counted");
 });

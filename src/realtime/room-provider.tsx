@@ -68,6 +68,7 @@ interface RoomApi {
   commitTransform: (patch: TransformPatch) => Promise<void>;
   broadcastTransform: (patch: TransformPatch | TransformPatch[]) => void;
   updateData: <K extends ItemKind>(id: string, data: ItemDataMap[K]) => Promise<void>;
+  updateDataIf: <K extends ItemKind>(id: string, data: ItemDataMap[K], since: string) => Promise<boolean>;
   /**
    * Calls one of the secret pile functions. Pass the new public state as
    * p_public and it shows locally straight away, the way updateData does; if
@@ -611,6 +612,39 @@ export function RoomProvider({
     [supabase, store],
   );
 
+  /**
+   * The same save, but only onto the row it was worked out from. Two people
+   * moving cards at once each send the whole table, and whoever sends second
+   * would otherwise put back what the first had just moved -- a card in two
+   * places, or in none. This refuses instead, and says so, so the caller can
+   * work the move out again from what is really there now.
+   */
+  const updateDataIf = useCallback(
+    async <K extends ItemKind>(id: string, sent: ItemDataMap[K], since: string): Promise<boolean> => {
+      const data = keepItemFlags(store.getState().items[id]?.data, sent);
+      const { data: rows, error: updateError } = await supabase
+        .from("items")
+        .update({ data })
+        .eq("id", id)
+        .eq("updated_at", since)
+        .select("*");
+      if (updateError) {
+        setError(updateError.message);
+        return false;
+      }
+      if (rows && rows.length > 0) {
+        store.getState().upsertItem(rows[0] as AnyItem);
+        return true;
+      }
+      // Somebody got there first. Read what they left, so the next attempt
+      // starts from it rather than from the copy this one was built on.
+      const { data: row } = await supabase.from("items").select("*").eq("id", id).maybeSingle();
+      if (row) store.getState().upsertItem(row as AnyItem);
+      return false;
+    },
+    [supabase, store],
+  );
+
   const pile = useCallback(
     async <T,>(fn: PileFn, args: Record<string, unknown>, options?: { quiet?: boolean }) => {
       const itemId = args.p_item as string | undefined;
@@ -990,6 +1024,7 @@ export function RoomProvider({
     commitTransform,
     broadcastTransform,
     updateData,
+    updateDataIf,
     pile,
     readPiles,
     restack,

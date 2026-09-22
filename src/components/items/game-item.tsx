@@ -7,7 +7,7 @@ import Doodle from "@/components/games/doodle";
 import Chess from "@/components/games/chess";
 import Checkers from "@/components/games/checkers";
 import Intransitive from "@/components/games/intransitive";
-import CardTable from "@/components/games/card-table";
+import CardTable from "@/components/games/cards/card-table";
 import Dominoes from "@/components/games/dominoes";
 import Codenames from "@/components/games/codenames";
 import Coup from "@/components/games/coup";
