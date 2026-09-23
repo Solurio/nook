@@ -46,7 +46,8 @@ export default function StackView({
   const cards = faceUp ? (stack.cards ?? []) : showOwned && owned ? owned : [];
   const reveal = faceUp || (showOwned && owned !== null);
   const backDeck = decks[0] ?? null;
-  const tallest = cardHeight(cardW, decks.find((d) => d.kind === "tarot") ? decks[0] : backDeck);
+  // Tarot cards are taller than playing cards, and set the height of the row.
+  const tallest = cardHeight(cardW, decks.find((d) => d.kind === "tarot") ?? backDeck);
 
   const spread = stack.layout !== "stack" && size > 1;
   const step = stack.layout === "fan" ? cardW * 0.3 : cardW * 0.66;
