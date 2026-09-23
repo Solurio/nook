@@ -21,7 +21,7 @@ import { useHandOver, useScrub } from "@/realtime/use-hand-over";
 import { useRoomStore } from "@/state/room-store";
 import { chairOf, claimChair } from "@/lib/seats";
 import { TAKES_PUBLIC, sizeOf } from "@/lib/piles";
-import { fractionIn } from "@/lib/pointer";
+import { fractionIn, pointIn } from "@/lib/pointer";
 import {
   addPlace,
   arrangeHand,
@@ -32,6 +32,7 @@ import {
   flipStack,
   gather,
   giveCards,
+  isLeftover,
   handSlot,
   mergeStacks,
   moveStacks,
@@ -52,6 +53,7 @@ import {
   swapCards,
   takeCards,
   tally,
+  tidy,
   turnStack,
   turnTopUp,
   upgrade,
@@ -96,6 +98,7 @@ type Drag =
       at: number[];
       startX: number;
       startY: number;
+      /** Where the cards being carried are drawn, in the board's own pixels. */
       x: number;
       y: number;
       moved: boolean;
@@ -242,6 +245,21 @@ export default function CardTable({ item, state }: { item: Item<"game">; state: 
     }
   };
 
+  /**
+   * A card taken off the last of a face-down stack empties its pile only once
+   * the database has done it, so the hole it leaves is cleared up afterwards.
+   */
+  const sweep = async () => {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const now = liveTable();
+      if (!now) return;
+      const tidied = tidy(now.table, now.table.piles);
+      if (tidied === now.table) return;
+      if (await updateDataIf(item.id, { game: "cards", state: strip(tidied) as never }, now.since)) return;
+      await sleep(80);
+    }
+  };
+
   const run = async (make: (fresh: TableState) => Step | null) => {
     if (!canEdit) return;
     setBusy(true);
@@ -262,7 +280,7 @@ export default function CardTable({ item, state }: { item: Item<"game">; state: 
         if (step.call) {
           const args: Record<string, unknown> = { ...step.call.args, p_item: item.id };
           if (TAKES_PUBLIC.has(step.call.fn)) {
-            args.p_public = { game: "cards", state: strip(step.table) };
+            args.p_public = { game: "cards", state: strip(tidy(step.table, live.table.piles)) };
           } else if (changed && !(await updateDataIf(item.id, { game: "cards", state: strip(step.table) as never }, live.since))) {
             await sleep(40 + attempt * 60);
             continue;
@@ -280,11 +298,12 @@ export default function CardTable({ item, state }: { item: Item<"game">; state: 
             }
           }
           if (step.call.fn === "pile_reveal" || step.then?.fn === "pile_reveal") void settleNow();
+          else await sweep();
           return;
         }
 
         if (!changed) return;
-        if (await updateDataIf(item.id, { game: "cards", state: strip(step.table) as never }, live.since)) return;
+        if (await updateDataIf(item.id, { game: "cards", state: strip(tidy(step.table, live.table.piles)) as never }, live.since)) return;
         await sleep(40 + attempt * 60);
       }
       setNotice("somebody else was moving those cards. have another go.");
@@ -350,7 +369,7 @@ export default function CardTable({ item, state }: { item: Item<"game">; state: 
     let best: Stack | null = null;
     let bestDist = Infinity;
     for (const stack of view.stacks) {
-      if (except.includes(stack.id)) continue;
+      if (except.includes(stack.id) || isLeftover(stack, piles)) continue;
       const d = Math.hypot(stack.x - x, ((stack.y - y) * rect.height) / rect.width);
       if (d < reach && d < bestDist) {
         best = stack;
@@ -375,6 +394,17 @@ export default function CardTable({ item, state }: { item: Item<"game">; state: 
   // ---------------------------------------------------------------------------
   // Dragging
   // ---------------------------------------------------------------------------
+
+  /**
+   * The pointer in the board's own pixels. Cards being carried are drawn there
+   * rather than at the pointer's place on the screen: inside something the room
+   * has turned and zoomed, "fixed" is fixed to that, not to the screen, and the
+   * cards used to trail off somewhere else entirely.
+   */
+  const onBoard = (event: { clientX: number; clientY: number }) => {
+    const root = rootRef.current;
+    return root ? pointIn(root, event, item.rotation) : { x: 0, y: 0 };
+  };
 
   /** Follows the pointer even when it leaves the card it started on. */
   const grab = (event: React.PointerEvent) => {
@@ -420,8 +450,7 @@ export default function CardTable({ item, state }: { item: Item<"game">; state: 
       at,
       startX: event.clientX,
       startY: event.clientY,
-      x: event.clientX,
-      y: event.clientY,
+      ...onBoard(event),
       moved: false,
       gap: null,
     });
@@ -438,7 +467,7 @@ export default function CardTable({ item, state }: { item: Item<"game">; state: 
     }
     const root = rootRef.current;
     const gap = moved && root ? handGap(root, event.nativeEvent, item.rotation) : null;
-    setDrag({ ...drag, moved, x: event.clientX, y: event.clientY, gap });
+    setDrag({ ...drag, moved, ...onBoard(event), gap });
   };
 
   const onUp = (event: React.PointerEvent) => {
@@ -618,7 +647,7 @@ export default function CardTable({ item, state }: { item: Item<"game">; state: 
         )}
 
         {view.stacks
-          .slice()
+          .filter((s) => !isLeftover(s, piles))
           .sort((a, b) => a.z - b.z)
           .map((raw) => {
             const stack = displayed(raw);
@@ -841,7 +870,7 @@ export default function CardTable({ item, state }: { item: Item<"game">; state: 
 
       {/* Cards following the finger, on their way from the hand to the felt */}
       {dragged.length > 0 && drag?.kind === "hand" && (
-        <div className="pointer-events-none fixed z-[80] -translate-x-1/2 -translate-y-1/2" style={{ left: drag.x, top: drag.y }}>
+        <div className="pointer-events-none absolute z-[80] -translate-x-1/2 -translate-y-1/2" style={{ left: drag.x, top: drag.y }}>
           <div className="relative" style={{ width: cardW + (dragged.length - 1) * 14 }}>
             {dragged.map((card, i) => (
               <div key={i} className="absolute top-0" style={{ left: i * 14, transform: `rotate(${(i - (dragged.length - 1) / 2) * 4}deg)` }}>

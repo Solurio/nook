@@ -30,6 +30,8 @@ import {
   takeCard,
   takeCards,
   tally,
+  tidy,
+  isLeftover,
   turnTopUp,
   upgrade,
   type Stack,
@@ -498,4 +500,19 @@ test("the table counts what it can account for against what it was set with", ()
   const shown = { ...table, stacks: table.stacks.map((s) => (s.id === discard.id ? { ...s, cards: ["d1|AS"] } : s)) };
   assert.deepEqual(tally(shown, piles), { held: 52, expected: 52 });
   assert.equal(tally(shown, undefined).held, 1, "with no pile sizes, only what is face up can be counted");
+});
+
+test("a card picked up leaves no empty stack behind, but named places stay", () => {
+  const { table, deck, discard } = laid();
+  const played = playFromHand(table, "s0", "d1|7C", { kind: "new", x: 0.5, y: 0.7, face: "up" }, seeded(3)).table;
+  const spot = played.stacks.at(-1) as Stack;
+  const taken = takeCard(played, spot.id, 0, "s0", "alice").table;
+  const tidied = tidy(taken, { [stackSlot(deck.id)]: { owner: null, size: 51, at: 0, sealed: false } });
+  assert.ok(!tidied.stacks.some((s) => s.id === spot.id), "the hole is gone");
+  assert.ok(tidied.stacks.some((s) => s.id === discard.id), "the empty discard stays: it has a name");
+  assert.ok(tidied.stacks.some((s) => s.id === deck.id));
+  // A face-down stack is only empty once its pile says it is.
+  const down = { ...deck, id: "zz", label: undefined };
+  assert.equal(isLeftover(down, {}), false, "not yet in the database, so not swept");
+  assert.equal(isLeftover(down, { [stackSlot("zz")]: { owner: null, size: 0, at: 0, sealed: false } }), true);
 });

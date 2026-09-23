@@ -1028,3 +1028,23 @@ export function tally(table: TableState, piles: PileMeta | undefined): { held: n
   const expected = table.decks.reduce((sum, deck) => sum + deckCards(deck).length, 0);
   return { held, expected };
 }
+
+/**
+ * Whether a stack is only a hole left behind: nothing in it and no name. Named
+ * places -- the draw pile, the discard, a place someone made -- stay when they
+ * run out; a card put down and picked up again should leave nothing. A face-
+ * down stack only counts as empty once its pile says so, so one that is still
+ * on its way to the database is not swept up.
+ */
+export function isLeftover(stack: Stack, piles: PileMeta | undefined): boolean {
+  if (stack.label) return false;
+  if (stack.face === "up") return (stack.cards?.length ?? 0) === 0;
+  const info = piles?.[stackSlot(stack.id)];
+  return Boolean(info) && (info?.size ?? 0) === 0;
+}
+
+/** The table without the holes left where cards were picked up. */
+export function tidy(table: TableState, piles: PileMeta | undefined): TableState {
+  const stacks = table.stacks.filter((s) => !isLeftover(s, piles));
+  return stacks.length === table.stacks.length ? table : { ...table, stacks };
+}
