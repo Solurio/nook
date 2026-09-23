@@ -336,11 +336,11 @@ export default function CardTable({ item, state }: { item: Item<"game">; state: 
   // Where things are
   // ---------------------------------------------------------------------------
 
-  const fraction = (event: { clientX: number; clientY: number; target?: EventTarget | null; offsetX?: number; offsetY?: number }) => {
+  const fraction = (event: { clientX: number; clientY: number }) => {
     const root = rootRef.current;
     const felt = feltRef.current;
     if (!root || !felt) return null;
-    return fractionIn(root, felt, event);
+    return fractionIn(root, felt, event, item.rotation);
   };
 
   const stackAt = (x: number, y: number, except: string[]) => {
@@ -437,7 +437,7 @@ export default function CardTable({ item, state }: { item: Item<"game">; state: 
       return;
     }
     const root = rootRef.current;
-    const gap = moved && root ? handGap(root, event.nativeEvent) : null;
+    const gap = moved && root ? handGap(root, event.nativeEvent, item.rotation) : null;
     setDrag({ ...drag, moved, x: event.clientX, y: event.clientY, gap });
   };
 
@@ -485,7 +485,7 @@ export default function CardTable({ item, state }: { item: Item<"game">; state: 
     if (!heldChair) return;
 
     const root = rootRef.current;
-    const gap = root ? handGap(root, event.nativeEvent) : null;
+    const gap = root ? handGap(root, event.nativeEvent, item.rotation) : null;
     if (gap !== null) {
       // Put back in a different place: the order of a hand is nobody else's business.
       setOrder(reorderHand(hand, done.at, gap));

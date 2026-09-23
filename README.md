@@ -59,7 +59,6 @@ it, and it all stays where you dropped it.
   [Hidden cards](#hidden-cards) for how.
 - **Board games.** Chess (with check, mate and castling), checkers, connect four,
   tic-tac-toe, **Quoridor** (Bloqueio here in Brazil) for two or four, with walls
-  that can never shut anyone in, **Quoridor** (Bloqueio here in Brazil) for two or four, with walls
   that can never shut anyone in, **rock paper scissors** for two to six with sealed throws,
   **intransitive** (a race where the pieces beat each other in a circle instead
   of a ladder), and **Bomb Party** in English, Portuguese or Spanish: five-letter
@@ -69,11 +68,24 @@ it, and it all stays where you dropped it.
   empty and whoever is holding the device plays every side, which is how one
   phone gets passed round a room. A phone holding more than one hand asks before
   it shows each one. The board turns to face whichever chair you took.
+- **Pool**, on a nine-foot table: **eight ball**, **nine ball** or a **free
+  table** with no rules at all, for two to eight players, on their own or in two
+  sides. The balls slide before they roll, which is why a stun shot stops dead,
+  a follow carries on and a screw shot comes back; side spin shows off the
+  cushions and throws the ball it hits. Pull the cue back from the ball and let
+  go; the dot on the little cue ball is where the tip strikes. Fouls, ball in
+  hand and halves picked up as they fall are all kept -- and the free table is
+  where you set the balls out by hand. A shot is an angle, a weight and where
+  it was struck, so every screen plays out the same table from the same numbers.
 - **A card table** for anything else: any deck (52, 54, 40, canasta, **tarot**
   with reversals -- the tarot on the games menu comes with its 78 already laid
   out -- or cards you make yourself, with your own backs), stacks you
-  drag, merge, split, cut, shuffle and deal from, face up or face down, and hands
-  held in a fan.
+  drag, merge, split, cut, shuffle and deal from, face up or face down, and
+  hands held in a fan. Pick up several cards at once to play, give or lay them
+  down together; pick cards out of a spread to take, or swap them for what you
+  are holding; put your hand in whatever order you like, which is kept on your
+  own device. Two people moving cards at once cannot leave a card in two places:
+  a save that would land on top of a newer one is refused and worked out again.
 - **Things for the table.** **Dice** that take real notation (`2d6+3`,
   `4d6kh3`, `d20x2`, `(1d8+2)/2`, `3dF`, exploding `d6!`), land die by die in
   their proper shapes and tell you the range and the average before you roll. A

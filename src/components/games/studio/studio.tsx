@@ -41,6 +41,7 @@ import { useRoom } from "@/realtime/room-provider";
 import { useRoomStore } from "@/state/room-store";
 import { newId } from "@/lib/slug";
 import { encodeGif, type GifFrame } from "@/lib/gif";
+import { pointIn } from "@/lib/pointer";
 import { cssFamily } from "@/lib/fonts";
 import { BUILT_IN_BRUSHES, mirrored, stabilize, type BrushMode, type BrushSpec } from "@/lib/studio/brush";
 import type { Palette } from "@/lib/studio/color";
@@ -302,17 +303,15 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
   };
 
   /**
-   * Where a pointer is over the picture, in layout pixels. The board sits in
-   * a room that zooms and turns it; offsetX already undoes all of that.
+   * Where a pointer is over the picture, in layout pixels. The board sits in a
+   * room that zooms and turns it, and both are undone here.
    */
   function local(event: MouseEvent | React.MouseEvent): [number, number] {
     const native = "nativeEvent" in event ? event.nativeEvent : event;
-    if (native.target === screenRef.current) return [native.offsetX, native.offsetY];
     const box = boxRef.current;
     if (!box) return [0, 0];
-    const rect = box.getBoundingClientRect();
-    const k = box.clientWidth / (rect.width || 1);
-    return [(native.clientX - rect.left) * k, (native.clientY - rect.top) * k];
+    const at = pointIn(box, native, item.rotation);
+    return [at.x, at.y];
   }
   const bumpHistory = () => setHistory({ undo: undoRef.current.length, redo: redoRef.current.length });
 

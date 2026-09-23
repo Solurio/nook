@@ -13,10 +13,10 @@ import PlayingCard, { cardHeight } from "@/components/cards/playing-card";
  * the pointer, which needs a window and gets confused by the card being
  * carried.
  */
-export function handGap(root: HTMLElement, event: PointerLike): number | null {
+export function handGap(root: HTMLElement, event: PointerLike, rotation = 0): number | null {
   const area = root.querySelector<HTMLElement>("[data-hand-area]");
   if (!area) return null;
-  const at = pointIn(root, event);
+  const at = pointIn(root, event, rotation);
   const corner = offsetWithin(area, root);
   const x = at.x - corner.x;
   const y = at.y - corner.y;

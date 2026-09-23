@@ -167,7 +167,8 @@ export type GameKind =
   | "cah"
   | "quoridor"
   | "catan"
-  | "reversi";
+  | "reversi"
+  | "pool";
 
 export type GameData =
   | { game: "tictactoe"; state: TicTacToeState }
@@ -194,7 +195,8 @@ export type GameData =
   | { game: "cah"; state: import("./cah").CahState }
   | { game: "quoridor"; state: import("./quoridor").QuoridorState }
   | { game: "catan"; state: import("./catan").CatanState }
-  | { game: "reversi"; state: import("./reversi").ReversiState };
+  | { game: "reversi"; state: import("./reversi").ReversiState }
+  | { game: "pool"; state: import("./pool").PoolState };
 
 export interface ChessState {
   /** 64 cells, index = row*8+col, row 0 is black's back rank. */

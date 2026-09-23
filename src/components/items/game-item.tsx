@@ -26,6 +26,7 @@ import Cah from "@/components/games/cah";
 import Quoridor from "@/components/games/quoridor";
 import Catan from "@/components/games/catan";
 import Reversi from "@/components/games/reversi";
+import Pool from "@/components/games/pool";
 
 export default function GameItem({ item }: { item: Item<"game"> }) {
   switch (item.data.game) {
@@ -77,6 +78,8 @@ export default function GameItem({ item }: { item: Item<"game"> }) {
       return <Quoridor item={item} state={item.data.state} />;
     case "catan":
       return <Catan item={item} state={item.data.state} />;
+    case "pool":
+      return <Pool item={item} state={item.data.state} />;
     case "reversi":
       return <Reversi item={item} state={item.data.state} />;
     default:
