@@ -287,6 +287,10 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
   const cursorRef = useRef<[number, number] | null>(null);
   const touches = useRef(new Map<number, [number, number]>());
   const penSeen = useRef(false);
+  /** Three fingers down at once, for a redo if they lift without moving. */
+  const threeRef = useRef<{ at: number; start: Map<number, [number, number]>; moved: boolean } | null>(null);
+  /** A finger held still at the start of a stroke picks a colour instead. */
+  const holdRef = useRef<{ timer: ReturnType<typeof setTimeout>; at: [number, number] } | null>(null);
   const spaceRef = useRef(false);
   const queued = useRef(false);
   const drawRef = useRef<() => void>(() => {});
@@ -935,11 +939,20 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
     if (event.pointerType === "pen") penSeen.current = true;
     if (event.pointerType === "touch") {
       touches.current.set(event.pointerId, [sx, sy]);
+      if (touches.current.size === 3) {
+        // A third finger: not a pinch after all, maybe a tap to redo.
+        cancelHold();
+        if (gestureRef.current?.kind === "pinch" || gestureRef.current?.kind === "stroke") clearPreview();
+        gestureRef.current = null;
+        threeRef.current = { at: event.timeStamp, start: new Map(touches.current), moved: false };
+        return;
+      }
       if (touches.current.size === 2) {
+        cancelHold();
         startPinch(event.timeStamp);
         return;
       }
-      if (touches.current.size > 2) return;
+      if (touches.current.size > 3) return;
     }
     if (gestureRef.current) return;
     const view = viewRef.current;
@@ -990,6 +1003,23 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
         ctx?.drawImage(studio.canvasOf(active.id), 0, 0);
       }
       gestureRef.current = { kind: "stroke", id: event.pointerId, op, smooth: [x, y], done: 0, paths: mirrored([0, 0], op.sym, docW, docH).length, incremental, sent: 0, live };
+      if (event.pointerType === "touch" && s.mode === "paint") {
+        const id = event.pointerId;
+        cancelHold();
+        holdRef.current = {
+          at: [sx, sy],
+          timer: setTimeout(() => {
+            holdRef.current = null;
+            const g = gestureRef.current;
+            if (g?.kind !== "stroke" || g.id !== id) return;
+            // Held still: the stroke was a press for the eyedropper.
+            gestureRef.current = null;
+            clearPreview();
+            const picked = studio.pick(displayed(), x, y, paper);
+            if (picked) setColor(picked);
+          }, 480),
+        };
+      }
       needPrepare.current = true;
       requestDraw();
       return;
@@ -1092,6 +1122,14 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
       if (isBrushTool(tool)) requestDraw();
     }
     if (event.pointerType === "touch" && touches.current.has(event.pointerId)) touches.current.set(event.pointerId, [sx, sy]);
+    const three = threeRef.current;
+    if (three) {
+      const from = three.start.get(event.pointerId);
+      if (from && Math.hypot(sx - from[0], sy - from[1]) > 12) three.moved = true;
+      return;
+    }
+    const hold = holdRef.current;
+    if (hold && Math.hypot(sx - hold.at[0], sy - hold.at[1]) > 8) cancelHold();
     const g = gestureRef.current;
     if (!g) return;
     const view = viewRef.current;
@@ -1193,6 +1231,15 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
 
   const onPointerUp = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const wasTouch = event.pointerType === "touch" && touches.current.delete(event.pointerId);
+    cancelHold();
+    const three = threeRef.current;
+    if (three) {
+      if (touches.current.size > 0) return;
+      threeRef.current = null;
+      // Three fingers tapped together: redo, as drawing apps do.
+      if (!three.moved && event.timeStamp - three.at < 400 && canEdit) redo();
+      return;
+    }
     const g = gestureRef.current;
     if (!g) return;
     if (g.kind === "pinch") {
@@ -1254,6 +1301,12 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
       else if (g.mode === "replace") deselect();
       requestDraw();
     }
+  };
+
+  const cancelHold = () => {
+    if (!holdRef.current) return;
+    clearTimeout(holdRef.current.timer);
+    holdRef.current = null;
   };
 
   const onPointerLeave = () => {
