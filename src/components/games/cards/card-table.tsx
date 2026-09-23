@@ -69,6 +69,7 @@ import TableSetup from "../table-setup";
 import StackView from "./stack-view";
 import Hand, { handGap } from "./hand";
 import { Counter, HandActions, StackActions, TrayButton } from "./trays";
+import { t } from "@/lib/i18n";
 
 const TEAM_TINT = ["#6aa9e0", "#e0655c", "#a6d189", "#f6c177"];
 const LAYOUTS: Layout[] = ["stack", "fan", "row"];
@@ -593,7 +594,7 @@ export default function CardTable({ item, state }: { item: Item<"game">; state: 
               type="button"
               disabled={!canEdit || !me}
               onClick={() => sit(chair)}
-              title={who ? (isMine ? "stand up" : who) : "sit here"}
+              title={who ? (isMine ? t("stand up") : who) : t("sit here")}
               className={clsx(
                 "flex min-h-9 shrink-0 items-center gap-1.5 rounded-xl px-2 text-[11px] transition disabled:opacity-60",
                 isMine ? "bg-glow/18 ring-1 ring-glow/45" : "bg-white/5 hover:bg-white/9",
@@ -601,7 +602,7 @@ export default function CardTable({ item, state }: { item: Item<"game">; state: 
             >
               {team !== null && <span className="size-2 rounded-full" style={{ background: TEAM_TINT[team % TEAM_TINT.length] }} />}
               <span className={clsx("max-w-20 truncate", who ? (isMine ? "text-chalk" : "text-muted") : "text-muted/50")}>
-                {who ?? `seat ${index + 1}`}
+                {who ?? t(`seat ${index + 1}`)}
               </span>
               {held > 0 && (
                 <span className="flex items-center gap-0.5 text-[10px] text-muted/80 tabular-nums">
@@ -616,8 +617,8 @@ export default function CardTable({ item, state }: { item: Item<"game">; state: 
           type="button"
           onClick={() => setSetupOpen(true)}
           disabled={!canEdit}
-          aria-label="decks and chairs"
-          title="decks and chairs"
+          aria-label={t("decks and chairs")}
+          title={t("decks and chairs")}
           className="ml-auto grid size-9 shrink-0 place-items-center rounded-xl text-muted transition hover:bg-white/8 hover:text-chalk disabled:opacity-40"
         >
           <Settings2 className="size-4" strokeWidth={2.2} />
@@ -640,9 +641,7 @@ export default function CardTable({ item, state }: { item: Item<"game">; state: 
               onClick={() => void act((fresh) => setTable(fresh))}
               className="flex min-h-11 items-center gap-2 rounded-xl bg-[#f3ead7] px-4 text-[13px] font-semibold text-[#2a2118] shadow-lg transition active:scale-95 disabled:opacity-50"
             >
-              <Layers className="size-4" strokeWidth={2.2} />
-              set the table
-            </button>
+              <Layers className="size-4" strokeWidth={2.2} />{t("set the table")}</button>
           </div>
         )}
 
@@ -682,12 +681,11 @@ export default function CardTable({ item, state }: { item: Item<"game">; state: 
           <button
             type="button"
             onClick={() => void act((fresh) => gather(fresh))}
-            title="gather everything up and deal again"
+            title={t("gather everything up and deal again")}
             className="absolute top-1.5 left-1.5 flex items-center gap-1 rounded-lg bg-amber-500/20 px-1.5 py-1 text-[9px] text-amber-200 ring-1 ring-amber-400/40"
           >
             <TriangleAlert className="size-3" />
-            {count.held} of {count.expected} cards -- put it right
-          </button>
+            {count.held}{" "}{t("of")}{" "}{count.expected}{" "}{t("cards -- put it right")}</button>
         )}
       </div>
 
@@ -705,7 +703,7 @@ export default function CardTable({ item, state }: { item: Item<"game">; state: 
                       setPeeking(false);
                       setHandPick([]);
                     }}
-                    aria-label="whose hand"
+                    aria-label={t("whose hand")}
                     className="h-8 rounded-lg bg-white/8 px-1.5 text-[11px] text-chalk ring-1 ring-white/10"
                   >
                     {ownedHands.map((chair) => (
@@ -720,7 +718,7 @@ export default function CardTable({ item, state }: { item: Item<"game">; state: 
                     className="flex h-8 items-center justify-center gap-1 rounded-lg bg-white/8 px-2 text-[11px] text-chalk"
                   >
                     {peeking ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
-                    {peeking ? "hide" : "look"}
+                    {peeking ? t("hide") : t("look")}
                   </button>
                 </>
               )}
@@ -730,8 +728,8 @@ export default function CardTable({ item, state }: { item: Item<"game">; state: 
                     type="button"
                     onClick={() => setOrder(sortHand(hand, view.decks, SORTS[0].by))}
                     onDoubleClick={() => setOrder(sortHand(hand, view.decks, SORTS[1].by))}
-                    title="put the hand in order -- double tap for by rank"
-                    aria-label="sort the hand"
+                    title={t("put the hand in order -- double tap for by rank")}
+                    aria-label={t("sort the hand")}
                     className="grid size-8 place-items-center rounded-lg bg-white/8 text-muted hover:text-chalk"
                   >
                     <ArrowDownWideNarrow className="size-3.5" />
@@ -739,8 +737,8 @@ export default function CardTable({ item, state }: { item: Item<"game">; state: 
                   <button
                     type="button"
                     onClick={() => setWideHand((v) => !v)}
-                    title={wideHand ? "hold it fanned" : "spread it out"}
-                    aria-label="how the hand is laid out"
+                    title={wideHand ? t("hold it fanned") : t("spread it out")}
+                    aria-label={t("how the hand is laid out")}
                     className={clsx("grid size-8 place-items-center rounded-lg", wideHand ? "bg-glow/22 text-glow" : "bg-white/8 text-muted hover:text-chalk")}
                   >
                     <AlignLeft className="size-3.5" />
@@ -761,7 +759,7 @@ export default function CardTable({ item, state }: { item: Item<"game">; state: 
           </>
         ) : (
           <p className="w-full px-1 py-2 text-center text-[11px] text-muted/60">
-            {me ? "sit in a chair to be dealt a hand" : "you are watching"}
+            {me ? t("sit in a chair to be dealt a hand") : t("you are watching")}
           </p>
         )}
       </div>
@@ -775,7 +773,7 @@ export default function CardTable({ item, state }: { item: Item<"game">; state: 
               chairs={chairs.filter((c) => c !== heldChair)}
               label={label}
               target={selectedStack}
-              targetName={selectedStack?.label ?? "that stack"}
+              targetName={selectedStack?.label ?? t("that stack")}
               swapCount={selectedStack && selectedStack.face === "up" ? spreadPick.length : 0}
               onFaceUp={() => play("up")}
               onFaceDown={() => play("down")}
@@ -838,7 +836,7 @@ export default function CardTable({ item, state }: { item: Item<"game">; state: 
           ) : (
             <>
               <TrayButton
-                label={grouping ? "done gathering" : "pick up several"}
+                label={grouping ? t("done gathering") : t("pick up several")}
                 active={grouping}
                 onClick={() => {
                   setGrouping((v) => !v);
@@ -847,20 +845,20 @@ export default function CardTable({ item, state }: { item: Item<"game">; state: 
               >
                 <HandIcon className="size-4" />
               </TrayButton>
-              <TrayButton label="a new place" onClick={() => write((fresh) => addPlace(fresh, "place", 0.5, 0.25))}>
+              <TrayButton label={t("a new place")} onClick={() => write((fresh) => addPlace(fresh, "place", 0.5, 0.25))}>
                 <Plus className="size-4" />
               </TrayButton>
               {heldChair && hand.length > 0 && (
-                <TrayButton label="show my hand" onClick={() => void act((fresh) => showHand(fresh, heldChair, hand, { x: 0.5, y: 0.8 }))}>
+                <TrayButton label={t("show my hand")} onClick={() => void act((fresh) => showHand(fresh, heldChair, hand, { x: 0.5, y: 0.8 }))}>
                   <Sparkles className="size-4" />
                 </TrayButton>
               )}
-              <TrayButton label="gather and reshuffle" onClick={() => !empty && void act((fresh) => gather(fresh))} disabled={empty}>
+              <TrayButton label={t("gather and reshuffle")} onClick={() => !empty && void act((fresh) => gather(fresh))} disabled={empty}>
                 <RotateCcw className="size-4" />
               </TrayButton>
-              {stackPick.length > 1 && <span className="shrink-0 px-2 text-[10px] text-glow">{stackPick.length} picked up</span>}
+              {stackPick.length > 1 && <span className="shrink-0 px-2 text-[10px] text-glow">{stackPick.length}{" "}{t("picked up")}</span>}
               <span className="ml-auto shrink-0 px-2 text-[10px] text-muted/55">
-                {grouping ? "tap the stacks to carry together" : "tap to pick up · drag to move · drop on a stack to join them"}
+                {grouping ? t("tap the stacks to carry together") : t("tap to pick up · drag to move · drop on a stack to join them")}
               </span>
               <Counter value={dealEach} onChange={setDealEach} />
             </>

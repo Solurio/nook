@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import clsx from "clsx";
 import { Download, Film, FolderOpen, ImagePlus, Layers, Loader2, Save, Trash2 } from "lucide-react";
 import { Panel } from "./widgets";
+import { t } from "@/lib/i18n";
 
 export const CANVAS_SIZES: Array<{ name: string; w: number; h: number }> = [
   { name: "landscape", w: 1600, h: 1200 },
@@ -66,14 +67,14 @@ export default function FilePanel({
   const [sure, setSure] = useState(false);
 
   return (
-    <Panel title="file" onClose={onClose} className="top-2 left-12 w-72">
+    <Panel title={t("file")} onClose={onClose} className="top-2 left-12 w-72">
       {busy && (
         <p className="mb-2 flex items-center gap-1.5 rounded-lg bg-white/6 px-2 py-1.5 text-[11px] text-chalk">
           <Loader2 className="size-3.5 animate-spin" /> {busy}
         </p>
       )}
 
-      <Section title="save as a picture">
+      <Section title={t("save as a picture")}>
         <div className="grid grid-cols-2 gap-1">
           <Action onClick={() => onExport("png")} icon={<Download />}>
             PNG
@@ -81,31 +82,19 @@ export default function FilePanel({
           <Action onClick={() => onExport("jpeg")} icon={<Download />}>
             JPG
           </Action>
-          <Action onClick={() => onExport("transparent")} icon={<Download />}>
-            PNG, no paper
-          </Action>
-          <Action onClick={() => onExport("png2x")} icon={<Download />}>
-            PNG, twice the size
-          </Action>
-          <Action onClick={onGif} icon={<Film />} disabled={Boolean(busy)}>
-            timelapse GIF
-          </Action>
+          <Action onClick={() => onExport("transparent")} icon={<Download />}>{t("PNG, no paper")}</Action>
+          <Action onClick={() => onExport("png2x")} icon={<Download />}>{t("PNG, twice the size")}</Action>
+          <Action onClick={onGif} icon={<Film />} disabled={Boolean(busy)}>{t("timelapse GIF")}</Action>
         </div>
       </Section>
 
-      <Section title="project">
+      <Section title={t("project")}>
         <div className="grid grid-cols-2 gap-1">
-          <Action onClick={onSaveProject} icon={<Save />}>
-            save project
-          </Action>
-          <Action onClick={() => projectInput.current?.click()} icon={<FolderOpen />} disabled={!canEdit || Boolean(busy)}>
-            open project
-          </Action>
-          <Action onClick={() => imageInput.current?.click()} icon={<ImagePlus />} disabled={!canEdit || Boolean(busy)}>
-            picture as a layer
-          </Action>
+          <Action onClick={onSaveProject} icon={<Save />}>{t("save project")}</Action>
+          <Action onClick={() => projectInput.current?.click()} icon={<FolderOpen />} disabled={!canEdit || Boolean(busy)}>{t("open project")}</Action>
+          <Action onClick={() => imageInput.current?.click()} icon={<ImagePlus />} disabled={!canEdit || Boolean(busy)}>{t("picture as a layer")}</Action>
         </div>
-        <p className="mt-1 text-[9px] text-muted/70">a project keeps the layers, the brushes and everything done, and opens again here.</p>
+        <p className="mt-1 text-[9px] text-muted/70">{t("a project keeps the layers, the brushes and everything done, and opens again here.")}</p>
         <input
           ref={projectInput}
           type="file"
@@ -130,7 +119,7 @@ export default function FilePanel({
         />
       </Section>
 
-      <Section title="paper">
+      <Section title={t("paper")}>
         <div className="flex flex-wrap items-center gap-1">
           {PAPERS.map((c) => (
             <button
@@ -151,13 +140,13 @@ export default function FilePanel({
             title="see-through"
             className={clsx("checker size-6 rounded ring-1 ring-white/20 disabled:opacity-40", paper === null && "ring-2 ring-chalk")}
           />
-          <label className="relative size-6 cursor-pointer overflow-hidden rounded ring-1 ring-white/20" title="any colour" style={{ background: paper ?? "transparent" }}>
+          <label className="relative size-6 cursor-pointer overflow-hidden rounded ring-1 ring-white/20" title={t("any colour")} style={{ background: paper ?? "transparent" }}>
             <input type="color" disabled={!canEdit} value={paper ?? "#ffffff"} onChange={(event) => onPaper(event.target.value)} className="absolute inset-0 cursor-pointer opacity-0" />
           </label>
         </div>
       </Section>
 
-      <Section title={`canvas: ${doc.w} x ${doc.h}`}>
+      <Section title={t(`canvas: ${doc.w} x ${doc.h}`)}>
         {empty ? (
           <div className="grid grid-cols-2 gap-1">
             {CANVAS_SIZES.map((s) => (
@@ -168,23 +157,21 @@ export default function FilePanel({
                 onClick={() => onSize(s.w, s.h)}
                 className={clsx("min-h-7 rounded-md px-2 text-left text-[10px] disabled:opacity-40", s.w === doc.w && s.h === doc.h ? "bg-glow/25 text-glow" : "bg-white/5 text-muted hover:text-chalk")}
               >
-                {s.name} <span className="text-muted/60">{s.w}x{s.h}</span>
+                {t(s.name)} <span className="text-muted/60">{s.w}x{s.h}</span>
               </button>
             ))}
           </div>
         ) : (
-          <p className="text-[10px] text-muted">the size is set once something is drawn.</p>
+          <p className="text-[10px] text-muted">{t("the size is set once something is drawn.")}</p>
         )}
       </Section>
 
-      <Section title="history">
+      <Section title={t("history")}>
         <p className="mb-1 text-[10px] text-muted">
-          {opCount} {opCount === 1 ? "thing" : "things"} done{mode === "item" ? " (kept in the board itself: run 0009 for more room)" : ""}.
+          {opCount} {opCount === 1 ? t("thing") : t("things")}{" "}{t("done")}{mode === "item" ? t(" (kept in the board itself: run 0009 for more room)") : ""}.
         </p>
         <div className="grid grid-cols-1 gap-1">
-          <Action onClick={onBake} icon={<Layers />} disabled={!canEdit || Boolean(busy) || opCount === 0}>
-            fold the history into pictures
-          </Action>
+          <Action onClick={onBake} icon={<Layers />} disabled={!canEdit || Boolean(busy) || opCount === 0}>{t("fold the history into pictures")}</Action>
           <button
             type="button"
             disabled={!canEdit || empty}
@@ -201,7 +188,7 @@ export default function FilePanel({
               sure ? "bg-red-500/25 text-red-200" : "bg-white/5 text-muted hover:bg-red-500/15 hover:text-red-300",
             )}
           >
-            <Trash2 /> {sure ? "tap again: it all goes, for everyone" : "start over"}
+            <Trash2 /> {sure ? t("tap again: it all goes, for everyone") : t("start over")}
           </button>
         </div>
       </Section>

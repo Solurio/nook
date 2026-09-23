@@ -5,6 +5,7 @@ import clsx from "clsx";
 import { ArrowLeftRight, Plus, Trash2 } from "lucide-react";
 import { BUILT_IN_PALETTES, hexToHsv, hexToRgb, hsvToHex, parseHex, type HSV, type Palette } from "@/lib/studio/color";
 import { Panel } from "./widgets";
+import { t } from "@/lib/i18n";
 
 /**
  * The colour: a wheel for the hue, a square for how strong and how light,
@@ -66,7 +67,7 @@ export default function ColorPanel({
   const all = [...BUILT_IN_PALETTES, ...palettes];
 
   return (
-    <Panel title="colour" onClose={onClose} className="top-2 right-2 w-64">
+    <Panel title={t("colour")} onClose={onClose} className="top-2 right-2 w-64">
       <div className="relative mx-auto size-48">
         <div
           ref={ring}
@@ -109,8 +110,8 @@ export default function ColorPanel({
 
       <div className="mt-2 flex items-center gap-2">
         <span className="relative h-9 w-12 shrink-0">
-          <span className="absolute top-0 left-0 size-7 rounded-md ring-2 ring-white/40" style={{ background: color }} title="this colour" />
-          <button type="button" onClick={onSwap} className="absolute right-0 bottom-0 size-5 rounded ring-1 ring-white/30" style={{ background: second }} title="the second colour: tap to swap" aria-label="swap colours" />
+          <span className="absolute top-0 left-0 size-7 rounded-md ring-2 ring-white/40" style={{ background: color }} title={t("this colour")} />
+          <button type="button" onClick={onSwap} className="absolute right-0 bottom-0 size-5 rounded ring-1 ring-white/30" style={{ background: second }} title={t("the second colour: tap to swap")} aria-label={t("swap colours")} />
         </span>
         <input
           key={color}
@@ -121,19 +122,19 @@ export default function ColorPanel({
           }}
           onKeyDown={(event) => event.key === "Enter" && (event.target as HTMLInputElement).blur()}
           className="h-8 w-20 rounded-lg bg-white/7 px-2 text-[11px] text-chalk outline-none ring-1 ring-white/10"
-          aria-label="hex"
+          aria-label={t("hex")}
         />
         <span className="text-[10px] text-muted tabular-nums">
           {r} {g} {b}
         </span>
-        <button type="button" onClick={onSwap} aria-label="swap colours" className="ml-auto grid size-7 place-items-center rounded-lg text-muted hover:text-chalk">
+        <button type="button" onClick={onSwap} aria-label={t("swap colours")} className="ml-auto grid size-7 place-items-center rounded-lg text-muted hover:text-chalk">
           <ArrowLeftRight className="size-3.5" />
         </button>
       </div>
 
       {recent.length > 0 && (
         <div className="mt-2">
-          <p className="mb-1 text-[9px] tracking-wide text-muted/60 uppercase">just used</p>
+          <p className="mb-1 text-[9px] tracking-wide text-muted/60 uppercase">{t("just used")}</p>
           <div className="flex flex-wrap gap-1">
             {recent.map((c) => (
               <button key={c} type="button" onClick={() => onColor(c)} className="size-5 rounded ring-1 ring-white/15" style={{ background: c }} aria-label={c} />
@@ -144,7 +145,7 @@ export default function ColorPanel({
 
       <div className="mt-2 space-y-1.5">
         <div className="flex items-center gap-1">
-          <p className="text-[9px] tracking-wide text-muted/60 uppercase">palettes</p>
+          <p className="text-[9px] tracking-wide text-muted/60 uppercase">{t("palettes")}</p>
           <button
             type="button"
             disabled={!canEdit}
@@ -155,8 +156,7 @@ export default function ColorPanel({
             }}
             className="ml-auto flex min-h-6 items-center gap-1 rounded-md bg-white/6 px-1.5 text-[10px] text-muted hover:text-chalk disabled:opacity-30"
           >
-            <Plus className="size-3" /> new palette
-          </button>
+            <Plus className="size-3" />{" "}{t("new palette")}</button>
         </div>
         {all.map((p) => {
           const own = palettes.some((x) => x.id === p.id);
@@ -184,13 +184,13 @@ export default function ColorPanel({
                     <button
                       type="button"
                       onClick={() => onPalettes(palettes.map((x) => (x.id === p.id && !x.colors.includes(color) ? { ...x, colors: [...x.colors, color].slice(0, 48) } : x)))}
-                      aria-label="add this colour"
-                      title="add this colour"
+                      aria-label={t("add this colour")}
+                      title={t("add this colour")}
                       className="grid size-5 place-items-center rounded text-muted hover:text-chalk"
                     >
                       <Plus className="size-3" />
                     </button>
-                    <button type="button" onClick={() => onPalettes(palettes.filter((x) => x.id !== p.id))} aria-label="delete the palette" className="grid size-5 place-items-center rounded text-muted hover:text-red-300">
+                    <button type="button" onClick={() => onPalettes(palettes.filter((x) => x.id !== p.id))} aria-label={t("delete the palette")} className="grid size-5 place-items-center rounded text-muted hover:text-red-300">
                       <Trash2 className="size-3" />
                     </button>
                   </>
@@ -207,7 +207,7 @@ export default function ColorPanel({
                       event.preventDefault();
                       onPalettes(palettes.map((x) => (x.id === p.id ? { ...x, colors: x.colors.filter((y) => y !== c) } : x)));
                     }}
-                    title={own ? `${c} -- right-click to take it out` : c}
+                    title={own ? t(`${c} -- right-click to take it out`) : c}
                     className={clsx("size-5 rounded ring-1 ring-white/15", c.toLowerCase() === color.toLowerCase() && "ring-2 ring-chalk")}
                     style={{ background: c }}
                   />

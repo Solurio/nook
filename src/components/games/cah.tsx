@@ -41,6 +41,7 @@ import RulesSheet from "./rules-sheet";
 import { BlackCard, WhiteCard } from "./cah-cards";
 import { DeckEditor, DeckPicker, fetchDeckCards, useSharedDecks } from "./cah-decks";
 import type { DeckDraft } from "@/lib/decks";
+import { t as tx } from "@/lib/i18n";
 
 /**
  * Cards Against Humanity, with the starter cards, the table's own, or both.
@@ -317,17 +318,16 @@ export default function Cah({ item, state: raw }: { item: Item<"game">; state: u
               type="button"
               disabled={!canEdit || state.seatCount <= MIN_SEATS}
               onClick={() => void write({ ...state, seatCount: state.seatCount - 1 })}
-              aria-label="one chair fewer"
+              aria-label={tx("one chair fewer")}
               className="grid size-7 place-items-center rounded hover:bg-white/10 disabled:opacity-30"
             >
               <Minus className="size-3" strokeWidth={2.6} />
             </button>
-            <span className="tabular-nums text-chalk">{state.seatCount}</span> chairs
-            <button
+            <span className="tabular-nums text-chalk">{state.seatCount}</span>{" "}{tx("chairs")}<button
               type="button"
               disabled={!canEdit || state.seatCount >= MAX_SEATS}
               onClick={() => void write({ ...state, seatCount: state.seatCount + 1 })}
-              aria-label="one chair more"
+              aria-label={tx("one chair more")}
               className="grid size-7 place-items-center rounded hover:bg-white/10 disabled:opacity-30"
             >
               <Plus className="size-3" strokeWidth={2.6} />
@@ -347,12 +347,12 @@ export default function Cah({ item, state: raw }: { item: Item<"game">; state: u
                 "flex min-h-7 items-center gap-1 rounded-lg px-1.5 disabled:cursor-default",
                 czar ? "bg-white/12 ring-1 ring-warm/60" : "bg-white/5",
               )}
-              title={czar ? "the czar this round" : "sit here"}
+              title={czar ? tx("the czar this round") : tx("sit here")}
             >
               {czar && <Crown className="size-3 text-warm" />}
               {done && <Check className="size-3 text-glow" />}
               <span className={clsx("max-w-24 truncate", chair === myChair ? "text-chalk" : "text-muted")}>
-                {state.seats[chair] ?? <span className="text-muted/50">seat {index + 1}</span>}
+                {state.seats[chair] ?? <span className="text-muted/50">{tx("seat")}{" "}{index + 1}</span>}
               </span>
               {(playing || state.phase === "over") && <span className="tabular-nums text-warm">{state.points[chair] ?? 0}</span>}
             </button>
@@ -361,12 +361,10 @@ export default function Cah({ item, state: raw }: { item: Item<"game">; state: u
         <span className="ml-auto flex items-center gap-0.5">
           {playing && (
             <button type="button" onClick={() => setShowDecks(true)} className="flex min-h-7 items-center gap-1 rounded-lg px-1.5 hover:bg-white/8 hover:text-chalk">
-              <Layers className="size-3" /> decks
-            </button>
+              <Layers className="size-3" />{" "}{tx("decks")}</button>
           )}
           <button type="button" onClick={() => setManual(true)} className="flex min-h-7 items-center gap-1 rounded-lg px-1.5 hover:bg-white/8 hover:text-chalk">
-            <BookOpen className="size-3" /> rules
-          </button>
+            <BookOpen className="size-3" />{" "}{tx("rules")}</button>
         </span>
       </div>
 
@@ -374,7 +372,7 @@ export default function Cah({ item, state: raw }: { item: Item<"game">; state: u
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 overflow-y-auto text-center">
           {state.phase === "over" && state.champion && (
             <div className="flex flex-col items-center gap-2">
-              <p className="text-sm font-semibold text-warm">{label(state.champion)} wins, {state.points[state.champion]} to the goal of {state.goal}</p>
+              <p className="text-sm font-semibold text-warm">{label(state.champion)}{" "}{tx("wins,")}{" "}{state.points[state.champion]}{" "}{tx("to the goal of")}{" "}{state.goal}</p>
               {state.picked && answerOf(state, state.picked) && (
                 <div className="w-64">
                   <BlackCard prompt={prompt} answers={answerOf(state, state.picked) ?? []} small />
@@ -385,20 +383,13 @@ export default function Cah({ item, state: raw }: { item: Item<"game">; state: u
           {picker}
           <div className="flex flex-col gap-0.5 text-[11px] text-muted/70">
             {(state.custom.black.length > 0 || state.custom.white.length > 0) && (
-              <p>
-                this table&apos;s own cards: {state.custom.black.length} / {state.custom.white.length} ·{" "}
-                <button type="button" disabled={!canEdit} onClick={() => void write({ ...state, custom: { black: [], white: [] } })} className="underline-offset-2 hover:underline">
-                  leave them out
-                </button>
+              <p>{tx("this table's own cards:")}{" "}{state.custom.black.length} / {state.custom.white.length} ·{" "}
+                <button type="button" disabled={!canEdit} onClick={() => void write({ ...state, custom: { black: [], white: [] } })} className="underline-offset-2 hover:underline">{tx("leave them out")}</button>
               </p>
             )}
-            <p>
-              playing with about {counts.black} questions and {counts.white} answers
-            </p>
+            <p>{tx("playing with about")}{" "}{counts.black}{" "}{tx("questions and")}{" "}{counts.white}{" "}{tx("answers")}</p>
           </div>
-          <div className="flex items-center gap-1 text-[11px] text-muted">
-            first to
-            {GOALS.map((g) => (
+          <div className="flex items-center gap-1 text-[11px] text-muted">{tx("first to")}{GOALS.map((g) => (
               <button
                 key={g}
                 type="button"
@@ -417,7 +408,7 @@ export default function Cah({ item, state: raw }: { item: Item<"game">; state: u
             onClick={() => void deal()}
             className="min-h-10 rounded-xl bg-chalk px-5 text-[12px] font-semibold text-ink-950 disabled:opacity-40"
           >
-            {state.phase === "over" ? "deal again" : "deal"}
+            {state.phase === "over" ? tx("deal again") : tx("deal")}
           </button>
         </div>
       ) : (
@@ -428,45 +419,37 @@ export default function Cah({ item, state: raw }: { item: Item<"game">; state: u
             <div className="flex flex-col gap-1.5 text-[11px] text-muted">
               <p>
                 <Crown className="mr-1 inline size-3 text-warm" />
-                <b className="text-chalk">{label(state.czar)}</b> is the czar
-                {czarHere && myChair === state.czar ? " -- that's you" : ""}
+                <b className="text-chalk">{label(state.czar)}</b>{" "}{tx("is the czar")}{czarHere && myChair === state.czar ? tx(" -- that's you") : ""}
               </p>
               {state.step === "answer" && !judging && (
                 <>
                   {waitingOn.length ? (
-                    <p>
-                      waiting for {waitingOn.map(label).join(", ")}
-                      {pick > 1 && ` · pick ${pick}`}
+                    <p>{tx("waiting for")}{" "}{waitingOn.map(label).join(", ")}
+                      {pick > 1 && tx(` · pick ${pick}`)}
                     </p>
                   ) : (
-                    <p className="text-chalk">everyone&apos;s in, turning them over...</p>
+                    <p className="text-chalk">{tx("everyone's in, turning them over...")}</p>
                   )}
                   {canEdit && waitingOn.length > 0 && waitingOn.length < answering(state).length && (
                     <span className="flex flex-wrap gap-1">
                       {waitingOn.map((c) => (
-                        <button key={c} type="button" disabled={busy} onClick={() => void skip(c)} className="min-h-7 rounded-lg bg-white/6 px-2 text-[10px] text-muted hover:text-chalk">
-                          go on without {label(c)}
+                        <button key={c} type="button" disabled={busy} onClick={() => void skip(c)} className="min-h-7 rounded-lg bg-white/6 px-2 text-[10px] text-muted hover:text-chalk">{tx("go on without")}{" "}{label(c)}
                         </button>
                       ))}
                     </span>
                   )}
                 </>
               )}
-              {judging && <p className="text-chalk">{czarPicks ? "tap the one you like best, then pick it" : `${label(state.czar)} is choosing...`}</p>}
+              {judging && <p className="text-chalk">{czarPicks ? tx("tap the one you like best, then pick it") : tx(`${label(state.czar)} is choosing...`)}</p>}
               {state.step === "picked" && state.picked && (
                 <p className="text-chalk">
-                  <b className="text-warm">{label(state.picked)}</b> takes the round
-                </p>
+                  <b className="text-warm">{label(state.picked)}</b>{" "}{tx("takes the round")}</p>
               )}
               {czarPicks && previewing && (
-                <button type="button" disabled={busy} onClick={() => void decide(previewing)} className="min-h-9 self-start rounded-xl bg-chalk px-4 text-[12px] font-semibold text-ink-950">
-                  pick this one
-                </button>
+                <button type="button" disabled={busy} onClick={() => void decide(previewing)} className="min-h-9 self-start rounded-xl bg-chalk px-4 text-[12px] font-semibold text-ink-950">{tx("pick this one")}</button>
               )}
               {state.step === "picked" && canEdit && (
-                <button type="button" disabled={busy} onClick={() => void onward()} className="min-h-9 self-start rounded-xl bg-chalk px-4 text-[12px] font-semibold text-ink-950">
-                  next round
-                </button>
+                <button type="button" disabled={busy} onClick={() => void onward()} className="min-h-9 self-start rounded-xl bg-chalk px-4 text-[12px] font-semibold text-ink-950">{tx("next round")}</button>
               )}
             </div>
           </div>
@@ -477,9 +460,7 @@ export default function Cah({ item, state: raw }: { item: Item<"game">; state: u
               {answering(state)
                 .filter(answeredIn)
                 .map((c) => (
-                  <div key={c} className="grid h-14 w-11 place-items-center rounded-lg bg-[#f4efe6]/90 text-[8px] font-bold text-[#141117]/40 shadow">
-                    nook
-                  </div>
+                  <div key={c} className="grid h-14 w-11 place-items-center rounded-lg bg-[#f4efe6]/90 text-[8px] font-bold text-[#141117]/40 shadow">{tx("nook")}</div>
                 ))}
             </div>
           )}
@@ -516,14 +497,13 @@ export default function Cah({ item, state: raw }: { item: Item<"game">; state: u
             <div className="mt-auto flex flex-col gap-1.5 rounded-xl bg-white/4 p-2">
               <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted">
                 <span>
-                  {shownChair === myChair ? "your hand" : `${label(shownChair)}'s hand`}
-                  {shownChair === state.czar && " -- you're the czar this round"}
-                  {shownChair !== state.czar && answeredIn(shownChair) && state.step === "answer" && " -- answered"}
+                  {shownChair === myChair ? tx("your hand") : tx(`${label(shownChair)}'s hand`)}
+                  {shownChair === state.czar && tx(" -- you're the czar this round")}
+                  {shownChair !== state.czar && answeredIn(shownChair) && state.step === "answer" && tx(" -- answered")}
                 </span>
                 {canAnswer && (
                   <span className="text-muted/70">
-                    {current.length}/{pick} chosen
-                  </span>
+                    {current.length}/{pick}{" "}{tx("chosen")}</span>
                 )}
                 {canAnswer && (
                   <button
@@ -531,12 +511,11 @@ export default function Cah({ item, state: raw }: { item: Item<"game">; state: u
                     disabled={busy || current.length !== pick}
                     onClick={() => void answer()}
                     className="ml-auto min-h-9 rounded-xl bg-chalk px-4 text-[12px] font-semibold text-ink-950 disabled:opacity-35"
-                  >
-                    play {pick > 1 ? "these" : "this"}
+                  >{tx("play")}{" "}{pick > 1 ? tx("these") : tx("this")}
                   </button>
                 )}
                 {!myChair && holding && (
-                  <button type="button" onClick={() => setHolding(null)} className="ml-auto grid size-8 place-items-center rounded-lg text-muted hover:text-chalk" aria-label="hide the hand">
+                  <button type="button" onClick={() => setHolding(null)} className="ml-auto grid size-8 place-items-center rounded-lg text-muted hover:text-chalk" aria-label={tx("hide the hand")}>
                     <X className="size-3.5" />
                   </button>
                 )}
@@ -558,9 +537,7 @@ export default function Cah({ item, state: raw }: { item: Item<"game">; state: u
             handsHere.length > 0 &&
             state.step === "answer" &&
             !judging && (
-              <div className="mt-auto flex flex-wrap items-center gap-1 rounded-xl bg-white/4 p-2 text-[11px] text-muted">
-                pass the phone, then open a hand:
-                {handsHere
+              <div className="mt-auto flex flex-wrap items-center gap-1 rounded-xl bg-white/4 p-2 text-[11px] text-muted">{tx("pass the phone, then open a hand:")}{handsHere
                   .filter((c) => !answeredIn(c))
                   .map((c) => (
                     <button key={c} type="button" onClick={() => setHolding(c)} className="min-h-8 rounded-lg bg-white/8 px-2 text-chalk">
@@ -576,12 +553,12 @@ export default function Cah({ item, state: raw }: { item: Item<"game">; state: u
       {showDecks && playing && (
         <div className="absolute inset-0 z-20 flex flex-col items-center gap-2 overflow-y-auto rounded-2xl bg-ink-950/95 p-3 backdrop-blur-sm">
           <div className="flex w-full max-w-md items-center justify-between">
-            <h3 className="text-[12px] font-semibold text-chalk">decks</h3>
-            <button type="button" onClick={() => setShowDecks(false)} aria-label="close" className="grid size-9 place-items-center rounded-lg text-muted hover:bg-white/8 hover:text-chalk">
+            <h3 className="text-[12px] font-semibold text-chalk">{tx("decks")}</h3>
+            <button type="button" onClick={() => setShowDecks(false)} aria-label={tx("close")} className="grid size-9 place-items-center rounded-lg text-muted hover:bg-white/8 hover:text-chalk">
               <X className="size-4" />
             </button>
           </div>
-          <p className="w-full max-w-md text-[10px] text-muted">A deck ticked now joins this game. Changes to a deck count from the next deal.</p>
+          <p className="w-full max-w-md text-[10px] text-muted">{tx("A deck ticked now joins this game. Changes to a deck count from the next deal.")}</p>
           {picker}
         </div>
       )}
@@ -597,23 +574,12 @@ export default function Cah({ item, state: raw }: { item: Item<"game">; state: u
       )}
 
       {manual && (
-        <RulesSheet title="Cards Against Humanity" onClose={() => setManual(false)}>
+        <RulesSheet title={tx("Cards Against Humanity")} onClose={() => setManual(false)}>
+          <p>{tx("Everyone holds ten white cards. Each round one player is the")}{" "}<b>{tx("czar")}</b>{tx(": a black card comes up, and everybody else answers it with the funniest white card in their hand -- two, when it has two blanks.")}</p>
+          <p>{tx("Answers go in face down. Once the last one is in, they all turn over together, mixed up, so the czar has no idea whose is whose. The czar picks a favourite; whoever played it gets the point. Hands fill back up to ten, the next player is czar, and the first to the goal wins.")}</p>
           <p>
-            Everyone holds ten white cards. Each round one player is the <b>czar</b>: a black card comes up, and everybody else
-            answers it with the funniest white card in their hand -- two, when it has two blanks.
-          </p>
-          <p>
-            Answers go in face down. Once the last one is in, they all turn over together, mixed up, so the czar has no idea whose
-            is whose. The czar picks a favourite; whoever played it gets the point. Hands fill back up to ten, the next player is
-            czar, and the first to the goal wins.
-          </p>
-          <p>
-            <b>Your own cards</b>: write as many as you like, before or during a game. Mix them with the starter cards, or play
-            with nothing but yours.
-          </p>
-          <p>
-            Somebody gone quiet? Anyone can go on without them for the round, once the others have answered.
-          </p>
+            <b>{tx("Your own cards")}</b>{tx(": write as many as you like, before or during a game. Mix them with the starter cards, or play with nothing but yours.")}</p>
+          <p>{tx("Somebody gone quiet? Anyone can go on without them for the round, once the others have answered.")}</p>
         </RulesSheet>
       )}
     </div>

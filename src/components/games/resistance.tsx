@@ -37,6 +37,7 @@ import {
 } from "@/lib/resistance";
 import type { Item, ResistanceState } from "@/lib/types";
 import RulesSheet from "./rules-sheet";
+import { t } from "@/lib/i18n";
 
 /**
  * The Resistance. A cell with spies planted in it sends out five missions; the
@@ -293,18 +294,17 @@ export default function Resistance({
       {/* The table, and how the missions have gone */}
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted/70">
         <span className="flex items-center gap-0.5">
-          <button type="button" disabled={!canEdit || state.seatCount <= MIN_SEATS} onClick={() => resize(-1)} aria-label="one chair fewer" className="grid size-7 place-items-center rounded transition hover:bg-white/10 hover:text-chalk disabled:opacity-30">
+          <button type="button" disabled={!canEdit || state.seatCount <= MIN_SEATS} onClick={() => resize(-1)} aria-label={t("one chair fewer")} className="grid size-7 place-items-center rounded transition hover:bg-white/10 hover:text-chalk disabled:opacity-30">
             <Minus className="size-3" strokeWidth={2.6} />
           </button>
           <span className="tabular-nums text-chalk">{state.seatCount}</span>
-          <span>chairs · {spyCount(state.seatCount)} spies</span>
-          <button type="button" disabled={!canEdit || state.seatCount >= MAX_SEATS} onClick={() => resize(1)} aria-label="one chair more" className="grid size-7 place-items-center rounded transition hover:bg-white/10 hover:text-chalk disabled:opacity-30">
+          <span>{t("chairs ·")}{" "}{spyCount(state.seatCount)}{" "}{t("spies")}</span>
+          <button type="button" disabled={!canEdit || state.seatCount >= MAX_SEATS} onClick={() => resize(1)} aria-label={t("one chair more")} className="grid size-7 place-items-center rounded transition hover:bg-white/10 hover:text-chalk disabled:opacity-30">
             <Plus className="size-3" strokeWidth={2.6} />
           </button>
         </span>
         <button type="button" onClick={() => setRules(true)} className="flex items-center gap-1 rounded-lg px-1.5 py-1 hover:bg-white/8 hover:text-chalk">
-          <BookOpen className="size-3" /> rules
-        </button>
+          <BookOpen className="size-3" />{" "}{t("rules")}</button>
 
         <span className="ml-auto flex items-center gap-1">
           {Array.from({ length: MISSIONS }, (_, i) => {
@@ -314,10 +314,10 @@ export default function Resistance({
                 key={i}
                 title={
                   done === undefined
-                    ? `mission ${i + 1}: ${teamSize(state.seatCount, i)} go${needsTwoFails(state.seatCount, i) ? ", two fails to sink it" : ""}`
+                    ? t(`mission ${i + 1}: ${teamSize(state.seatCount, i)} go${needsTwoFails(state.seatCount, i) ? ", two fails to sink it" : ""}`)
                     : done
-                      ? `mission ${i + 1} came back clean`
-                      : `mission ${i + 1} was sabotaged`
+                      ? t(`mission ${i + 1} came back clean`)
+                      : t(`mission ${i + 1} was sabotaged`)
                 }
                 className={clsx(
                   "grid size-6 place-items-center rounded-full text-[9px] font-bold tabular-nums ring-1",
@@ -357,22 +357,22 @@ export default function Resistance({
                   ? toggleOnTeam(chair)
                   : me && void write({ ...state, ...claimChair(state.seats, holders, chair, me) })
               }
-              title={picking ? (onTeam ? "take them off the team" : "send them") : who ? (isMe ? "stand up" : who) : "sit here"}
+              title={picking ? (onTeam ? t("take them off the team") : t("send them")) : who ? (isMe ? t("stand up") : who) : t("sit here")}
               className={clsx(
                 "flex min-h-10 min-w-0 flex-1 basis-24 items-center gap-1.5 rounded-xl px-2 py-1.5 text-left transition disabled:opacity-50",
                 caught ? "bg-[#e0655c]/20 ring-1 ring-[#e0655c]/50" : onTeam ? "bg-glow/18 ring-1 ring-glow/45" : "bg-white/5 hover:bg-white/9",
               )}
             >
-              {chair === leader && dealt && <span title="proposes this mission" className="size-2 shrink-0 rounded-full bg-glow" />}
+              {chair === leader && dealt && <span title={t("proposes this mission")} className="size-2 shrink-0 rounded-full bg-glow" />}
               <span className="min-w-0 flex-1 truncate text-[11px]">
-                {who ? <span className={isMe ? "text-chalk" : "text-muted"}>{who}</span> : <span className="text-muted/55">seat {index + 1}</span>}
+                {who ? <span className={isMe ? "text-chalk" : "text-muted"}>{who}</span> : <span className="text-muted/55">{t("seat")}{" "}{index + 1}</span>}
               </span>
-              {voted && <span className="shrink-0 text-[9px] text-muted/60">voted</span>}
+              {voted && <span className="shrink-0 text-[9px] text-muted/60">{t("voted")}</span>}
               {lastVote !== undefined && (
-                <span className={clsx("shrink-0 text-[9px]", lastVote ? "text-[#a6d189]" : "text-[#e0655c]")}>{lastVote ? "yes" : "no"}</span>
+                <span className={clsx("shrink-0 text-[9px]", lastVote ? "text-[#a6d189]" : "text-[#e0655c]")}>{lastVote ? t("yes") : t("no")}</span>
               )}
               {state.stage === "over" && !unmasked.waitingOn.includes(chair) && (
-                <span className="shrink-0 text-[9px] text-muted/70">{unmasked.spies.includes(chair) ? "spy" : "rebel"}</span>
+                <span className="shrink-0 text-[9px] text-muted/70">{unmasked.spies.includes(chair) ? t("spy") : t("rebel")}</span>
               )}
             </button>
           );
@@ -382,18 +382,18 @@ export default function Resistance({
       {/* Whatever the cell is waiting on */}
       <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto rounded-xl bg-ink-950/25 p-2 inset-ring inset-ring-white/6">
         {state.stage === "lobby" && (
-          <p className="my-auto text-center text-[11px] text-muted/50">everyone sits down, then deal to plant the spies</p>
+          <p className="my-auto text-center text-[11px] text-muted/50">{t("everyone sits down, then deal to plant the spies")}</p>
         )}
 
         {state.stage === "over" && (
           <div className="my-auto text-center">
             <p className="text-sm font-semibold text-chalk">
-              {outcome === "spies" ? "the spies had it all along" : "the resistance holds"}
+              {outcome === "spies" ? t("the spies had it all along") : t("the resistance holds")}
             </p>
             <p className="mt-1 text-[11px] text-muted">
               {unmasked.waitingOn.length > 0
-                ? "turning the role cards over..."
-                : `${unmasked.spies.map(label).join(", ")} ${unmasked.spies.length === 1 ? "was" : "were"} working for them`}
+                ? t("turning the role cards over...")
+                : t(`${unmasked.spies.map(label).join(", ")} ${unmasked.spies.length === 1 ? "was" : "were"} working for them`)}
             </p>
           </div>
         )}
@@ -415,13 +415,12 @@ export default function Resistance({
                     )}
                   >
                     <Eye className="size-3.5" strokeWidth={2.2} />
-                    {myChair ? "your card" : label(chair)}
+                    {myChair ? t("your card") : label(chair)}
                   </button>
                 ))}
               {state.rejections > 0 && (
                 <span className="ml-auto text-[10px] text-warm">
-                  {state.rejections} of {MAX_REJECTIONS} refused
-                </span>
+                  {state.rejections}{" "}{t("of")}{" "}{MAX_REJECTIONS}{" "}{t("refused")}</span>
               )}
             </div>
 
@@ -429,13 +428,12 @@ export default function Resistance({
               <div className="rounded-xl bg-ink-950/60 p-2.5 text-center inset-ring inset-ring-white/8">
                 {myRole(peek) === SPY ? (
                   <>
-                    <p className="text-[12px] font-semibold text-[#e0655c]">you are a spy</p>
-                    <p className="mt-0.5 text-[11px] text-muted">
-                      with {myTeam(peek).filter((c) => c !== peek).map(label).join(", ") || "nobody"}
+                    <p className="text-[12px] font-semibold text-[#e0655c]">{t("you are a spy")}</p>
+                    <p className="mt-0.5 text-[11px] text-muted">{t("with")}{" "}{myTeam(peek).filter((c) => c !== peek).map(label).join(", ") || t("nobody")}
                     </p>
                   </>
                 ) : myRole(peek) ? (
-                  <p className="text-[12px] font-semibold text-[#a6d189]">you are loyal, and on your own</p>
+                  <p className="text-[12px] font-semibold text-[#a6d189]">{t("you are loyal, and on your own")}</p>
                 ) : (
                   <p className="text-[11px] text-muted">...</p>
                 )}
@@ -443,34 +441,29 @@ export default function Resistance({
             )}
 
             {state.lastFails !== null && state.lastFails !== undefined && state.stage === "propose" && state.results.length > 0 && (
-              <p className="text-[10px] text-muted/70">
-                the last mission came back with {state.lastFails} {state.lastFails === 1 ? "fail" : "fails"}
+              <p className="text-[10px] text-muted/70">{t("the last mission came back with")}{" "}{state.lastFails} {state.lastFails === 1 ? t("fail") : t("fails")}
               </p>
             )}
 
             {state.stage === "propose" && (
               <>
                 <p className="text-[12px] text-chalk">
-                  {label(leader)} sends {size} on mission {state.mission + 1}
-                  {needsTwoFails(state.seatCount, state.mission) && <span className="text-warm"> · this one takes two to sink</span>}
+                  {label(leader)}{" "}{t("sends")}{" "}{size}{" "}{t("on mission")}{" "}{state.mission + 1}
+                  {needsTwoFails(state.seatCount, state.mission) && <span className="text-warm">{" "}{t("· this one takes two to sink")}</span>}
                 </p>
                 <p className="text-[10px] text-muted/60">
-                  {state.team.length === 0 ? "tap the chairs to pick a team" : `${state.team.map(label).join(", ")} (${state.team.length}/${size})`}
+                  {state.team.length === 0 ? t("tap the chairs to pick a team") : `${state.team.map(label).join(", ")} (${state.team.length}/${size})`}
                 </p>
                 {canEdit && mineToPlay(leader) && state.team.length === size && (
-                  <button type="button" onClick={() => void write({ ...state, stage: "vote" })} className="min-h-9 self-start rounded-lg bg-chalk px-3 py-1.5 text-[11px] font-semibold text-ink-950">
-                    put it to the table
-                  </button>
+                  <button type="button" onClick={() => void write({ ...state, stage: "vote" })} className="min-h-9 self-start rounded-lg bg-chalk px-3 py-1.5 text-[11px] font-semibold text-ink-950">{t("put it to the table")}</button>
                 )}
               </>
             )}
 
             {state.stage === "vote" && (
               <>
-                <p className="text-[12px] text-chalk">send {state.team.map(label).join(", ")}?</p>
-                <p className="text-[10px] text-muted/60">
-                  waiting on {waiting(voteSlots)} · every vote stays sealed until they are all in
-                </p>
+                <p className="text-[12px] text-chalk">{t("send")}{" "}{state.team.map(label).join(", ")}?</p>
+                <p className="text-[10px] text-muted/60">{t("waiting on")}{" "}{waiting(voteSlots)}{" "}{t("· every vote stays sealed until they are all in")}</p>
                 {canEdit &&
                   chairs
                     .filter((chair) => mineToPlay(chair) && (piles?.[voteSlot(voteNo, chair)]?.size ?? 0) === 0)
@@ -478,27 +471,21 @@ export default function Resistance({
                       <div key={chair} className="flex flex-wrap items-center gap-1">
                         <span className="text-[10px] text-muted/70">{label(chair)}:</span>
                         <button type="button" disabled={busy} onClick={() => void vote(chair, true)} className="flex min-h-9 items-center gap-1 rounded-lg bg-[#a6d189]/18 px-2.5 py-1.5 text-[11px] text-[#a6d189]">
-                          <Check className="size-3.5" strokeWidth={2.4} /> send them
-                        </button>
+                          <Check className="size-3.5" strokeWidth={2.4} />{" "}{t("send them")}</button>
                         <button type="button" disabled={busy} onClick={() => void vote(chair, false)} className="flex min-h-9 items-center gap-1 rounded-lg bg-[#e0655c]/18 px-2.5 py-1.5 text-[11px] text-[#e0655c]">
-                          <X className="size-3.5" strokeWidth={2.4} /> not them
-                        </button>
+                          <X className="size-3.5" strokeWidth={2.4} />{" "}{t("not them")}</button>
                       </div>
                     ))}
                 {votesIn && canEdit && (
-                  <button type="button" onClick={() => void settleVote()} className="min-h-9 self-start rounded-lg bg-white/8 px-2.5 text-[11px] text-chalk">
-                    turn the votes over
-                  </button>
+                  <button type="button" onClick={() => void settleVote()} className="min-h-9 self-start rounded-lg bg-white/8 px-2.5 text-[11px] text-chalk">{t("turn the votes over")}</button>
                 )}
               </>
             )}
 
             {state.stage === "mission" && (
               <>
-                <p className="text-[12px] text-chalk">{state.team.map(label).join(", ")} are out there</p>
-                <p className="text-[10px] text-muted/60">
-                  waiting on {waiting(playSlots)} · the cards come back shuffled, so only the count is known
-                </p>
+                <p className="text-[12px] text-chalk">{state.team.map(label).join(", ")}{" "}{t("are out there")}</p>
+                <p className="text-[10px] text-muted/60">{t("waiting on")}{" "}{waiting(playSlots)}{" "}{t("· the cards come back shuffled, so only the count is known")}</p>
                 {canEdit &&
                   state.team
                     .filter((chair) => mineToPlay(chair) && (piles?.[playSlot(state.mission, chair)]?.size ?? 0) === 0)
@@ -506,22 +493,18 @@ export default function Resistance({
                       <div key={chair} className="flex flex-wrap items-center gap-1">
                         <span className="text-[10px] text-muted/70">{label(chair)}:</span>
                         <button type="button" disabled={busy} onClick={() => void play(chair, true)} className="flex min-h-9 items-center gap-1 rounded-lg bg-[#a6d189]/18 px-2.5 py-1.5 text-[11px] text-[#a6d189]">
-                          <Check className="size-3.5" strokeWidth={2.4} /> carry it out
-                        </button>
+                          <Check className="size-3.5" strokeWidth={2.4} />{" "}{t("carry it out")}</button>
                         {/* Only a spy may sabotage. The button is hidden rather
                             than disabled -- a greyed-out button would tell the
                             room who is loyal. */}
                         {myRole(chair) === SPY && (
                           <button type="button" disabled={busy} onClick={() => void play(chair, false)} className="flex min-h-9 items-center gap-1 rounded-lg bg-[#e0655c]/18 px-2.5 py-1.5 text-[11px] text-[#e0655c]">
-                            <ShieldAlert className="size-3.5" strokeWidth={2.4} /> sink it
-                          </button>
+                            <ShieldAlert className="size-3.5" strokeWidth={2.4} />{" "}{t("sink it")}</button>
                         )}
                       </div>
                     ))}
                 {playsIn && canEdit && (
-                  <button type="button" onClick={() => void settleMission()} className="min-h-9 self-start rounded-lg bg-white/8 px-2.5 text-[11px] text-chalk">
-                    read the mission cards
-                  </button>
+                  <button type="button" onClick={() => void settleMission()} className="min-h-9 self-start rounded-lg bg-white/8 px-2.5 text-[11px] text-chalk">{t("read the mission cards")}</button>
                 )}
               </>
             )}
@@ -530,29 +513,19 @@ export default function Resistance({
       </div>
 
       <div className="flex items-center gap-2">
-        <p className="min-w-0 flex-1 truncate text-[10px] text-muted/60">
-          rebels {state.wins.resistance} · spies {state.wins.spies}
+        <p className="min-w-0 flex-1 truncate text-[10px] text-muted/60">{t("rebels")}{" "}{state.wins.resistance}{" "}{t("· spies")}{" "}{state.wins.spies}
         </p>
-        <button type="button" disabled={!canEdit || busy} onClick={() => void newGame()} aria-label="deal a new game" title="deal a new game" className="grid size-9 shrink-0 place-items-center rounded-lg text-muted transition hover:bg-white/8 hover:text-chalk disabled:opacity-40 sm:size-8">
+        <button type="button" disabled={!canEdit || busy} onClick={() => void newGame()} aria-label={t("deal a new game")} title={t("deal a new game")} className="grid size-9 shrink-0 place-items-center rounded-lg text-muted transition hover:bg-white/8 hover:text-chalk disabled:opacity-40 sm:size-8">
           <RotateCcw className="size-3.5" strokeWidth={2.2} />
         </button>
       </div>
 
       {rules && (
-        <RulesSheet title="how the resistance goes" onClose={() => setRules(false)}>
-          <p>
-            A few of the table are <b>spies</b>, dealt in secret. The spies know each other; the rebels know
-            nobody. There are five missions; <b>three successes</b> win it for the rebels, <b>three failures</b>{" "}
-            for the spies.
-          </p>
-          <p>
-            Each round, the <b>leader</b> (the dot) picks a team of the size shown on the mission. Everyone
-            votes on it -- votes stay sealed until all are in, then turn over together. A majority sends the
-            team; otherwise leadership passes on. <b>Five refusals in a row</b> and the spies win.
-          </p>
-          <p>
-            On a mission, each member secretly plays a card. Rebels must carry it out; spies may{" "}
-            <b>sink it</b>. The cards are shuffled before they are read, so only the number of fails is ever
+        <RulesSheet title={t("how the resistance goes")} onClose={() => setRules(false)}>
+          <p>{t("A few of the table are")}{" "}<b>{t("spies")}</b>{t(", dealt in secret. The spies know each other; the rebels know nobody. There are five missions;")}{" "}<b>{t("three successes")}</b>{" "}{t("win it for the rebels,")}{" "}<b>{t("three failures")}</b>{" "}{t("for the spies.")}</p>
+          <p>{t("Each round, the")}{" "}<b>{t("leader")}</b>{" "}{t("(the dot) picks a team of the size shown on the mission. Everyone votes on it -- votes stay sealed until all are in, then turn over together. A majority sends the team; otherwise leadership passes on.")}{" "}<b>{t("Five refusals in a row")}</b>{" "}{t("and the spies win.")}</p>
+          <p>{t("On a mission, each member secretly plays a card. Rebels must carry it out; spies may")}{" "}
+            <b>{t("sink it")}</b>. The cards are shuffled before they are read, so only the number of fails is ever
             known. One fail sinks a mission -- except the fourth mission at seven or more players, which takes
             two.
           </p>

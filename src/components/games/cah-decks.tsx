@@ -23,6 +23,7 @@ import {
   type DeckMeta,
 } from "@/lib/decks";
 import { BlackCard, WhiteCard } from "./cah-cards";
+import { t as tx } from "@/lib/i18n";
 
 // ---------------------------------------------------------------------------
 // Talking to the table of decks
@@ -117,7 +118,7 @@ export function DeckPicker({
   return (
     <div className="flex w-full max-w-md flex-col gap-2 text-left text-[11px]">
       <div className="flex flex-col gap-0.5">
-        <p className="text-[10px] font-semibold tracking-wide text-muted/70 uppercase">built in</p>
+        <p className="text-[10px] font-semibold tracking-wide text-muted/70 uppercase">{tx("built in")}</p>
         {(Object.keys(PACKS) as PackId[]).map((id) => (
           <label key={id} className={clsx("flex min-h-8 items-center gap-2", playing && "opacity-60")}>
             <input
@@ -138,11 +139,11 @@ export function DeckPicker({
 
       <div className="flex flex-col gap-0.5">
         <div className="flex items-center gap-2">
-          <p className="text-[10px] font-semibold tracking-wide text-muted/70 uppercase">everyone&apos;s decks</p>
+          <p className="text-[10px] font-semibold tracking-wide text-muted/70 uppercase">{tx("everyone's decks")}</p>
           {decks.length > 6 && (
             <span className="ml-auto flex items-center gap-1 rounded-lg bg-white/6 px-1.5">
               <Search className="size-3 text-muted" />
-              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="find a deck" className="h-7 w-28 bg-transparent text-[11px] text-chalk outline-none" />
+              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tx("find a deck")} className="h-7 w-28 bg-transparent text-[11px] text-chalk outline-none" />
             </span>
           )}
           <button
@@ -151,15 +152,14 @@ export function DeckPicker({
             onClick={() => onEdit(emptyDraft())}
             className={clsx("flex min-h-7 items-center gap-1 rounded-lg bg-warm/20 px-2 text-warm disabled:opacity-40", decks.length <= 6 && "ml-auto")}
           >
-            <Plus className="size-3" /> new deck
-          </button>
+            <Plus className="size-3" />{" "}{tx("new deck")}</button>
         </div>
-        {status === "loading" && <p className="text-muted/60">looking...</p>}
+        {status === "loading" && <p className="text-muted/60">{tx("looking...")}</p>}
         {status === "missing" && (
-          <p className="text-[#f2a4b8]">Shared decks need the newest database update: run supabase/migrations/0007_decks.sql in the Supabase SQL editor.</p>
+          <p className="text-[#f2a4b8]">{tx("Shared decks need the newest database update: run supabase/migrations/0007_decks.sql in the Supabase SQL editor.")}</p>
         )}
-        {status === "error" && <p className="text-[#f2a4b8]">The decks would not load. Try again in a moment.</p>}
-        {status === "ready" && !decks.length && <p className="text-muted/60">nobody has made one yet -- be the first.</p>}
+        {status === "error" && <p className="text-[#f2a4b8]">{tx("The decks would not load. Try again in a moment.")}</p>}
+        {status === "ready" && !decks.length && <p className="text-muted/60">{tx("nobody has made one yet -- be the first.")}</p>}
         <div className="flex max-h-56 flex-col overflow-y-auto">
           {found.map((d) => {
             const on = chosen.includes(d.id);
@@ -172,12 +172,12 @@ export function DeckPicker({
                   disabled={!canEdit || (playing && on)}
                   onChange={() => onDeck(d.id)}
                   className="size-4 shrink-0 accent-warm"
-                  aria-label={`play with ${d.name}`}
+                  aria-label={tx(`play with ${d.name}`)}
                 />
                 <span className="min-w-0 truncate text-chalk">{d.name}</span>
                 <Badge adult={d.adult} />
                 <span className="shrink-0 text-muted/50">{DECK_LANGUAGES[d.language] ?? d.language}</span>
-                {d.author && <span className="min-w-0 truncate text-muted/50">by {d.author}</span>}
+                {d.author && <span className="min-w-0 truncate text-muted/50">{tx("by")}{" "}{d.author}</span>}
                 <span className="ml-auto shrink-0 text-muted/60 tabular-nums">
                   {d.black_count} / {d.white_count}
                 </span>
@@ -185,8 +185,8 @@ export function DeckPicker({
                   type="button"
                   disabled={!canEdit}
                   onClick={() => onEdit({ load: d.id, copy: !mine })}
-                  aria-label={mine ? `change ${d.name}` : `copy ${d.name}`}
-                  title={mine ? "change it" : "make your own copy"}
+                  aria-label={mine ? tx(`change ${d.name}`) : tx(`copy ${d.name}`)}
+                  title={mine ? tx("change it") : tx("make your own copy")}
                   className="grid size-7 shrink-0 place-items-center rounded-md text-muted hover:bg-white/8 hover:text-chalk disabled:opacity-40"
                 >
                   {mine ? <Pencil className="size-3" /> : <Copy className="size-3" />}
@@ -195,7 +195,7 @@ export function DeckPicker({
             );
           })}
         </div>
-        <p className="text-[10px] text-muted/50">questions / answers. Decks are saved for everyone who uses the site.</p>
+        <p className="text-[10px] text-muted/50">{tx("questions / answers. Decks are saved for everyone who uses the site.")}</p>
       </div>
     </div>
   );
@@ -309,14 +309,14 @@ export function DeckEditor({
         <input
           value={draft.name}
           onChange={(e) => setDraft({ ...draft, name: e.target.value.slice(0, DECK_NAME_MAX) })}
-          placeholder="name your deck"
+          placeholder={tx("name your deck")}
           className="min-h-9 min-w-0 flex-1 rounded-lg bg-white/6 px-2.5 text-[13px] font-semibold text-chalk outline-none ring-1 ring-white/10 focus:ring-warm/60"
         />
         <select
           value={draft.language}
           onChange={(e) => setDraft({ ...draft, language: e.target.value as DeckLanguage })}
           className="min-h-9 rounded-lg bg-white/6 px-1.5 text-[11px] text-chalk outline-none"
-          aria-label="language"
+          aria-label={tx("language")}
         >
           {(Object.keys(DECK_LANGUAGES) as DeckLanguage[]).map((l) => (
             <option key={l} value={l} className="bg-ink-950">
@@ -324,11 +324,11 @@ export function DeckEditor({
             </option>
           ))}
         </select>
-        <label className="flex min-h-9 items-center gap-1 rounded-lg bg-white/6 px-2 text-[11px] text-muted" title="for grown-ups only">
+        <label className="flex min-h-9 items-center gap-1 rounded-lg bg-white/6 px-2 text-[11px] text-muted" title={tx("for grown-ups only")}>
           <input type="checkbox" checked={draft.adult} onChange={(e) => setDraft({ ...draft, adult: e.target.checked })} className="size-3.5 accent-[#e0655c]" />
           18+
         </label>
-        <button type="button" onClick={onClose} aria-label="close" className="grid size-9 place-items-center rounded-lg text-muted hover:bg-white/8 hover:text-chalk">
+        <button type="button" onClick={onClose} aria-label={tx("close")} className="grid size-9 place-items-center rounded-lg text-muted hover:bg-white/8 hover:text-chalk">
           <X className="size-4" />
         </button>
       </div>
@@ -348,7 +348,7 @@ export function DeckEditor({
               side === s ? (s === "black" ? "bg-[#121014] text-chalk ring-1 ring-white/20" : "bg-[#f4efe6] text-[#141117]") : "text-muted hover:bg-white/6",
             )}
           >
-            {s === "black" ? "questions" : "answers"} <span className="tabular-nums opacity-60">{draft[s].length}</span>
+            {s === "black" ? tx("questions") : tx("answers")} <span className="tabular-nums opacity-60">{draft[s].length}</span>
           </button>
         ))}
         <select
@@ -359,20 +359,16 @@ export function DeckEditor({
             setDraft(withCards(withCards(draft, "black", pack.black.join("\n")), "white", pack.white.join("\n")));
           }}
           className="ml-auto min-h-8 max-w-40 rounded-lg bg-white/6 px-1.5 text-[10px] text-muted outline-none"
-          aria-label="pour in a built-in pack"
+          aria-label={tx("pour in a built-in pack")}
         >
-          <option value="" className="bg-ink-950">
-            start from a pack...
-          </option>
+          <option value="" className="bg-ink-950">{tx("start from a pack...")}</option>
           {(Object.keys(PACKS) as PackId[]).map((id) => (
             <option key={id} value={id} className="bg-ink-950">
               {PACKS[id].name}
             </option>
           ))}
         </select>
-        <button type="button" onClick={() => setBulk(bulk === null ? "" : null)} className="min-h-8 rounded-lg px-2 text-[10px] text-muted hover:bg-white/6 hover:text-chalk">
-          paste a list
-        </button>
+        <button type="button" onClick={() => setBulk(bulk === null ? "" : null)} className="min-h-8 rounded-lg px-2 text-[10px] text-muted hover:bg-white/6 hover:text-chalk">{tx("paste a list")}</button>
       </div>
 
       {/* Writing one card, and how it will look */}
@@ -394,17 +390,17 @@ export function DeckEditor({
                   setText("");
                 }
               }}
-              placeholder={side === "black" ? "a question. Type _ where the answer goes -- two of them ask for two." : "an answer, as it would read on its own card."}
+              placeholder={side === "black" ? tx("a question. Type _ where the answer goes -- two of them ask for two.") : tx("an answer, as it would read on its own card.")}
               className={clsx(
                 "resize-none rounded-lg p-2 text-[12px] outline-none focus:ring-2 focus:ring-warm/60",
                 side === "black" ? "bg-[#121014] text-chalk ring-1 ring-white/10" : "bg-[#f4efe6] text-[#141117]",
               )}
             />
             <div className="flex items-center gap-1.5 text-[10px] text-muted">
-              {editing !== null ? "changing a card -- Enter to keep it, Esc to leave it" : "Enter adds it"}
-              {side === "black" && text.trim() && <span className="text-muted/70">· asks for {pickOf(text.replace(/_+/g, "____"))}</span>}
+              {editing !== null ? tx("changing a card -- Enter to keep it, Esc to leave it") : tx("Enter adds it")}
+              {side === "black" && text.trim() && <span className="text-muted/70">{tx("· asks for")}{" "}{pickOf(text.replace(/_+/g, "____"))}</span>}
               <button type="button" disabled={!text.trim()} onClick={commit} className="ml-auto min-h-7 rounded-lg bg-chalk px-3 font-semibold text-ink-950 disabled:opacity-35">
-                {editing !== null ? "keep" : "add"}
+                {editing !== null ? tx("keep") : tx("add")}
               </button>
             </div>
           </div>
@@ -422,7 +418,7 @@ export function DeckEditor({
             value={bulk}
             rows={4}
             onChange={(e) => setBulk(e.target.value)}
-            placeholder={`one ${side === "black" ? "question" : "answer"} a line`}
+            placeholder={tx(`one ${side === "black" ? "question" : "answer"} a line`)}
             className="resize-none rounded-lg bg-white/6 p-2 text-[12px] text-chalk outline-none ring-1 ring-white/10"
           />
           <button
@@ -433,18 +429,16 @@ export function DeckEditor({
               setBulk(null);
             }}
             className="min-h-8 self-end rounded-lg bg-chalk px-3 text-[11px] font-semibold text-ink-950 disabled:opacity-35"
-          >
-            add them all
-          </button>
+          >{tx("add them all")}</button>
         </div>
       )}
 
       {/* The pile so far */}
       <div className="min-h-0 flex-1 overflow-y-auto rounded-xl bg-white/3 p-1.5">
         {loading ? (
-          <p className="p-2 text-[11px] text-muted">fetching the deck...</p>
+          <p className="p-2 text-[11px] text-muted">{tx("fetching the deck...")}</p>
         ) : cards.length === 0 ? (
-          <p className="p-2 text-[11px] text-muted/60">no {side === "black" ? "questions" : "answers"} yet.</p>
+          <p className="p-2 text-[11px] text-muted/60">{tx("no")}{" "}{side === "black" ? tx("questions") : tx("answers")}{" "}{tx("yet.")}</p>
         ) : (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(7rem,1fr))] gap-1.5">
             {cards.map((card, i) => (
@@ -457,7 +451,7 @@ export function DeckEditor({
                     input.current?.focus();
                   }}
                   className="block w-full text-left"
-                  aria-label="change this card"
+                  aria-label={tx("change this card")}
                 >
                   {side === "black" ? <BlackCard prompt={card} small /> : <WhiteCard text={card} />}
                 </button>
@@ -470,7 +464,7 @@ export function DeckEditor({
                       setText("");
                     }
                   }}
-                  aria-label="take this card out"
+                  aria-label={tx("take this card out")}
                   className="absolute -top-1.5 -right-1.5 grid size-6 place-items-center rounded-full bg-ink-950 text-muted opacity-0 ring-1 ring-white/20 transition group-hover:opacity-100 hover:text-chalk max-sm:opacity-100"
                 >
                   <X className="size-3" />
@@ -483,15 +477,14 @@ export function DeckEditor({
 
       <div className="flex flex-wrap items-center gap-2 text-[10px] text-muted">
         <span>
-          {draft.black.length} questions, {draft.white.length} answers
-          {draft.adult && " · 18+"}
+          {draft.black.length}{" "}{tx("questions,")}{" "}{draft.white.length}{" "}{tx("answers")}{draft.adult && " · 18+"}
         </span>
         {(error || problem) && <span className="text-[#f2a4b8]">{error ?? problem}</span>}
         <span className="ml-auto flex items-center gap-1.5">
           {owned && userId && (
             <button type="button" disabled={busy} onClick={() => void remove()} className="flex min-h-9 items-center gap-1 rounded-xl px-2.5 text-[#f2a4b8] hover:bg-[#e0655c]/15">
               <Trash2 className="size-3.5" />
-              {confirm ? "tap again to delete it" : "delete"}
+              {confirm ? tx("tap again to delete it") : tx("delete")}
             </button>
           )}
           <button
@@ -500,7 +493,7 @@ export function DeckEditor({
             onClick={() => void save()}
             className="min-h-9 rounded-xl bg-chalk px-4 text-[12px] font-semibold text-ink-950 disabled:opacity-35"
           >
-            {busy ? "saving..." : owned ? "save changes" : "save for everyone"}
+            {busy ? tx("saving...") : owned ? tx("save changes") : tx("save for everyone")}
           </button>
         </span>
       </div>

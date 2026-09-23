@@ -28,6 +28,7 @@ import {
 } from "@/lib/quoridor";
 import type { Item } from "@/lib/types";
 import RulesSheet from "./rules-sheet";
+import { t as tx } from "@/lib/i18n";
 
 /** A square, and the groove after it, in board units. */
 const CELL = 40;
@@ -197,8 +198,7 @@ export default function Quoridor({ item, state: raw }: { item: Item<"game">; sta
               onClick={() => void write(newGame(n, state))}
               className={clsx("min-h-7 rounded-md px-2 tabular-nums", state.players === n ? "bg-white/12 text-chalk" : "text-muted disabled:opacity-40")}
             >
-              {n} players
-            </button>
+              {n}{" "}{tx("players")}</button>
           ))}
         </span>
         {chairs.map((chair) => {
@@ -214,13 +214,13 @@ export default function Quoridor({ item, state: raw }: { item: Item<"game">; sta
                 "flex min-h-7 items-center gap-1 rounded-lg px-1.5 disabled:cursor-default",
                 state.turn === chair && state.phase === "play" ? "bg-white/12 ring-1 ring-warm/60" : "bg-white/5",
               )}
-              title={`${home} steps from home`}
+              title={tx(`${home} steps from home`)}
             >
               <span className="size-2.5 rounded-full" style={{ background: TINT[chair] }} />
               <span className={clsx("max-w-20 truncate", chair === myChair ? "text-chalk" : "text-muted")}>
                 {state.seats[chair] ?? <span className="text-muted/50">{COLOR_NAME[chair]}</span>}
               </span>
-              <span className="flex gap-px" aria-label={`${state.left[chair] ?? 0} walls left`}>
+              <span className="flex gap-px" aria-label={tx(`${state.left[chair] ?? 0} walls left`)}>
                 {Array.from({ length: state.left[chair] ?? 0 }, (_, i) => (
                   <span key={i} className="h-2.5 w-[3px] rounded-[1px] bg-[#d9a86c]" />
                 ))}
@@ -230,8 +230,7 @@ export default function Quoridor({ item, state: raw }: { item: Item<"game">; sta
           );
         })}
         <button type="button" onClick={() => setManual(true)} className="ml-auto flex min-h-7 items-center gap-1 rounded-lg px-1.5 hover:bg-white/8 hover:text-chalk">
-          <BookOpen className="size-3" /> rules
-        </button>
+          <BookOpen className="size-3" />{" "}{tx("rules")}</button>
       </div>
 
       <div className="grid min-h-0 flex-1 place-items-center">
@@ -239,7 +238,7 @@ export default function Quoridor({ item, state: raw }: { item: Item<"game">; sta
           viewBox={`${-MARGIN} ${-MARGIN} ${BOARD + MARGIN * 2} ${BOARD + MARGIN * 2}`}
           className="aspect-square max-h-full max-w-full touch-manipulation"
           role="img"
-          aria-label="the board"
+          aria-label={tx("the board")}
         >
           <g ref={board} transform={`rotate(${angle} ${BOARD / 2} ${BOARD / 2})`}>
             <rect x={-MARGIN} y={-MARGIN} width={BOARD + MARGIN * 2} height={BOARD + MARGIN * 2} rx={14} fill="#241a15" />
@@ -321,9 +320,7 @@ export default function Quoridor({ item, state: raw }: { item: Item<"game">; sta
                 setPreview(null);
               }}
               className={clsx("min-h-8 rounded-md px-2.5", mode === "move" ? "bg-white/12 text-chalk" : "text-muted")}
-            >
-              step
-            </button>
+            >{tx("step")}</button>
             <button
               type="button"
               disabled={wallsLeft <= 0}
@@ -332,9 +329,7 @@ export default function Quoridor({ item, state: raw }: { item: Item<"game">; sta
                 setPreview(null);
               }}
               className={clsx("min-h-8 rounded-md px-2.5 disabled:opacity-35", mode === "wall" ? "bg-[#d9a86c]/25 text-[#f0cf9c]" : "text-muted")}
-            >
-              wall
-            </button>
+            >{tx("wall")}</button>
           </span>
         )}
         {myTurn && preview && (
@@ -346,7 +341,7 @@ export default function Quoridor({ item, state: raw }: { item: Item<"game">; sta
                 setLean(o);
                 setPreview({ ...preview, o });
               }}
-              aria-label="turn the wall"
+              aria-label={tx("turn the wall")}
               className="grid size-8 place-items-center rounded-lg bg-white/8 text-chalk"
             >
               <RotateCw className="size-3.5" />
@@ -356,9 +351,7 @@ export default function Quoridor({ item, state: raw }: { item: Item<"game">; sta
               disabled={Boolean(problem)}
               onClick={() => putDown(preview)}
               className="min-h-8 rounded-lg bg-chalk px-3 font-semibold text-ink-950 disabled:opacity-35"
-            >
-              put it here
-            </button>
+            >{tx("put it here")}</button>
           </>
         )}
         <button
@@ -368,8 +361,8 @@ export default function Quoridor({ item, state: raw }: { item: Item<"game">; sta
             setPreview(null);
             void write(state.phase === "over" ? again(state) : newGame(state.players, state, state.opener));
           }}
-          aria-label="new game"
-          title="new game"
+          aria-label={tx("new game")}
+          title={tx("new game")}
           className="grid size-8 place-items-center rounded-lg text-muted hover:bg-white/8 hover:text-chalk disabled:opacity-35"
         >
           <RotateCcw className="size-3.5" />
@@ -377,24 +370,14 @@ export default function Quoridor({ item, state: raw }: { item: Item<"game">; sta
       </div>
 
       {manual && (
-        <RulesSheet title="Quoridor (Bloqueio)" onClose={() => setManual(false)}>
-          <p>
-            Get your pawn to the far side of the board -- the edge marked in your colour -- before anyone else. Two players have
-            ten walls each; four have five.
-          </p>
-          <p>
-            On your turn, either <b>step</b> one square (not diagonally), or <b>put down a wall</b>. A wall covers two squares and
+        <RulesSheet title={tx("Quoridor (Bloqueio)")} onClose={() => setManual(false)}>
+          <p>{tx("Get your pawn to the far side of the board -- the edge marked in your colour -- before anyone else. Two players have ten walls each; four have five.")}</p>
+          <p>{tx("On your turn, either")}{" "}<b>{tx("step")}</b>{" "}{tx("one square (not diagonally), or")}{" "}<b>{tx("put down a wall")}</b>. A wall covers two squares and
             sits in the grooves between them. Walls cannot overlap or cross, and you can never shut anybody off from their goal
             completely -- there always has to be a way round.
           </p>
-          <p>
-            Pawns face to face can <b>jump</b> each other. If there is a wall or the edge behind the pawn you are jumping -- or,
-            with four, another pawn -- you go past it diagonally instead.
-          </p>
-          <p>
-            With a mouse, run along a groove and click. On a phone, tap <b>wall</b>, tap where it goes, and tap again (or turn it
-            first).
-          </p>
+          <p>{tx("Pawns face to face can")}{" "}<b>{tx("jump")}</b>{" "}{tx("each other. If there is a wall or the edge behind the pawn you are jumping -- or, with four, another pawn -- you go past it diagonally instead.")}</p>
+          <p>{tx("With a mouse, run along a groove and click. On a phone, tap")}{" "}<b>{tx("wall")}</b>{tx(", tap where it goes, and tap again (or turn it first).")}</p>
         </RulesSheet>
       )}
     </div>

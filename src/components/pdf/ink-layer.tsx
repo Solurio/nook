@@ -6,6 +6,7 @@ import { StickyNote } from "lucide-react";
 import { newId } from "@/lib/slug";
 import { markAt, type PdfMark } from "@/lib/pdf";
 import { useRoomStore } from "@/state/room-store";
+import { t } from "@/lib/i18n";
 
 export type InkTool = "pen" | "highlight" | "note" | "eraser";
 
@@ -149,7 +150,7 @@ export default function InkLayer({
               if (tool === "eraser") onErase?.(note.id);
               else onNote?.(note.id);
             }}
-            title={note.text || "a note"}
+            title={note.text || t("a note")}
             className="absolute grid size-6 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-md shadow-[0_2px_6px_rgba(0,0,0,0.35)] transition hover:scale-110"
             style={{ left: `${note.x * 100}%`, top: `${note.y * 100}%`, background: note.color }}
           >

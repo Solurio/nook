@@ -3,6 +3,7 @@
 import { EDGES, HEXES, VERTICES } from "@/lib/catan-board";
 import { pips, YIELD, type CatanState } from "@/lib/catan";
 import { RESOURCE_COLOR, ResourceGlyph, TERRAIN_COLOR } from "./catan-icons";
+import { t } from "@/lib/i18n";
 
 /** One hex side, in board units. */
 const S = 50;
@@ -68,7 +69,7 @@ export default function CatanBoardView({
   const height = 10.4;
 
   return (
-    <svg viewBox={`${px(-width / 2)} ${px(-height / 2)} ${px(width)} ${px(height)}`} className="size-full" role="img" aria-label="the island">
+    <svg viewBox={`${px(-width / 2)} ${px(-height / 2)} ${px(width)} ${px(height)}`} className="size-full" role="img" aria-label={t("the island")}>
       <defs>
         <radialGradient id="catan-sea" cx="50%" cy="50%" r="60%">
           <stop offset="0%" stopColor="#2a6f95" />

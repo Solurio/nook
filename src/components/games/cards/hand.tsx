@@ -5,6 +5,7 @@ import clsx from "clsx";
 import { offsetWithin, pointIn, type PointerLike } from "@/lib/pointer";
 import { readFace, type TableState } from "@/lib/table";
 import PlayingCard, { cardHeight } from "@/components/cards/playing-card";
+import { t } from "@/lib/i18n";
 
 /**
  * Which place in the hand a pointer is over, counted in cards, or null when it
@@ -115,7 +116,7 @@ export default function Hand({
         className="no-scrollbar flex max-h-40 min-w-0 flex-1 flex-wrap items-start gap-1 overflow-y-auto p-1"
         style={{ minHeight: height + 10 }}
       >
-        {n === 0 && <p className="w-full py-4 text-center text-[11px] text-muted/50">your hand is empty</p>}
+        {n === 0 && <p className="w-full py-4 text-center text-[11px] text-muted/50">{t("your hand is empty")}</p>}
         {cards.map((value, i) => (
           <div
             key={`${value}-${i}`}
@@ -138,7 +139,7 @@ export default function Hand({
 
   return (
     <div ref={ref} data-hand-area className="relative min-w-0 flex-1" style={{ height: height + 16 }}>
-      {n === 0 && <p className="pt-4 text-center text-[11px] text-muted/50">your hand is empty</p>}
+      {n === 0 && <p className="pt-4 text-center text-[11px] text-muted/50">{t("your hand is empty")}</p>}
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2" style={{ width: total, height: height + 16 }}>
         {cards.map((value, i) => {
           const angle = n > 1 ? (i - (n - 1) / 2) * Math.min(4, 40 / n) : 0;

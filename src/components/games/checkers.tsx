@@ -8,6 +8,7 @@ import { applyMove, initialBoard, movesForPiece, winner } from "@/lib/checkers";
 import { canPlay, seatOf, takeSeat, turnHint } from "@/lib/seats";
 import GameTable from "./table";
 import type { CheckersState, Item } from "@/lib/types";
+import { t } from "@/lib/i18n";
 
 const DISC = {
   r: "bg-[#e0655c] shadow-[inset_0_-2px_5px_rgba(0,0,0,0.3)]",
@@ -124,7 +125,7 @@ export default function Checkers({ item, state }: { item: Item<"game">; state: C
               type="button"
               onClick={() => onSquare(i)}
               disabled={!canEdit || over || !dark}
-              aria-label={`square ${i}`}
+              aria-label={t(`square ${i}`)}
               className={clsx(
                 "relative grid touch-manipulation place-items-center p-[10%] transition",
                 dark ? "bg-[#7c5a3c]" : "bg-[#e9dcc4]",

@@ -8,6 +8,7 @@ import { C4_COLUMNS, C4_ROWS, dropDisc, evaluateConnectFour, resetConnectFour } 
 import { canPlay, takeSeat, turnHint } from "@/lib/seats";
 import GameTable from "./table";
 import type { ConnectFourState, Item } from "@/lib/types";
+import { t } from "@/lib/i18n";
 
 const SIDES = ["r", "y"] as const;
 const NAME = { r: "red", y: "yellow" } as const;
@@ -95,7 +96,7 @@ export default function ConnectFour({
               disabled={!canEdit || over || full}
               onPointerEnter={() => setHover(col)}
               onClick={() => play(col)}
-              aria-label={`drop in column ${col + 1}`}
+              aria-label={t(`drop in column ${col + 1}`)}
               className={clsx(
                 "flex touch-manipulation flex-col-reverse gap-1 rounded-lg transition",
                 hover === col && !over && !full && "bg-white/8",

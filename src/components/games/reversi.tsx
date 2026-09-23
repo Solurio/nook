@@ -8,6 +8,7 @@ import { canPlay, takeSeat, turnHint } from "@/lib/seats";
 import { SIZE, count, emptyReversi, movesFor, play, restart, type ReversiState } from "@/lib/reversi";
 import type { Item } from "@/lib/types";
 import GameTable from "./table";
+import { t } from "@/lib/i18n";
 
 const SIDES = ["b", "w"] as const;
 const NAME = { b: "black", w: "white" } as const;
@@ -59,7 +60,7 @@ export default function Reversi({ item, state: raw }: { item: Item<"game">; stat
               type="button"
               disabled={!legal}
               onClick={() => write(play(state, i))}
-              aria-label={cell ? `${NAME[cell]} disc` : legal ? "put a disc here" : "empty"}
+              aria-label={cell ? t(`${NAME[cell]} disc`) : legal ? t("put a disc here") : t("empty")}
               className={clsx("relative grid place-items-center rounded-[3px] bg-[#2f7a4a] disabled:cursor-default", legal && "hover:bg-[#3a8d57]")}
             >
               {cell && (

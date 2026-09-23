@@ -11,6 +11,7 @@ import { newId } from "@/lib/slug";
 import type { AnyItem, TransformPatch } from "@/lib/types";
 import ItemRenderer from "@/components/items/item-renderer";
 import ItemErrorBoundary from "./item-error-boundary";
+import { t } from "@/lib/i18n";
 
 type Handle = "nw" | "ne" | "se" | "sw" | "rotate";
 
@@ -414,14 +415,12 @@ function ItemFrame({
               {...handleProps}
               style={{ height: 28 * inv, top: -36 * inv }}
               className="absolute left-0 flex w-full cursor-grab touch-none items-center justify-center gap-1 rounded-lg bg-glow/85 active:cursor-grabbing"
-              title="Drag to move"
+              title={t("Drag to move")}
             >
               <span
                 className="font-semibold text-ink-950/70"
                 style={{ fontSize: 10 * inv }}
-              >
-                drag to move
-              </span>
+              >{t("drag to move")}</span>
             </div>
           )}
 
@@ -432,8 +431,8 @@ function ItemFrame({
             {...handleProps}
             style={{ right: -48 * inv, bottom: -48 * inv, ...counter }}
             className="absolute grid size-11 cursor-alias touch-none place-items-center"
-            title="drag to turn it"
-            aria-label="drag to turn it"
+            title={t("drag to turn it")}
+            aria-label={t("drag to turn it")}
           >
             <span className="grid size-6 place-items-center rounded-full bg-warm text-ink-950 shadow-md ring-2 ring-ink-950/45">
               <RotateCw className="size-3.5" strokeWidth={2.8} />

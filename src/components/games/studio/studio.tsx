@@ -59,6 +59,7 @@ import BrushPanel from "./brush-panel";
 import FilterPanel from "./filter-panel";
 import FilePanel, { type ExportKind } from "./file-panel";
 import { IconButton, RailSlider } from "./widgets";
+import { t as tx } from "@/lib/i18n";
 
 const PAPER = "#faf7f0";
 const EMPTY: PaintOp[] = [];
@@ -1524,20 +1525,20 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
       {/* Top: file, history, what the tool does, the view. */}
       {/* Kept clear of the corners, where the table's resize handles sit. */}
       <div className={clsx("no-scrollbar relative z-10 flex h-10 shrink-0 items-center gap-1 overflow-x-auto border-b border-white/8", expanded ? "px-1.5" : "px-7")}>
-        <IconButton label="file" onClick={() => togglePanel("file")} active={panel === "file"}>
+        <IconButton label={tx("file")} onClick={() => togglePanel("file")} active={panel === "file"}>
           <Menu />
         </IconButton>
-        <IconButton label="undo (ctrl z, or tap with two fingers)" onClick={undo} disabled={!canEdit || (!history.undo && !warping)}>
+        <IconButton label={tx("undo (ctrl z, or tap with two fingers)")} onClick={undo} disabled={!canEdit || (!history.undo && !warping)}>
           <Undo2 />
         </IconButton>
-        <IconButton label="redo (ctrl shift z)" onClick={redo} disabled={!canEdit || !history.redo}>
+        <IconButton label={tx("redo (ctrl shift z)")} onClick={redo} disabled={!canEdit || !history.redo}>
           <Redo2 />
         </IconButton>
         <span className="mx-0.5 h-5 w-px shrink-0 bg-white/10" />
         <ToolOptions tool={tool} spec={spec} options={options} set={setOption} warping={warping} onBrushes={() => togglePanel("brushes")} onWarp={warpAction} />
         <span className="min-w-2 flex-1" />
         <IconButton
-          label="zoom out"
+          label={tx("zoom out")}
           onClick={() => {
             const v = viewRef.current;
             const box = boxRef.current;
@@ -1548,7 +1549,7 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
         </IconButton>
         <button
           type="button"
-          title="fit the picture (ctrl 0)"
+          title={tx("fit the picture (ctrl 0)")}
           onClick={() => {
             const box = boxRef.current;
             if (box) setView(fit({ w: docW, h: docH }, box.clientWidth, box.clientHeight));
@@ -1558,7 +1559,7 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
           {zoomPct}%
         </button>
         <IconButton
-          label="zoom in"
+          label={tx("zoom in")}
           onClick={() => {
             const v = viewRef.current;
             const box = boxRef.current;
@@ -1568,7 +1569,7 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
           <Plus />
         </IconButton>
         <IconButton
-          label="turn the view left (alt and the wheel)"
+          label={tx("turn the view left (alt and the wheel)")}
           onClick={() => {
             const v = viewRef.current;
             const box = boxRef.current;
@@ -1578,7 +1579,7 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
           <RotateCcw />
         </IconButton>
         <IconButton
-          label="turn the view right"
+          label={tx("turn the view right")}
           onClick={() => {
             const v = viewRef.current;
             const box = boxRef.current;
@@ -1588,7 +1589,7 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
           <RotateCw />
         </IconButton>
         <IconButton
-          label="mirror the view (the picture stays as it is)"
+          label={tx("mirror the view (the picture stays as it is)")}
           onClick={() => {
             const v = viewRef.current;
             const box = boxRef.current;
@@ -1600,7 +1601,7 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
           <FlipHorizontal />
         </IconButton>
         <IconButton
-          label={expanded ? "back to the table" : "full screen"}
+          label={expanded ? tx("back to the table") : tx("full screen")}
           onClick={() => {
             refit.current = true;
             setExpanded((v) => !v);
@@ -1661,7 +1662,7 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
                   if (event.key === "Escape") setTextDraft(null);
                   if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) void placeText();
                 }}
-                placeholder="type..."
+                placeholder={tx("type...")}
                 rows={Math.max(1, text.split("\n").length)}
                 className="min-w-24 resize-none border border-dashed border-glow/70 bg-transparent p-0 leading-[1.2] outline-none"
                 style={{
@@ -1675,12 +1676,8 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
                 }}
               />
               <div className="mt-1 flex gap-1">
-                <button type="button" onClick={() => void placeText()} className="rounded-md bg-glow/30 px-2 py-1 text-[10px] font-semibold text-glow">
-                  place it
-                </button>
-                <button type="button" onClick={() => setTextDraft(null)} className="rounded-md bg-white/10 px-2 py-1 text-[10px] text-muted">
-                  cancel
-                </button>
+                <button type="button" onClick={() => void placeText()} className="rounded-md bg-glow/30 px-2 py-1 text-[10px] font-semibold text-glow">{tx("place it")}</button>
+                <button type="button" onClick={() => setTextDraft(null)} className="rounded-md bg-white/10 px-2 py-1 text-[10px] text-muted">{tx("cancel")}</button>
               </div>
             </div>
           )}
@@ -1690,25 +1687,15 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
               className="surface-raised absolute bottom-2 left-1/2 z-10 flex max-w-[96%] -translate-x-1/2 items-center gap-0.5 overflow-x-auto rounded-xl p-1 shadow-xl no-scrollbar"
               onPointerDown={(event) => event.stopPropagation()}
             >
-              <SelButton onClick={deselect} icon={<X />}>
-                deselect
-              </SelButton>
-              <SelButton onClick={invertSelection}>invert</SelButton>
-              <SelButton onClick={selectAll}>all</SelButton>
-              <SelButton onClick={clearArea}>clear</SelButton>
-              <SelButton onClick={fillArea}>fill</SelButton>
-              <SelButton onClick={() => toNewLayer(false)} icon={<Copy />}>
-                copy to layer
-              </SelButton>
-              <SelButton onClick={() => toNewLayer(true)} icon={<Scissors />}>
-                cut to layer
-              </SelButton>
-              <SelButton onClick={() => chooseTool("move")} icon={<Move />}>
-                transform
-              </SelButton>
-              <SelButton onClick={() => togglePanel("filters")} icon={<SlidersHorizontal />}>
-                filter
-              </SelButton>
+              <SelButton onClick={deselect} icon={<X />}>{tx("deselect")}</SelButton>
+              <SelButton onClick={invertSelection}>{tx("invert")}</SelButton>
+              <SelButton onClick={selectAll}>{tx("all")}</SelButton>
+              <SelButton onClick={clearArea}>{tx("clear")}</SelButton>
+              <SelButton onClick={fillArea}>{tx("fill")}</SelButton>
+              <SelButton onClick={() => toNewLayer(false)} icon={<Copy />}>{tx("copy to layer")}</SelButton>
+              <SelButton onClick={() => toNewLayer(true)} icon={<Scissors />}>{tx("cut to layer")}</SelButton>
+              <SelButton onClick={() => chooseTool("move")} icon={<Move />}>{tx("transform")}</SelButton>
+              <SelButton onClick={() => togglePanel("filters")} icon={<SlidersHorizontal />}>{tx("filter")}</SelButton>
             </div>
           )}
 
@@ -1802,30 +1789,30 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
           {busy && panel !== "file" && (
             <p className="surface-raised absolute top-2 left-1/2 z-10 -translate-x-1/2 rounded-lg px-2.5 py-1 text-[11px] text-chalk">{busy}...</p>
           )}
-          {mode === "loading" && <p className="absolute top-2 left-2 text-[10px] text-muted">opening the picture...</p>}
+          {mode === "loading" && <p className="absolute top-2 left-2 text-[10px] text-muted">{tx("opening the picture...")}</p>}
         </div>
 
         {/* Right rail: the colour, size and opacity, and the panels. */}
         <div className="no-scrollbar flex w-12 shrink-0 flex-col items-center gap-2 overflow-y-auto border-l border-white/8 py-1.5">
-          <button type="button" onClick={() => togglePanel("color")} className="relative size-9 shrink-0" title="colour" aria-label="colour">
+          <button type="button" onClick={() => togglePanel("color")} className="relative size-9 shrink-0" title={tx("colour")} aria-label={tx("colour")}>
             <span className="absolute right-0 bottom-0 size-5 rounded ring-1 ring-white/30" style={{ background: second }} />
             <span className={clsx("absolute top-0 left-0 size-7 rounded-md ring-2", panel === "color" ? "ring-glow" : "ring-white/40")} style={{ background: color }} />
           </button>
-          {railSize !== null && <RailSlider label="size" value={sizeToSlider(railSize)} min={0} max={100} onChange={(v) => setRailSize(sliderToSize(v))} display={`${Math.round(railSize)}`} />}
-          <RailSlider label="opac" value={Math.round(railOpacity * 100)} min={1} max={100} onChange={(v) => setRailOpacity(v / 100)} display={`${Math.round(railOpacity * 100)}%`} />
-          <IconButton label="brushes" onClick={() => togglePanel("brushes")} active={panel === "brushes"}>
+          {railSize !== null && <RailSlider label={tx("size")} value={sizeToSlider(railSize)} min={0} max={100} onChange={(v) => setRailSize(sliderToSize(v))} display={`${Math.round(railSize)}`} />}
+          <RailSlider label={tx("opac")} value={Math.round(railOpacity * 100)} min={1} max={100} onChange={(v) => setRailOpacity(v / 100)} display={`${Math.round(railOpacity * 100)}%`} />
+          <IconButton label={tx("brushes")} onClick={() => togglePanel("brushes")} active={panel === "brushes"}>
             <Brush />
           </IconButton>
-          <IconButton label="layers" onClick={() => togglePanel("layers")} active={panel === "layers"}>
+          <IconButton label={tx("layers")} onClick={() => togglePanel("layers")} active={panel === "layers"}>
             <Layers />
           </IconButton>
-          <IconButton label="filters" onClick={() => togglePanel("filters")} active={panel === "filters"} disabled={!canEdit}>
+          <IconButton label={tx("filters")} onClick={() => togglePanel("filters")} active={panel === "filters"} disabled={!canEdit}>
             <SlidersHorizontal />
           </IconButton>
-          <IconButton label="palettes" onClick={() => togglePanel("color")} active={panel === "color"}>
+          <IconButton label={tx("palettes")} onClick={() => togglePanel("color")} active={panel === "color"}>
             <PaletteIcon />
           </IconButton>
-          <IconButton label="paste a picture as a layer (ctrl v)" onClick={() => void pasteFromClipboard(importImage, setNotice)} disabled={!canEdit}>
+          <IconButton label={tx("paste a picture as a layer (ctrl v)")} onClick={() => void pasteFromClipboard(importImage, setNotice)} disabled={!canEdit}>
             <ClipboardPaste />
           </IconButton>
         </div>

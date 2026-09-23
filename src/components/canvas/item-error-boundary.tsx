@@ -2,6 +2,7 @@
 
 import { Component, type ReactNode } from "react";
 import { AlertTriangle } from "lucide-react";
+import { t } from "@/lib/i18n";
 
 interface Props {
   children: ReactNode;
@@ -42,7 +43,7 @@ export default class ItemErrorBoundary extends Component<Props, State> {
         <div className="grid size-full place-items-center rounded-2xl bg-ink-800/85 p-3 text-center ring-1 ring-white/10">
           <div className="text-muted">
             <AlertTriangle className="mx-auto mb-1.5 size-4 text-warm" strokeWidth={2} />
-            <p className="text-[11px] leading-snug">this one would not load</p>
+            <p className="text-[11px] leading-snug">{t("this one would not load")}</p>
           </div>
         </div>
       );

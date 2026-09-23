@@ -47,6 +47,7 @@ import { aspectOf, openPdf, outlineOf, pageWords, type OutlineEntry } from "@/co
 import PageView from "@/components/pdf/page-view";
 import { PDF_MAX_MB, uploadPdf } from "@/components/pdf/upload";
 import type { InkTool } from "@/components/pdf/ink-layer";
+import { t } from "@/lib/i18n";
 
 /**
  * A PDF on the table. Open as a book -- the cover alone, then spreads, the
@@ -82,7 +83,7 @@ function PdfSlot({ item }: { item: Item<"pdf"> }) {
     <div className="surface grain grid size-full place-items-center rounded-2xl p-4 text-center">
       <div className="flex flex-col items-center gap-2">
         <BookOpen className="size-8 text-glow/70" strokeWidth={1.6} />
-        <p className="text-[12px] text-muted">a book, a menu, the rules, a character sheet -- up to {PDF_MAX_MB}MB</p>
+        <p className="text-[12px] text-muted">{t("a book, a menu, the rules, a character sheet -- up to")}{" "}{PDF_MAX_MB}MB</p>
         <button
           type="button"
           disabled={!canEdit || busy}
@@ -90,7 +91,7 @@ function PdfSlot({ item }: { item: Item<"pdf"> }) {
           className="flex min-h-10 items-center gap-2 rounded-xl bg-chalk px-4 text-[12px] font-semibold text-ink-950 disabled:opacity-40"
         >
           <FileUp className="size-4" />{" "}
-          {progress ? (progress.total > 1 ? `putting it on the table... ${progress.done} of ${progress.total}` : "putting it on the table...") : "choose a PDF"}
+          {progress ? (progress.total > 1 ? t(`putting it on the table... ${progress.done} of ${progress.total}`) : t("putting it on the table...")) : t("choose a PDF")}
         </button>
         <input ref={input} type="file" accept="application/pdf,.pdf" hidden onChange={(event) => void pick(event.target.files?.[0])} />
       </div>
@@ -181,9 +182,7 @@ function Reader({ item, data }: { item: Item<"pdf">; data: PdfData }) {
 
   if (failed) {
     return (
-      <div className="surface grid size-full place-items-center rounded-2xl p-4 text-center text-[12px] text-muted">
-        this PDF would not open
-      </div>
+      <div className="surface grid size-full place-items-center rounded-2xl p-4 text-center text-[12px] text-muted">{t("this PDF would not open")}</div>
     );
   }
 
@@ -231,25 +230,25 @@ function Reader({ item, data }: { item: Item<"pdf">; data: PdfData }) {
       {/* Along the top: what it is, and what to do with it */}
       <div className="flex min-h-10 shrink-0 items-center gap-0.5 border-b border-white/6 px-1.5">
         <p className="min-w-0 flex-1 truncate px-1 text-[11px] font-medium text-chalk" title={data.name}>
-          {data.name || "untitled"}
+          {data.name || t("untitled")}
         </p>
-        <Tool label={mode === "book" ? "put it on a clipboard" : "open it as a book"} disabled={!canEdit} onClick={() => void save({ ...data, mode: mode === "book" ? "clipboard" : "book" })}>
+        <Tool label={mode === "book" ? t("put it on a clipboard") : t("open it as a book")} disabled={!canEdit} onClick={() => void save({ ...data, mode: mode === "book" ? "clipboard" : "book" })}>
           {mode === "book" ? <ClipboardList /> : <BookOpen />}
         </Tool>
-        <Tool label="search" active={panel === "search"} onClick={() => setPanel(panel === "search" ? null : "search")}>
+        <Tool label={t("search")} active={panel === "search"} onClick={() => setPanel(panel === "search" ? null : "search")}>
           <Search />
         </Tool>
-        <Tool label="contents and bookmarks" active={panel === "contents"} onClick={() => setPanel(panel === "contents" ? null : "contents")}>
+        <Tool label={t("contents and bookmarks")} active={panel === "contents"} onClick={() => setPanel(panel === "contents" ? null : "contents")}>
           <ListTree />
         </Tool>
-        <Tool label={bookmarked ? "take the bookmark out" : "bookmark this page"} active={bookmarked} disabled={!canEdit} onClick={() => void save(toggleBookmark(data, left ?? right ?? target))}>
+        <Tool label={bookmarked ? t("take the bookmark out") : t("bookmark this page")} active={bookmarked} disabled={!canEdit} onClick={() => void save(toggleBookmark(data, left ?? right ?? target))}>
           <Bookmark className={bookmarked ? "fill-current" : ""} />
         </Tool>
-        <Tool label={tool ? "stop drawing" : "draw on it"} active={Boolean(tool)} disabled={!canEdit} onClick={() => setTool(tool ? null : "pen")}>
+        <Tool label={tool ? t("stop drawing") : t("draw on it")} active={Boolean(tool)} disabled={!canEdit} onClick={() => setTool(tool ? null : "pen")}>
           <PenLine />
         </Tool>
         <Tool
-          label={alone ? "read along with everyone" : "read on my own"}
+          label={alone ? t("read along with everyone") : t("read on my own")}
           active={alone}
           disabled={!canEdit}
           onClick={() => {
@@ -289,7 +288,7 @@ function Reader({ item, data }: { item: Item<"pdf">; data: PdfData }) {
             <button
               key={c}
               type="button"
-              aria-label={`colour ${c}`}
+              aria-label={t(`colour ${c}`)}
               onClick={() => setColor(c)}
               className={clsx("size-6 rounded-full ring-1 ring-white/25", color === c && "ring-2 ring-chalk")}
               style={{ background: c }}
@@ -304,7 +303,7 @@ function Reader({ item, data }: { item: Item<"pdf">; data: PdfData }) {
             }}
             className="ml-auto flex min-h-8 items-center gap-1 rounded-lg px-2 text-[10px] text-muted hover:bg-white/8 hover:text-chalk"
           >
-            <Trash2 className="size-3" /> clear {mode === "book" ? "these pages" : "this page"}
+            <Trash2 className="size-3" />{" "}{t("clear")}{" "}{mode === "book" ? t("these pages") : t("this page")}
           </button>
         </div>
       )}
@@ -327,7 +326,7 @@ function Reader({ item, data }: { item: Item<"pdf">; data: PdfData }) {
         }}
       >
         {!doc ? (
-          <div className="grid size-full place-items-center text-[11px] text-muted/70">opening it...</div>
+          <div className="grid size-full place-items-center text-[11px] text-muted/70">{t("opening it...")}</div>
         ) : mode === "book" ? (
           <div className="absolute inset-0 grid place-items-center [perspective:1800px]">
             <div className="relative flex" style={{ width: bookW * 2, height: bookW * aspect }}>
@@ -399,10 +398,10 @@ function Reader({ item, data }: { item: Item<"pdf">; data: PdfData }) {
         {/* Edges to tap, for turning without swiping */}
         {doc && !tool && (
           <>
-            <button type="button" aria-label="previous page" disabled={!canTurn(target, pages, mode, -1)} onClick={() => step(-1)} className="absolute inset-y-0 left-0 z-10 w-[9%] min-w-8 opacity-0 transition hover:bg-gradient-to-r hover:from-white/6 hover:to-transparent hover:opacity-100 disabled:hidden">
+            <button type="button" aria-label={t("previous page")} disabled={!canTurn(target, pages, mode, -1)} onClick={() => step(-1)} className="absolute inset-y-0 left-0 z-10 w-[9%] min-w-8 opacity-0 transition hover:bg-gradient-to-r hover:from-white/6 hover:to-transparent hover:opacity-100 disabled:hidden">
               <ChevronLeft className="mx-auto size-5 text-chalk/70" />
             </button>
-            <button type="button" aria-label="next page" disabled={!canTurn(target, pages, mode, 1)} onClick={() => step(1)} className="absolute inset-y-0 right-0 z-10 w-[9%] min-w-8 opacity-0 transition hover:bg-gradient-to-l hover:from-white/6 hover:to-transparent hover:opacity-100 disabled:hidden">
+            <button type="button" aria-label={t("next page")} disabled={!canTurn(target, pages, mode, 1)} onClick={() => step(1)} className="absolute inset-y-0 right-0 z-10 w-[9%] min-w-8 opacity-0 transition hover:bg-gradient-to-l hover:from-white/6 hover:to-transparent hover:opacity-100 disabled:hidden">
               <ChevronRight className="mx-auto size-5 text-chalk/70" />
             </button>
           </>
@@ -444,12 +443,12 @@ function Reader({ item, data }: { item: Item<"pdf">; data: PdfData }) {
 
       {/* Along the bottom: where you are */}
       <div className="flex min-h-11 shrink-0 items-center gap-1.5 border-t border-white/6 px-1.5">
-        <Tool label="previous" disabled={!canTurn(target, pages, mode, -1)} onClick={() => step(-1)}>
+        <Tool label={t("previous")} disabled={!canTurn(target, pages, mode, -1)} onClick={() => step(-1)}>
           <ChevronLeft />
         </Tool>
         <PageInput key={`${label}:${pages}`} label={label} pages={pages} onGo={go} />
         <Scrubber key={target} value={target} pages={pages} onGo={go} />
-        <Tool label="next" disabled={!canTurn(target, pages, mode, 1)} onClick={() => step(1)}>
+        <Tool label={t("next")} disabled={!canTurn(target, pages, mode, 1)} onClick={() => step(1)}>
           <ChevronRight />
         </Tool>
       </div>
@@ -508,10 +507,10 @@ function PageInput({ label, pages, onGo }: { label: string; pages: number; onGo:
         }}
         onBlur={() => setText(label)}
         inputMode="numeric"
-        aria-label="page"
+        aria-label={t("page")}
         className="h-8 w-14 rounded-md bg-white/6 text-center text-[12px] text-chalk tabular-nums outline-none focus:bg-white/10"
       />
-      <span className="tabular-nums">of {pages || "?"}</span>
+      <span className="tabular-nums">{t("of")}{" "}{pages || "?"}</span>
     </form>
   );
 }
@@ -534,7 +533,7 @@ function Scrubber({ value, pages, onGo }: { value: number; pages: number; onGo: 
         onPointerUp={commit}
         onKeyUp={commit}
         onPointerDown={(event) => event.stopPropagation()}
-        aria-label="scroll through the pages"
+        aria-label={t("scroll through the pages")}
         className="relative h-8 w-full cursor-pointer opacity-0"
       />
     </div>
@@ -603,15 +602,13 @@ function SearchPanel({
           autoFocus
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="find in the document..."
+          placeholder={t("find in the document...")}
           className="h-9 min-w-0 flex-1 rounded-lg bg-white/8 px-2 text-[12px] text-chalk outline-none placeholder:text-muted/50"
         />
-        <button type="submit" className="h-9 rounded-lg bg-chalk px-3 text-[11px] font-semibold text-ink-950">
-          find
-        </button>
+        <button type="submit" className="h-9 rounded-lg bg-chalk px-3 text-[11px] font-semibold text-ink-950">{t("find")}</button>
         <button
           type="button"
-          aria-label="close"
+          aria-label={t("close")}
           onClick={() => {
             setQuery("");
             onClose();
@@ -623,7 +620,7 @@ function SearchPanel({
       </form>
       {asked.trim().length >= 2 && (
         <p className="px-1 pt-1.5 text-[10px] text-muted/70">
-          {looked < doc.numPages ? `looking... page ${looked} of ${doc.numPages}` : `${total} found on ${results.length} pages`}
+          {looked < doc.numPages ? t(`looking... page ${looked} of ${doc.numPages}`) : t(`${total} found on ${results.length} pages`)}
         </p>
       )}
       <ol className="mt-1 min-h-0 flex-1 space-y-0.5 overflow-y-auto">
@@ -691,20 +688,20 @@ function ContentsPanel({
   return (
     <div className="absolute inset-2 z-30 flex flex-col rounded-xl bg-ink-950/95 p-2 shadow-2xl backdrop-blur-sm" onPointerDown={(event) => event.stopPropagation()}>
       <div className="flex items-center justify-between">
-        <h3 className="px-1 text-[12px] font-semibold text-chalk">contents</h3>
-        <button type="button" aria-label="close" onClick={onClose} className="grid size-9 place-items-center rounded-lg text-muted hover:text-chalk">
+        <h3 className="px-1 text-[12px] font-semibold text-chalk">{t("contents")}</h3>
+        <button type="button" aria-label={t("close")} onClick={onClose} className="grid size-9 place-items-center rounded-lg text-muted hover:text-chalk">
           <X className="size-4" />
         </button>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
         {bookmarks.length > 0 && (
           <>
-            <p className="px-1.5 pt-1 text-[10px] tracking-wide text-muted/60 uppercase">bookmarks</p>
+            <p className="px-1.5 pt-1 text-[10px] tracking-wide text-muted/60 uppercase">{t("bookmarks")}</p>
             <ul className="mb-2">
               {bookmarks.map((p) => (
                 <li key={p} className="flex items-center">
                   <button type="button" onClick={() => onGo(p)} className="flex min-h-8 flex-1 items-center gap-2 rounded-md px-1.5 text-left text-[11px] text-chalk hover:bg-white/8">
-                    <Bookmark className="size-3 fill-[#e0655c] text-[#e0655c]" /> page {p}
+                    <Bookmark className="size-3 fill-[#e0655c] text-[#e0655c]" />{" "}{t("page")}{" "}{p}
                   </button>
                   {canEdit && (
                     <button type="button" aria-label={`remove the bookmark on page ${p}`} onClick={() => onUnmark(p)} className="grid size-8 place-items-center text-muted/60 hover:text-chalk">
@@ -716,11 +713,11 @@ function ContentsPanel({
             </ul>
           </>
         )}
-        <p className="px-1.5 pt-1 text-[10px] tracking-wide text-muted/60 uppercase">in the document</p>
+        <p className="px-1.5 pt-1 text-[10px] tracking-wide text-muted/60 uppercase">{t("in the document")}</p>
         {outline === null ? (
-          <p className="px-1.5 py-2 text-[11px] text-muted/60">reading...</p>
+          <p className="px-1.5 py-2 text-[11px] text-muted/60">{t("reading...")}</p>
         ) : outline.length === 0 ? (
-          <p className="px-1.5 py-2 text-[11px] text-muted/60">this one has no table of contents of its own</p>
+          <p className="px-1.5 py-2 text-[11px] text-muted/60">{t("this one has no table of contents of its own")}</p>
         ) : (
           <ul>{outline.map((e, i) => entry(e, 0, String(i)))}</ul>
         )}
@@ -754,19 +751,17 @@ function NoteEditor({
         onChange={(event) => setDraft(event.target.value)}
         maxLength={280}
         rows={3}
-        placeholder="write something on it..."
+        placeholder={t("write something on it...")}
         className="w-full resize-none bg-transparent text-[12px] leading-snug outline-none placeholder:text-ink-950/40"
       />
       <div className="flex items-center gap-1">
         {by && <span className="min-w-0 flex-1 truncate text-[10px] text-ink-950/60">{by}</span>}
         {!by && <span className="flex-1" />}
         {canEdit && (
-          <button type="button" onClick={onDelete} className="min-h-8 rounded-md px-2 text-[11px] text-ink-950/70 hover:bg-black/5">
-            take it off
-          </button>
+          <button type="button" onClick={onDelete} className="min-h-8 rounded-md px-2 text-[11px] text-ink-950/70 hover:bg-black/5">{t("take it off")}</button>
         )}
         <button type="button" onClick={() => (canEdit ? onSave(draft) : onClose())} className="min-h-8 rounded-md bg-ink-950 px-3 text-[11px] font-semibold text-[#fff3b0]">
-          {canEdit ? "done" : "close"}
+          {canEdit ? t("done") : t("close")}
         </button>
       </div>
     </div>

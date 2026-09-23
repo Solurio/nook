@@ -31,6 +31,7 @@ import {
   type Shot,
 } from "@/lib/pool";
 import type { Item } from "@/lib/types";
+import { t } from "@/lib/i18n";
 
 const RAIL = 9.5;
 const TEAM_TINT = ["#6aa9e0", "#e0655c", "#a6d189", "#f6c177"];
@@ -579,7 +580,7 @@ export default function Pool({ item, state }: { item: Item<"game">; state: PoolS
   const missing = Array.from({ length: 16 }, (_, i) => i).filter((n) => !pool.balls.some((b) => b.n === n && !b.out));
 
   const groupOf = (side: string) => pool.groups?.[side];
-  const whose = (chair: string) => pool.seats[chair] ?? `player ${chairs.indexOf(chair) + 1}`;
+  const whose = (chair: string) => pool.seats[chair] ?? t(`player ${chairs.indexOf(chair) + 1}`);
   const status = over
     ? `${pool.winner === mySide ? "you win" : `${pool.winner === turnSide ? whose(pool.turn) : "the other side"} wins`}`
     : pool.say
@@ -604,7 +605,7 @@ export default function Pool({ item, state }: { item: Item<"game">; state: PoolS
               type="button"
               disabled={!canEdit || !me}
               onClick={() => sit(chair)}
-              title={pool.seats[chair] ? (isMine ? "stand up" : pool.seats[chair] ?? "") : "play here"}
+              title={pool.seats[chair] ? (isMine ? t("stand up") : pool.seats[chair] ?? "") : t("play here")}
               className={clsx(
                 "flex min-h-8 shrink-0 items-center gap-1.5 rounded-xl px-2 text-[11px] transition disabled:opacity-60",
                 chair === pool.turn && !over ? "bg-glow/18 ring-1 ring-glow/45" : "bg-white/5 hover:bg-white/9",
@@ -616,7 +617,7 @@ export default function Pool({ item, state }: { item: Item<"game">; state: PoolS
               <span className={clsx("max-w-24 truncate", pool.seats[chair] ? "text-chalk" : "text-muted/50")}>{whose(chair)}</span>
               {group && (
                 <span className="text-[10px] text-muted">
-                  {group === "solids" ? "solids" : "stripes"} {left(pool.balls, group)}
+                  {group === "solids" ? t("solids") : t("stripes")} {left(pool.balls, group)}
                 </span>
               )}
             </button>
@@ -626,8 +627,8 @@ export default function Pool({ item, state }: { item: Item<"game">; state: PoolS
           type="button"
           onClick={() => setSettingsOpen((v) => !v)}
           disabled={!canEdit}
-          aria-label="game and players"
-          title="game and players"
+          aria-label={t("game and players")}
+          title={t("game and players")}
           className="ml-auto grid size-8 shrink-0 place-items-center rounded-xl text-muted transition hover:bg-white/8 hover:text-chalk disabled:opacity-40"
         >
           <Settings2 className="size-4" strokeWidth={2.2} />
@@ -649,7 +650,7 @@ export default function Pool({ item, state }: { item: Item<"game">; state: PoolS
 
         {settingsOpen && (
           <div className="surface-raised absolute top-1 right-1 z-20 w-56 rounded-xl p-2 shadow-2xl" onPointerDown={(event) => event.stopPropagation()}>
-            <p className="mb-1 text-[9px] tracking-wide text-muted/60 uppercase">game</p>
+            <p className="mb-1 text-[9px] tracking-wide text-muted/60 uppercase">{t("game")}</p>
             <div className="mb-2 grid gap-1">
               {KINDS.map((k) => (
                 <button
@@ -661,12 +662,12 @@ export default function Pool({ item, state }: { item: Item<"game">; state: PoolS
                   }}
                   className={clsx("rounded-lg px-2 py-1 text-left text-[11px]", pool.kind === k.id ? "bg-glow/25 text-glow" : "bg-white/5 text-muted hover:text-chalk")}
                 >
-                  {k.name}
-                  <span className="block text-[9px] text-muted/70">{k.hint}</span>
+                  {t(k.name)}
+                  <span className="block text-[9px] text-muted/70">{t(k.hint)}</span>
                 </button>
               ))}
             </div>
-            <p className="mb-1 text-[9px] tracking-wide text-muted/60 uppercase">players</p>
+            <p className="mb-1 text-[9px] tracking-wide text-muted/60 uppercase">{t("players")}</p>
             <div className="mb-2 flex items-center gap-1">
               {[2, 3, 4, 6, 8].map((n) => (
                 <button
@@ -684,14 +685,14 @@ export default function Pool({ item, state }: { item: Item<"game">; state: PoolS
               onClick={() => void save((fresh) => ({ ...fresh, teams: fresh.teams >= 2 ? 0 : 2 }))}
               className={clsx("flex min-h-8 w-full items-center gap-1.5 rounded-lg px-2 text-[11px]", pool.teams >= 2 ? "bg-glow/25 text-glow" : "bg-white/6 text-muted hover:text-chalk")}
             >
-              <Users className="size-3.5" /> {pool.teams >= 2 ? "two sides, alternate chairs" : "everyone for themselves"}
+              <Users className="size-3.5" /> {pool.teams >= 2 ? t("two sides, alternate chairs") : t("everyone for themselves")}
             </button>
           </div>
         )}
 
         {pool.arranging && canEdit && (
           <div className="absolute inset-x-1 bottom-1 z-10 flex flex-wrap items-center gap-1 rounded-xl bg-ink-950/70 p-1" onPointerDown={(event) => event.stopPropagation()}>
-            <span className="px-1 text-[10px] text-muted">drag the balls about</span>
+            <span className="px-1 text-[10px] text-muted">{t("drag the balls about")}</span>
             {missing.slice(0, 8).map((n) => (
               <button
                 key={n}
@@ -699,14 +700,12 @@ export default function Pool({ item, state }: { item: Item<"game">; state: PoolS
                 onClick={() => addBall(n)}
                 className="grid size-6 place-items-center rounded-full text-[9px] font-semibold text-ink-950 ring-1 ring-white/40"
                 style={{ background: BALL_COLOR[n] ?? "#ccc", color: n === 8 || n === 2 || n === 4 ? "#fff" : "#1b1a22" }}
-                title={n === 0 ? "the cue ball" : `ball ${n}`}
+                title={n === 0 ? t("the cue ball") : t(`ball ${n}`)}
               >
-                {n === 0 ? "cue" : n}
+                {n === 0 ? t("cue") : n}
               </button>
             ))}
-            <button type="button" onClick={() => void save((fresh) => ({ ...fresh, balls: fresh.balls.filter((b) => b.n === 0), ballInHand: true }))} className="ml-auto rounded-lg px-2 text-[10px] text-muted hover:text-red-300">
-              clear the table
-            </button>
+            <button type="button" onClick={() => void save((fresh) => ({ ...fresh, balls: fresh.balls.filter((b) => b.n === 0), ballInHand: true }))} className="ml-auto rounded-lg px-2 text-[10px] text-muted hover:text-red-300">{t("clear the table")}</button>
           </div>
         )}
       </div>
@@ -715,7 +714,7 @@ export default function Pool({ item, state }: { item: Item<"game">; state: PoolS
       <div className="flex items-center gap-2">
         <SpinDial spin={spin} onSpin={setSpin} disabled={!myTurn || over || Boolean(pool.arranging)} rotation={item.rotation} />
         <div className="min-w-0 flex-1">
-          <p className={clsx("truncate text-[11px]", over ? "text-glow" : "text-chalk")}>{status}</p>
+          <p className={clsx("truncate text-[11px]", over ? "text-glow" : "text-chalk")}>{t(status)}</p>
           <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/8">
             <div
               className="h-full rounded-full bg-gradient-to-r from-[#a6d189] via-[#f6c177] to-[#e0655c] transition-[width] duration-75"
@@ -724,12 +723,12 @@ export default function Pool({ item, state }: { item: Item<"game">; state: PoolS
           </div>
           <p className="mt-0.5 truncate text-[9px] text-muted/70">
             {pool.arranging
-              ? "setting the table out by hand"
+              ? t("setting the table out by hand")
               : pool.ballInHand && myTurn
-                ? "ball in hand: drag the cue ball, then pull back to shoot"
+                ? t("ball in hand: drag the cue ball, then pull back to shoot")
                 : myTurn
-                  ? "pull back from the cue ball and let go"
-                  : `waiting for ${whose(pool.turn)}`}
+                  ? t("pull back from the cue ball and let go")
+                  : t(`waiting for ${whose(pool.turn)}`)}
           </p>
         </div>
         {canEdit && (
@@ -737,8 +736,8 @@ export default function Pool({ item, state }: { item: Item<"game">; state: PoolS
             <button
               type="button"
               onClick={() => void save((fresh) => ({ ...fresh, arranging: !fresh.arranging }))}
-              title="set the table out by hand"
-              aria-label="arrange the table"
+              title={t("set the table out by hand")}
+              aria-label={t("arrange the table")}
               className={clsx("grid size-9 shrink-0 place-items-center rounded-xl", pool.arranging ? "bg-glow/25 text-glow" : "text-muted hover:bg-white/8 hover:text-chalk")}
             >
               <Move className="size-4" />
@@ -746,8 +745,8 @@ export default function Pool({ item, state }: { item: Item<"game">; state: PoolS
             <button
               type="button"
               onClick={() => void save((fresh) => ({ ...fresh, ballInHand: true, behindLine: false }))}
-              title="ball in hand"
-              aria-label="ball in hand"
+              title={t("ball in hand")}
+              aria-label={t("ball in hand")}
               className="grid size-9 shrink-0 place-items-center rounded-xl text-muted hover:bg-white/8 hover:text-chalk"
             >
               <Hand className="size-4" />
@@ -755,8 +754,8 @@ export default function Pool({ item, state }: { item: Item<"game">; state: PoolS
             <button
               type="button"
               onClick={() => newGame()}
-              title="rack them up again"
-              aria-label="rack them up"
+              title={t("rack them up again")}
+              aria-label={t("rack them up")}
               className="grid size-9 shrink-0 place-items-center rounded-xl text-muted hover:bg-white/8 hover:text-chalk"
             >
               <RotateCcw className="size-4" />
@@ -812,7 +811,7 @@ function SpinDial({
       }}
       onPointerMove={(event) => event.buttons && setFrom(event)}
       onDoubleClick={() => onSpin({ side: 0, top: 0 })}
-      title="where the tip strikes: top and bottom for follow and screw, the sides for English"
+      title={t("where the tip strikes: top and bottom for follow and screw, the sides for English")}
       className={clsx(
         "relative size-11 shrink-0 touch-none rounded-full bg-[#f7f5ef] shadow-inner ring-1 ring-white/30",
         disabled && "opacity-40",

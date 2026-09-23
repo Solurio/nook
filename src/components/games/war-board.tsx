@@ -3,6 +3,7 @@
 import clsx from "clsx";
 import { COLOR_HEX, armiesOn, colorOf, type Territory, type WarState } from "@/lib/war";
 import { MAP_H, MAP_W, indexOf, labelSpot, type WarWorld } from "@/lib/war-world";
+import { t as tx } from "@/lib/i18n";
 
 type Placed = Partial<Record<Territory, number>>;
 
@@ -62,7 +63,7 @@ export default function WarBoard({
       className="size-full"
       preserveAspectRatio="xMidYMid meet"
       role="img"
-      aria-label={`the ${world.name || "WAR"} map`}
+      aria-label={tx(`the ${world.name || "WAR"} map`)}
     >
       <defs>
         <radialGradient id={seaId} cx="50%" cy="45%" r="75%">

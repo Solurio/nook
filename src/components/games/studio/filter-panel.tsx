@@ -4,6 +4,7 @@ import { useState } from "react";
 import clsx from "clsx";
 import { FILTERS, type FilterKind } from "@/lib/studio/filters";
 import { Panel, Range } from "./widgets";
+import { t } from "@/lib/i18n";
 
 /**
  * Filters change the pixels of the layer in hand -- only what is selected,
@@ -36,14 +37,14 @@ export default function FilterPanel({
 
   return (
     <Panel
-      title="filters"
+      title={t("filters")}
       onClose={() => {
         onPreview(null);
         onClose();
       }}
       className="top-2 right-2 w-64"
     >
-      <p className="mb-1.5 text-[10px] text-muted">{selected ? "only inside the selection, on the layer in hand" : "the whole layer in hand"}</p>
+      <p className="mb-1.5 text-[10px] text-muted">{selected ? t("only inside the selection, on the layer in hand") : t("the whole layer in hand")}</p>
       <div className="mb-2 grid grid-cols-2 gap-1">
         {FILTERS.map((f) => (
           <button
@@ -52,13 +53,13 @@ export default function FilterPanel({
             onClick={() => choose(f.kind)}
             className={clsx("min-h-7 rounded-md px-2 text-left text-[11px]", f.kind === kind ? "bg-glow/25 text-glow" : "bg-white/5 text-muted hover:text-chalk")}
           >
-            {f.name}
+            {t(f.name)}
           </button>
         ))}
       </div>
       {info.max > info.min && (
         <Range
-          label="amount"
+          label={t("amount")}
           value={amount}
           min={info.min}
           max={info.max}
@@ -69,9 +70,7 @@ export default function FilterPanel({
         />
       )}
       <div className="mt-2 flex gap-1">
-        <button type="button" onClick={() => onPreview({ kind, amount })} className="min-h-8 flex-1 rounded-lg bg-white/8 text-[11px] text-chalk hover:bg-white/12">
-          preview
-        </button>
+        <button type="button" onClick={() => onPreview({ kind, amount })} className="min-h-8 flex-1 rounded-lg bg-white/8 text-[11px] text-chalk hover:bg-white/12">{t("preview")}</button>
         <button
           type="button"
           disabled={!canEdit}
@@ -80,9 +79,7 @@ export default function FilterPanel({
             onApply(kind, amount);
           }}
           className="min-h-8 flex-1 rounded-lg bg-glow/30 text-[11px] font-semibold text-glow hover:bg-glow/40 disabled:opacity-30"
-        >
-          apply
-        </button>
+        >{t("apply")}</button>
       </div>
     </Panel>
   );

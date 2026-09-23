@@ -46,11 +46,12 @@ import {
 import type { Item } from "@/lib/types";
 import BangDie from "./bang-die";
 import RulesSheet from "./rules-sheet";
+import { t as tx } from "@/lib/i18n";
 
 /** A bullet for every life, the spent ones hollow. */
 function Bullets({ life, max }: { life: number; max: number }) {
   return (
-    <span className="flex flex-wrap gap-px" aria-label={`${life} of ${max} lives`}>
+    <span className="flex flex-wrap gap-px" aria-label={tx(`${life} of ${max} lives`)}>
       {Array.from({ length: max }, (_, i) => (
         <svg key={i} viewBox="0 0 6 14" className="h-3 w-[5px]" aria-hidden>
           <path
@@ -69,7 +70,7 @@ function Bullets({ life, max }: { life: number; max: number }) {
 function Quiver({ n }: { n: number }) {
   if (n <= 0) return null;
   return (
-    <span className="flex items-center gap-px text-[#e0655c]" aria-label={`${n} arrows`}>
+    <span className="flex items-center gap-px text-[#e0655c]" aria-label={tx(`${n} arrows`)}>
       {Array.from({ length: Math.min(n, 9) }, (_, i) => (
         <svg key={i} viewBox="0 0 8 16" className="h-3 w-[5px]" aria-hidden>
           <path d="M4 1 V15 M4 1 L1.5 4 M4 1 L6.5 4 M4 15 L2 12.5 M4 15 L6 12.5" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round" />
@@ -292,31 +293,28 @@ export default function Bang({ item, state: raw }: { item: Item<"game">; state: 
             type="button"
             disabled={!canEdit || playing || state.seatCount <= MIN_SEATS}
             onClick={() => void write({ ...state, seatCount: state.seatCount - 1 })}
-            aria-label="one chair fewer"
+            aria-label={tx("one chair fewer")}
             className="grid size-7 place-items-center rounded hover:bg-white/10 disabled:opacity-30"
           >
             <Minus className="size-3" strokeWidth={2.6} />
           </button>
-          <span className="tabular-nums text-chalk">{state.seatCount}</span> chairs
-          <button
+          <span className="tabular-nums text-chalk">{state.seatCount}</span>{" "}{tx("chairs")}<button
             type="button"
             disabled={!canEdit || playing || state.seatCount >= MAX_SEATS}
             onClick={() => void write({ ...state, seatCount: state.seatCount + 1 })}
-            aria-label="one chair more"
+            aria-label={tx("one chair more")}
             className="grid size-7 place-items-center rounded hover:bg-white/10 disabled:opacity-30"
           >
             <Plus className="size-3" strokeWidth={2.6} />
           </button>
         </span>
         {playing && (
-          <span className="flex items-center gap-1" title="arrows left in the middle">
+          <span className="flex items-center gap-1" title={tx("arrows left in the middle")}>
             <Quiver n={state.arrows} />
-            <span className="tabular-nums text-chalk">{state.arrows}</span>/{ARROWS} arrows
-          </span>
+            <span className="tabular-nums text-chalk">{state.arrows}</span>/{ARROWS}{" "}{tx("arrows")}</span>
         )}
         <button type="button" onClick={() => setManual(true)} className="ml-auto flex min-h-8 items-center gap-1 rounded-lg px-1.5 hover:bg-white/8 hover:text-chalk">
-          <BookOpen className="size-3" /> rules
-        </button>
+          <BookOpen className="size-3" />{" "}{tx("rules")}</button>
       </div>
 
       {/* Round the table */}
@@ -349,7 +347,7 @@ export default function Bang({ item, state: raw }: { item: Item<"game">; state: 
                 {role === "sheriff" && <Star className="size-3 shrink-0 fill-warm text-warm" />}
                 {p?.dead && <Skull className="size-3 shrink-0" />}
                 <span className={clsx("min-w-0 flex-1 truncate", chair === myChair ? "text-chalk" : "text-muted")}>
-                  {state.seats[chair] ?? <span className="text-muted/50">seat {index + 1}</span>}
+                  {state.seats[chair] ?? <span className="text-muted/50">{tx("seat")}{" "}{index + 1}</span>}
                 </span>
                 {(state.wins[chair] ?? 0) > 0 && <span className="text-warm">{state.wins[chair]}</span>}
               </button>
@@ -373,8 +371,7 @@ export default function Bang({ item, state: raw }: { item: Item<"game">; state: 
                         void write({ ...state, players: { ...state.players, [chair]: { ...p, bartArrows: !p.bartArrows } } });
                       }}
                       className={clsx("self-start rounded px-1 text-[9px]", p.bartArrows ? "bg-glow/20 text-glow" : "text-muted/60")}
-                    >
-                      arrows for wounds: {p.bartArrows ? "yes" : "no"}
+                    >{tx("arrows for wounds:")}{" "}{p.bartArrows ? tx("yes") : tx("no")}
                     </button>
                   )}
                 </>
@@ -389,20 +386,18 @@ export default function Bang({ item, state: raw }: { item: Item<"game">; state: 
         {!playing ? (
           <div className="flex flex-col items-center gap-2 text-center">
             {state.winner && <p className="text-sm font-semibold text-warm">{winnerText(state, label)}</p>}
-            <p className="max-w-72 text-[11px] text-muted/75">
-              three to eight chairs. Empty chairs play from whoever deals; sit down to hold your own role.
-            </p>
+            <p className="max-w-72 text-[11px] text-muted/75">{tx("three to eight chairs. Empty chairs play from whoever deals; sit down to hold your own role.")}</p>
             <button type="button" disabled={!canEdit || busy} onClick={() => void deal()} className="min-h-10 rounded-xl bg-chalk px-4 text-[12px] font-semibold text-ink-950 disabled:opacity-40">
-              {state.winner ? "deal again" : "deal"}
+              {state.winner ? tx("deal again") : tx("deal")}
             </button>
           </div>
         ) : (
           <>
             <p className="text-center text-[11px] text-chalk">
               {state.unmask.length
-                ? "turning over the dead..."
+                ? tx("turning over the dead...")
                 : state.step === "sid"
-                  ? `${label(state.turn)} gives someone a life`
+                  ? tx(`${label(state.turn)} gives someone a life`)
                   : `${label(state.turn)} -- ${CHARACTERS[turnPlayer?.character ?? "paul"].name}${state.rolls ? ` · roll ${state.rolls} of ${maxRolls(state)}` : ""}`}
               {state.exploded && <b className="ml-1 text-[#f2a4b8]">BOOM</b>}
             </p>
@@ -447,9 +442,7 @@ export default function Bang({ item, state: raw }: { item: Item<"game">; state: 
             {myTurn && state.step === "roll" && (
               <div className="flex flex-wrap items-center justify-center gap-1.5">
                 {state.rolls === 0 ? (
-                  <button type="button" disabled={busy} onClick={() => void throwDice()} className="min-h-10 rounded-xl bg-chalk px-5 text-[12px] font-semibold text-ink-950 active:scale-95">
-                    roll the dice
-                  </button>
+                  <button type="button" disabled={busy} onClick={() => void throwDice()} className="min-h-10 rounded-xl bg-chalk px-5 text-[12px] font-semibold text-ink-950 active:scale-95">{tx("roll the dice")}</button>
                 ) : (
                   <>
                     <button
@@ -457,29 +450,25 @@ export default function Bang({ item, state: raw }: { item: Item<"game">; state: 
                       disabled={busy || picked.length === 0}
                       onClick={() => void throwDice()}
                       className="min-h-10 rounded-xl bg-chalk px-4 text-[12px] font-semibold text-ink-950 active:scale-95 disabled:opacity-40"
-                    >
-                      roll {picked.length || ""} again ({rollsLeft} left)
-                    </button>
-                    <button type="button" disabled={busy} onClick={() => void keep()} className="min-h-10 rounded-xl bg-white/10 px-4 text-[12px] text-chalk">
-                      keep these
-                    </button>
+                    >{tx("roll")}{" "}{picked.length || ""}{" "}{tx("again (")}{rollsLeft}{" "}{tx("left)")}</button>
+                    <button type="button" disabled={busy} onClick={() => void keep()} className="min-h-10 rounded-xl bg-white/10 px-4 text-[12px] text-chalk">{tx("keep these")}</button>
                   </>
                 )}
               </div>
             )}
-            {myTurn && state.step === "roll" && state.rolls > 0 && <p className="text-[10px] text-muted/60">tap the dice you want to throw again</p>}
+            {myTurn && state.step === "roll" && state.rolls > 0 && <p className="text-[10px] text-muted/60">{tx("tap the dice you want to throw again")}</p>}
 
             {myTurn && state.step === "resolve" && (
               <div className="flex flex-col items-center gap-1.5">
                 <p className="text-center text-[10px] text-muted/70">
                   {aiming !== null
                     ? state.dice[aiming] === "beer"
-                      ? "now tap who drinks"
-                      : "now tap who you shoot"
+                      ? tx("now tap who drinks")
+                      : tx("now tap who you shoot")
                     : stillToChoose.length
-                      ? "tap a 1, a 2 or a beer, then a player"
-                      : "ready"}
-                  {gatlings >= gatlingNeeds(state) && " · the Gatling fires"}
+                      ? tx("tap a 1, a 2 or a beer, then a player")
+                      : tx("ready")}
+                  {gatlings >= gatlingNeeds(state) && tx(" · the Gatling fires")}
                 </p>
                 <div className="flex flex-wrap justify-center gap-1.5">
                   {turnPlayer?.character === "slab" &&
@@ -494,14 +483,12 @@ export default function Bang({ item, state: raw }: { item: Item<"game">; state: 
                           onClick={() => choose({ slab: on ? null : { beer, shot } })}
                           className={clsx("min-h-9 rounded-lg px-2.5 text-[11px]", on ? "bg-[#e0655c]/25 text-[#f2a4b8]" : "bg-white/8 text-chalk")}
                         >
-                          {on ? "doubled" : "spend a beer to double a shot"}
+                          {on ? tx("doubled") : tx("spend a beer to double a shot")}
                         </button>
                       );
                     })()}
                   {turnPlayer?.character === "kit" && gatlings > 0 && (
-                    <span className="flex flex-wrap items-center gap-1 text-[10px] text-muted">
-                      take arrows off:
-                      {alive(state)
+                    <span className="flex flex-wrap items-center gap-1 text-[10px] text-muted">{tx("take arrows off:")}{alive(state)
                         .filter((c) => state.players[c].arrows > 0)
                         .map((c) => {
                           const taken = (current.kit ?? []).filter((x) => x === c).length;
@@ -527,14 +514,12 @@ export default function Bang({ item, state: raw }: { item: Item<"game">; state: 
                     disabled={busy || stillToChoose.length > 0}
                     onClick={() => void settleDice()}
                     className="min-h-10 rounded-xl bg-chalk px-5 text-[12px] font-semibold text-ink-950 active:scale-95 disabled:opacity-40"
-                  >
-                    let them fly
-                  </button>
+                  >{tx("let them fly")}</button>
                 </div>
               </div>
             )}
 
-            {myTurn && state.step === "sid" && <p className="text-[11px] text-warm">tap anyone -- yourself too -- to give them a life</p>}
+            {myTurn && state.step === "sid" && <p className="text-[11px] text-warm">{tx("tap anyone -- yourself too -- to give them a life")}</p>}
             {!myTurn && !state.unmask.length && <p className="text-center text-[10px] text-muted/60">{state.log.at(-1)}</p>}
           </>
         )}
@@ -544,19 +529,16 @@ export default function Bang({ item, state: raw }: { item: Item<"game">; state: 
       {playing && (myThree || shownRoleChair || ownedRoles.length > 1) && (
         <div className="flex items-center gap-2 rounded-xl bg-white/4 px-2 py-1.5 text-[11px]">
           {myThree ? (
-            <span className="text-muted">
-              you are the <b className="text-chalk">{ROLE_NAME[myThree]}</b> -- take out the {ROLE_NAME[THREE_TARGET[myThree] as Role]}
-              {state.freeForAll ? ", or just be the last one standing" : " yourself"}
+            <span className="text-muted">{tx("you are the")}{" "}<b className="text-chalk">{ROLE_NAME[myThree]}</b>{" "}{tx("-- take out the")}{" "}{ROLE_NAME[THREE_TARGET[myThree] as Role]}
+              {state.freeForAll ? tx(", or just be the last one standing") : tx(" yourself")}
             </span>
           ) : shownRoleChair ? (
             <span className="text-muted">
-              {shownRoleChair === myChair ? "you are" : `${label(shownRoleChair)} is`} the{" "}
+              {shownRoleChair === myChair ? tx("you are") : tx(`${label(shownRoleChair)} is`)}{" "}{tx("the")}{" "}
               <b className="text-chalk">{ROLE_NAME[secretRole(shownRoleChair) as Role]}</b>: {ROLE_GOAL[secretRole(shownRoleChair) as Role]}
             </span>
           ) : (
-            <span className="flex flex-wrap items-center gap-1 text-muted">
-              pass the phone, then look:
-              {ownedRoles.map((c) => (
+            <span className="flex flex-wrap items-center gap-1 text-muted">{tx("pass the phone, then look:")}{ownedRoles.map((c) => (
                 <button
                   key={c}
                   type="button"
@@ -574,19 +556,12 @@ export default function Bang({ item, state: raw }: { item: Item<"game">; state: 
       )}
 
       {manual && (
-        <RulesSheet title="BANG! The Dice Game" onClose={() => setManual(false)}>
-          <p>
-            Everyone has a secret role. The <b>Sheriff</b> shows his, has two more bullets, and goes first. <b>Deputies</b>{" "}
-            protect him, <b>Outlaws</b> want him dead, and the <b>Renegade</b> wants to be the last one standing.
-          </p>
-          <p>
-            On your turn roll all five dice, then throw any of them again -- twice more at most. Dynamite stays where it falls.
-            Arrows are taken the moment they land; whoever takes the last arrow in the middle brings the Indians down on everyone:
-            a life for every arrow held, then all the arrows go back.
-          </p>
-          <p>Three dynamite and your rolling is over, with a life lost -- but the other dice still count.</p>
+        <RulesSheet title={tx("BANG! The Dice Game")} onClose={() => setManual(false)}>
+          <p>{tx("Everyone has a secret role. The")}{" "}<b>{tx("Sheriff")}</b>{" "}{tx("shows his, has two more bullets, and goes first.")}{" "}<b>{tx("Deputies")}</b>{" "}{tx("protect him,")}{" "}<b>{tx("Outlaws")}</b>{" "}{tx("want him dead, and the")}{" "}<b>{tx("Renegade")}</b>{" "}{tx("wants to be the last one standing.")}</p>
+          <p>{tx("On your turn roll all five dice, then throw any of them again -- twice more at most. Dynamite stays where it falls. Arrows are taken the moment they land; whoever takes the last arrow in the middle brings the Indians down on everyone: a life for every arrow held, then all the arrows go back.")}</p>
+          <p>{tx("Three dynamite and your rolling is over, with a life lost -- but the other dice still count.")}</p>
           <div className="space-y-1 border-t border-white/8 pt-2">
-            <h4>the dice, in the order they are settled</h4>
+            <h4>{tx("the dice, in the order they are settled")}</h4>
             {FACES.map((f) => (
               <div key={f} className="flex items-center gap-2">
                 <BangDie face={f} size={22} />
@@ -596,16 +571,12 @@ export default function Bang({ item, state: raw }: { item: Item<"game">; state: 
               </div>
             ))}
           </div>
-          <p className="border-t border-white/8 pt-2">
-            When the Sheriff falls, the Outlaws win -- unless a Renegade is the only one left. When every Outlaw and Renegade is
-            gone, the law wins. With three at the table every role is face up: the Deputy hunts the Renegade, the Renegade the
-            Outlaw, the Outlaw the Deputy -- and you only win by taking your own target out yourself.
-          </p>
+          <p className="border-t border-white/8 pt-2">{tx("When the Sheriff falls, the Outlaws win -- unless a Renegade is the only one left. When every Outlaw and Renegade is gone, the law wins. With three at the table every role is face up: the Deputy hunts the Renegade, the Renegade the Outlaw, the Outlaw the Deputy -- and you only win by taking your own target out yourself.")}</p>
           <div className="space-y-1 border-t border-white/8 pt-2">
-            <h4>the characters</h4>
+            <h4>{tx("the characters")}</h4>
             {Object.values(CHARACTERS).map((c) => (
               <p key={c.name}>
-                <b>{c.name}</b> ({c.life}) -- {c.text}
+                <b>{c.name}</b> ({c.life}) -- {tx(c.text)}
               </p>
             ))}
           </div>

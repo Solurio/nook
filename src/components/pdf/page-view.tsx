@@ -7,6 +7,7 @@ import { useRoomStore } from "@/state/room-store";
 import { fold, type PdfMark } from "@/lib/pdf";
 import { pageLinks, pagePicture, pageWords, type PageLink, type PageWords } from "./engine";
 import InkLayer, { type InkTool } from "./ink-layer";
+import { t } from "@/lib/i18n";
 
 /**
  * One page of the document, drawn to fit its box: the picture, anything the
@@ -108,7 +109,7 @@ export default function PageView({
     <div ref={box} className={clsx("relative size-full overflow-hidden bg-white", className)}>
       <canvas ref={canvas} className={clsx("block size-full transition-opacity duration-200", ready ? "opacity-100" : "opacity-0")} />
       {!ready && !failed && <div className="absolute inset-0 animate-pulse bg-[#f1ece2]" />}
-      {failed && <div className="absolute inset-0 grid place-items-center text-[11px] text-ink-700">this page would not draw</div>}
+      {failed && <div className="absolute inset-0 grid place-items-center text-[11px] text-ink-700">{t("this page would not draw")}</div>}
 
       {hits.map((hit, i) => (
         <span
@@ -135,7 +136,7 @@ export default function PageView({
             <button
               key={i}
               type="button"
-              title={`page ${link.page}`}
+              title={t(`page ${link.page}`)}
               onPointerDown={(event) => event.stopPropagation()}
               onClick={(event) => {
                 event.stopPropagation();

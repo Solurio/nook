@@ -30,6 +30,7 @@ import {
   saveWheel,
 } from "@/lib/wheel";
 import type { Item } from "@/lib/types";
+import { t } from "@/lib/i18n";
 
 /** `arcs()` only gives start/end; the geometry below is convenient for drawing the label. */
 type PlacedArc = Arc & { mid: number; span: number };
@@ -139,7 +140,7 @@ function SliceText({ arc }: { arc: PlacedArc }) {
           fill="#100d16"
           fillOpacity={0.88}
         >
-          {line}
+          {t(line)}
         </text>
       ))}
     </g>
@@ -238,16 +239,16 @@ export default function Wheel({ item, state: raw }: { item: Item<"game">; state:
   return (
     <div ref={box} className="surface grain relative flex size-full flex-col gap-2 overflow-hidden rounded-2xl p-3">
       <div className="flex w-full items-center gap-1">
-        <p className="min-w-0 flex-1 truncate text-[12px] font-semibold text-chalk">{state.title || "spin the wheel"}</p>
+        <p className="min-w-0 flex-1 truncate text-[12px] font-semibold text-chalk">{state.title || t("spin the wheel")}</p>
         <span className="shrink-0 text-[10px] text-muted/60">
-          {shown.length} in{resting > 0 ? `, ${resting} out` : ""}
+          {shown.length}{" "}{t("in")}{resting > 0 ? t(`, ${resting} out`) : ""}
         </span>
         <button
           type="button"
           onClick={() => setShelf(true)}
           className="flex min-h-9 items-center gap-1 rounded-lg px-2 text-[11px] text-muted transition hover:bg-white/8 hover:text-chalk"
         >
-          <Bookmark className="size-3" /> saved{state.saved?.length ? ` ${state.saved.length}` : ""}
+          <Bookmark className="size-3" />{" "}{t("saved")}{state.saved?.length ? ` ${state.saved.length}` : ""}
         </button>
         <button
           type="button"
@@ -255,8 +256,7 @@ export default function Wheel({ item, state: raw }: { item: Item<"game">; state:
           disabled={!canEdit}
           className="flex min-h-9 items-center gap-1 rounded-lg px-2 text-[11px] text-muted transition hover:bg-white/8 hover:text-chalk disabled:opacity-30"
         >
-          <Pencil className="size-3" /> slices
-        </button>
+          <Pencil className="size-3" />{" "}{t("slices")}</button>
       </div>
 
       <div className={clsx("flex min-h-0 w-full flex-1 gap-3", wide ? "flex-row" : "flex-col")}>
@@ -274,7 +274,7 @@ export default function Wheel({ item, state: raw }: { item: Item<"game">; state:
               type="button"
               onClick={spinNow}
               disabled={!canEdit || turning || shown.length === 0}
-              aria-label="spin"
+              aria-label={t("spin")}
               className="size-full rounded-full outline-none focus-visible:ring-2 focus-visible:ring-glow disabled:cursor-default"
             >
               <svg
@@ -313,11 +313,11 @@ export default function Wheel({ item, state: raw }: { item: Item<"game">; state:
             >
               {winner.label || "?"}
             </p>
-            <p className="text-[10px] text-muted">{state.spin?.by} spun it</p>
+            <p className="text-[10px] text-muted">{state.spin?.by}{" "}{t("spun it")}</p>
           </>
         ) : (
           <p className="text-[11px] text-muted/60">
-            {turning ? "..." : shown.length ? "tap the wheel" : resting ? "everyone has had a go" : "add a slice to spin"}
+            {turning ? "..." : shown.length ? t("tap the wheel") : resting ? t("everyone has had a go") : t("add a slice to spin")}
           </p>
         )}
       </div>
@@ -401,16 +401,16 @@ function SliceList({
                 type="button"
                 disabled={!canEdit}
                 onClick={() => setPicking(picking === slice.id ? null : slice.id)}
-                aria-label="change colour"
+                aria-label={t("change colour")}
                 className="mt-0.5 size-3.5 shrink-0 rounded-full ring-1 ring-white/25 disabled:cursor-default"
                 style={{ background: slice.color }}
               />
               <span className="min-w-0 flex-1 text-[11px] leading-snug break-words text-chalk">
-                {slice.label || <span className="text-muted/50">unnamed</span>}
+                {slice.label || <span className="text-muted/50">{t("unnamed")}</span>}
                 {slice.weight > 1 && <span className="ml-1 text-muted/70">×{slice.weight}</span>}
               </span>
               <span className="mt-px shrink-0 text-right text-[10px] tabular-nums text-muted">
-                {slice.out ? "out" : `${Math.round(odds * 100)}%`}
+                {slice.out ? t("out") : `${Math.round(odds * 100)}%`}
               </span>
               {canEdit && state.slices.length > 1 && (
                 <button
@@ -448,14 +448,14 @@ function SliceList({
             value={adding}
             onChange={(event) => setAdding(event.target.value)}
             maxLength={LABEL_MAX}
-            placeholder={state.slices.length >= MAX_SLICES ? "the wheel is full" : "add..."}
+            placeholder={state.slices.length >= MAX_SLICES ? t("the wheel is full") : t("add...")}
             disabled={state.slices.length >= MAX_SLICES}
             className="h-8 min-w-0 flex-1 rounded-lg bg-white/8 px-2 text-[11px] text-chalk outline-none placeholder:text-muted/50"
           />
           <button
             type="submit"
             disabled={state.slices.length >= MAX_SLICES || !adding.trim()}
-            aria-label="add it"
+            aria-label={t("add it")}
             className="grid size-8 shrink-0 place-items-center rounded-lg bg-white/10 text-chalk disabled:opacity-35"
           >
             <Plus className="size-3.5" />
@@ -470,7 +470,7 @@ function SliceList({
 function Palette({ active, onPick, onClose }: { active: string; onPick: (color: string) => void; onClose: () => void }) {
   return (
     <>
-      <button type="button" aria-label="close" className="fixed inset-0 z-20 cursor-default" onClick={onClose} />
+      <button type="button" aria-label={t("close")} className="fixed inset-0 z-20 cursor-default" onClick={onClose} />
       <div className="absolute top-6 left-0 z-30 w-52 rounded-xl bg-ink-950/95 p-2 shadow-lg ring-1 ring-white/12 backdrop-blur-sm">
         <div className="grid grid-cols-8 gap-1">
           {PALETTE.map((color) => (
@@ -478,7 +478,7 @@ function Palette({ active, onPick, onClose }: { active: string; onPick: (color: 
               key={color}
               type="button"
               onClick={() => onPick(color)}
-              aria-label={`colour ${color}`}
+              aria-label={t(`colour ${color}`)}
               className={clsx(
                 "grid aspect-square place-items-center rounded-md transition hover:scale-110",
                 active === color && "ring-2 ring-chalk",
@@ -495,9 +495,7 @@ function Palette({ active, onPick, onClose }: { active: string; onPick: (color: 
             value={active}
             onChange={(event) => onPick(event.target.value)}
             className="size-5 cursor-pointer rounded border-0 bg-transparent p-0"
-          />
-          a colour of your own
-        </label>
+          />{t("a colour of your own")}</label>
       </div>
     </>
   );
@@ -530,7 +528,7 @@ function Editor({
       <div className="flex items-center justify-between gap-2">
         <input
           defaultValue={state.title}
-          placeholder="what is it for?"
+          placeholder={t("what is it for?")}
           maxLength={40}
           onBlur={(event) => void write({ ...live(), title: event.target.value.trim() })}
           onKeyDown={(event) => event.key === "Enter" && (event.target as HTMLInputElement).blur()}
@@ -539,7 +537,7 @@ function Editor({
         <button
           type="button"
           onClick={onClose}
-          aria-label="close"
+          aria-label={t("close")}
           className="grid size-9 shrink-0 place-items-center rounded-lg text-muted hover:bg-white/8 hover:text-chalk"
         >
           <X className="size-4" />
@@ -554,7 +552,7 @@ function Editor({
           >
             <button
               type="button"
-              aria-label="change colour"
+              aria-label={t("change colour")}
               onClick={() => setPicking(picking === slice.id ? null : slice.id)}
               className="size-8 shrink-0 rounded-md ring-1 ring-white/20"
               style={{ background: slice.color }}
@@ -581,19 +579,19 @@ function Editor({
             <span className="flex shrink-0 items-center">
               <button
                 type="button"
-                aria-label="less likely"
+                aria-label={t("less likely")}
                 disabled={slice.weight <= 1}
                 onClick={() => void write(editSlice(live(), slice.id, { weight: slice.weight - 1 }))}
                 className="grid size-8 place-items-center rounded-md text-muted hover:text-chalk disabled:opacity-30"
               >
                 <Minus className="size-3" />
               </button>
-              <span className="w-5 text-center text-[12px] tabular-nums text-chalk" title="weight">
+              <span className="w-5 text-center text-[12px] tabular-nums text-chalk" title={t("weight")}>
                 {slice.weight}
               </span>
               <button
                 type="button"
-                aria-label="more likely"
+                aria-label={t("more likely")}
                 disabled={slice.weight >= MAX_WEIGHT}
                 onClick={() => void write(editSlice(live(), slice.id, { weight: slice.weight + 1 }))}
                 className="grid size-8 place-items-center rounded-md text-muted hover:text-chalk disabled:opacity-30"
@@ -602,7 +600,7 @@ function Editor({
               </button>
             </span>
             <span className="w-9 shrink-0 text-right text-[10px] tabular-nums text-muted">
-              {slice.out ? "out" : `${Math.round(chance(state.slices, slice.id) * 100)}%`}
+              {slice.out ? t("out") : `${Math.round(chance(state.slices, slice.id) * 100)}%`}
             </span>
             <button
               type="button"
@@ -628,7 +626,7 @@ function Editor({
           value={adding}
           onChange={(event) => setAdding(event.target.value)}
           maxLength={LABEL_MAX}
-          placeholder={state.slices.length >= MAX_SLICES ? "the wheel is full" : "another slice..."}
+          placeholder={state.slices.length >= MAX_SLICES ? t("the wheel is full") : t("another slice...")}
           disabled={state.slices.length >= MAX_SLICES}
           className="h-9 min-w-0 flex-1 rounded-lg bg-white/8 px-2 text-[12px] text-chalk outline-none placeholder:text-muted/50"
         />
@@ -636,9 +634,7 @@ function Editor({
           type="submit"
           disabled={state.slices.length >= MAX_SLICES}
           className="h-9 rounded-lg bg-chalk px-3 text-[11px] font-semibold text-ink-950 disabled:opacity-40"
-        >
-          add
-        </button>
+        >{t("add")}</button>
       </form>
 
       <div className="flex flex-wrap items-center gap-1.5">
@@ -650,16 +646,14 @@ function Editor({
             state.removeWinners ? "bg-glow/15 text-glow" : "bg-white/5 text-muted",
           )}
         >
-          <span className={clsx("size-3.5 rounded border", state.removeWinners ? "border-glow bg-glow" : "border-white/30")} />
-          winners sit out
-        </button>
+          <span className={clsx("size-3.5 rounded border", state.removeWinners ? "border-glow bg-glow" : "border-white/30")} />{t("winners sit out")}</button>
         {state.slices.some((s) => s.out) && (
           <button
             type="button"
             onClick={() => void write(putBack(live()))}
             className="flex min-h-9 items-center gap-1 rounded-lg px-2 text-[11px] text-muted hover:bg-white/8 hover:text-chalk"
           >
-            <RotateCcw className="size-3" /> put them back ({state.slices.length - inPlay(state.slices).length})
+            <RotateCcw className="size-3" />{" "}{t("put them back (")}{state.slices.length - inPlay(state.slices).length})
           </button>
         )}
         <button
@@ -669,9 +663,7 @@ function Editor({
             if (text) void write(addMany(live(), text.split("\n"), newId));
           }}
           className="ml-auto flex min-h-9 items-center gap-1 rounded-lg px-2 text-[11px] text-muted hover:bg-white/8 hover:text-chalk"
-        >
-          paste a list
-        </button>
+        >{t("paste a list")}</button>
       </div>
     </div>
   );
@@ -700,8 +692,8 @@ function Shelf({
   return (
     <div className="absolute inset-0 z-20 flex flex-col gap-2 rounded-2xl bg-ink-950/95 p-3 backdrop-blur-sm">
       <div className="flex items-center justify-between">
-        <h3 className="text-[12px] font-semibold text-chalk">saved wheels</h3>
-        <button type="button" onClick={onClose} aria-label="close" className="grid size-9 place-items-center rounded-lg text-muted hover:bg-white/8 hover:text-chalk">
+        <h3 className="text-[12px] font-semibold text-chalk">{t("saved wheels")}</h3>
+        <button type="button" onClick={onClose} aria-label={t("close")} className="grid size-9 place-items-center rounded-lg text-muted hover:bg-white/8 hover:text-chalk">
           <X className="size-4" />
         </button>
       </div>
@@ -715,18 +707,16 @@ function Shelf({
         <input
           value={name}
           onChange={(event) => setName(event.target.value)}
-          placeholder="a name for this wheel"
+          placeholder={t("a name for this wheel")}
           maxLength={40}
           disabled={!canEdit}
           className="h-9 min-w-0 flex-1 rounded-lg bg-white/7 px-2 text-[12px] text-chalk outline-none ring-1 ring-white/10 focus:ring-glow/45"
         />
-        <button type="submit" disabled={!canEdit} className="min-h-9 rounded-lg bg-chalk px-3 text-[12px] font-semibold text-ink-950 disabled:opacity-40">
-          save this one
-        </button>
+        <button type="submit" disabled={!canEdit} className="min-h-9 rounded-lg bg-chalk px-3 text-[12px] font-semibold text-ink-950 disabled:opacity-40">{t("save this one")}</button>
       </form>
-      <p className="text-[10px] text-muted/70">Saving under a name that is already there writes over it. Putting one back keeps the spins so far.</p>
+      <p className="text-[10px] text-muted/70">{t("Saving under a name that is already there writes over it. Putting one back keeps the spins so far.")}</p>
       <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto">
-        {saved.length === 0 && <li className="text-[11px] text-muted/60">nothing kept yet</li>}
+        {saved.length === 0 && <li className="text-[11px] text-muted/60">{t("nothing kept yet")}</li>}
         {saved.map((w) => (
           <li key={w.id} className="flex items-center gap-2 rounded-lg bg-white/5 p-1.5">
             <span className="flex -space-x-1">
@@ -736,9 +726,9 @@ function Shelf({
             </span>
             <button type="button" disabled={!canEdit} onClick={() => onLoad(w.id)} className="min-w-0 flex-1 truncate text-left text-[12px] text-chalk hover:underline disabled:cursor-default">
               {w.title}
-              <span className="ml-1.5 text-[10px] text-muted">{w.slices.length} slices</span>
+              <span className="ml-1.5 text-[10px] text-muted">{w.slices.length}{" "}{t("slices")}</span>
             </button>
-            <button type="button" disabled={!canEdit} onClick={() => onForget(w.id)} aria-label={`forget ${w.title}`} className="grid size-8 place-items-center rounded-lg text-muted hover:bg-white/8 hover:text-[#f2a4b8] disabled:opacity-30">
+            <button type="button" disabled={!canEdit} onClick={() => onForget(w.id)} aria-label={t(`forget ${w.title}`)} className="grid size-8 place-items-center rounded-lg text-muted hover:bg-white/8 hover:text-[#f2a4b8] disabled:opacity-30">
               <Trash2 className="size-3.5" />
             </button>
           </li>

@@ -21,6 +21,7 @@ import PingLayer from "./ping-layer";
 import DropVeil from "./drop-veil";
 import RoomInkLayer from "./room-ink-layer";
 import InkOverlay from "./ink-overlay";
+import { t } from "@/lib/i18n";
 
 const IMAGE_TYPES = /^image\//;
 const PLAYABLE_TYPES = /^(audio|video)\//;
@@ -630,8 +631,7 @@ export default function Canvas() {
           className="surface animate-drift-in pointer-events-auto absolute top-16 left-1/2 z-40 flex min-h-9 w-max max-w-[calc(100vw-1.5rem)] -translate-x-1/2 items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-medium sm:top-28"
         >
           <span className="size-1.5 rounded-full bg-glow" />
-          {tool === "draw" ? "drawing" : "erasing"} &mdash; tap here to stop
-        </button>
+          {tool === "draw" ? t("drawing") : t("erasing")}{" "}{t("— tap here to stop")}</button>
       )}
 
       {reaction && tool === "select" && (
@@ -640,9 +640,7 @@ export default function Canvas() {
           onClick={() => useRoomStore.getState().setReaction(null)}
           className="surface animate-drift-in pointer-events-auto absolute top-16 left-1/2 z-40 flex min-h-9 w-max max-w-[calc(100vw-1.5rem)] -translate-x-1/2 items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-medium sm:top-28"
         >
-          <span className="text-base leading-none">{reaction}</span>
-          tap the room to drop it &mdash; tap here to stop
-        </button>
+          <span className="text-base leading-none">{reaction}</span>{t("tap the room to drop it — tap here to stop")}</button>
       )}
 
       {dropping && <DropVeil />}

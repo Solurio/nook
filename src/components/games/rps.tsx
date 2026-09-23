@@ -22,6 +22,7 @@ import {
 } from "@/lib/rps";
 import type { Item } from "@/lib/types";
 import { HAND_NAME, RpsIcon } from "./rps-icons";
+import { t as tx } from "@/lib/i18n";
 
 const TINT: Record<Shape, string> = { R: "#f6c177", P: "#8bc7e8", S: "#f2a4b8" };
 
@@ -128,17 +129,14 @@ export default function Rps({ item, state: raw }: { item: Item<"game">; state: u
     <div className="surface grain relative flex size-full flex-col gap-2 overflow-hidden rounded-2xl p-2.5">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted/70">
         <span className="flex items-center gap-0.5">
-          <button type="button" disabled={!canEdit || inMatch || state.seatCount <= MIN_SEATS} onClick={() => void write({ ...state, seatCount: state.seatCount - 1 })} aria-label="one chair fewer" className="grid size-7 place-items-center rounded hover:bg-white/10 disabled:opacity-30">
+          <button type="button" disabled={!canEdit || inMatch || state.seatCount <= MIN_SEATS} onClick={() => void write({ ...state, seatCount: state.seatCount - 1 })} aria-label={tx("one chair fewer")} className="grid size-7 place-items-center rounded hover:bg-white/10 disabled:opacity-30">
             <Minus className="size-3" strokeWidth={2.6} />
           </button>
-          <span className="tabular-nums text-chalk">{state.seatCount}</span> chairs
-          <button type="button" disabled={!canEdit || inMatch || state.seatCount >= MAX_SEATS} onClick={() => void write({ ...state, seatCount: state.seatCount + 1 })} aria-label="one chair more" className="grid size-7 place-items-center rounded hover:bg-white/10 disabled:opacity-30">
+          <span className="tabular-nums text-chalk">{state.seatCount}</span>{" "}{tx("chairs")}<button type="button" disabled={!canEdit || inMatch || state.seatCount >= MAX_SEATS} onClick={() => void write({ ...state, seatCount: state.seatCount + 1 })} aria-label={tx("one chair more")} className="grid size-7 place-items-center rounded hover:bg-white/10 disabled:opacity-30">
             <Plus className="size-3" strokeWidth={2.6} />
           </button>
         </span>
-        <span className="ml-auto flex items-center gap-1">
-          first to
-          {[1, 3, 5, 0].map((n) => (
+        <span className="ml-auto flex items-center gap-1">{tx("first to")}{[1, 3, 5, 0].map((n) => (
             <button
               key={n}
               type="button"
@@ -146,7 +144,7 @@ export default function Rps({ item, state: raw }: { item: Item<"game">; state: u
               onClick={() => void write({ ...state, firstTo: n })}
               className={clsx("min-h-7 min-w-7 rounded-md px-1 tabular-nums disabled:opacity-60", state.firstTo === n ? "bg-white/12 text-chalk" : "hover:bg-white/8")}
             >
-              {n === 0 ? "for ever" : n}
+              {n === 0 ? tx("for ever") : n}
             </button>
           ))}
         </span>
@@ -170,17 +168,17 @@ export default function Rps({ item, state: raw }: { item: Item<"game">; state: u
             >
               <span className="min-w-0 flex-1">
                 <span className={clsx("block truncate text-[11px]", chair === myChair ? "text-chalk" : "text-muted")}>
-                  {state.seats[chair] ?? <span className="text-muted/50">seat {index + 1}</span>}
+                  {state.seats[chair] ?? <span className="text-muted/50">{tx("seat")}{" "}{index + 1}</span>}
                 </span>
                 {state.playing.includes(chair) && (
                   <span className="block text-[10px] text-muted/70 tabular-nums">
-                    {state.scores[chair] ?? 0} {state.firstTo > 0 ? `of ${state.firstTo}` : ""}
+                    {state.scores[chair] ?? 0} {state.firstTo > 0 ? tx(`of ${state.firstTo}`) : ""}
                   </span>
                 )}
               </span>
               {playing && (
                 <span className={clsx("text-[9px] font-semibold uppercase", thrown(chair) ? "text-[#a6d189]" : "text-muted/50")}>
-                  {thrown(chair) ? "ready" : "thinking"}
+                  {thrown(chair) ? tx("ready") : tx("thinking")}
                 </span>
               )}
               {!playing && shown && (
@@ -216,22 +214,20 @@ export default function Rps({ item, state: raw }: { item: Item<"game">; state: u
             ))}
             <p className={clsx("w-full text-center text-[12px] text-chalk", fresh && "animate-rps-show")}>
               {last.winners.length === 0
-                ? "a draw -- again"
-                : `${last.winners.map(label).join(" and ")} ${last.winners.length > 1 ? "take" : "takes"} it`}
+                ? tx("a draw -- again")
+                : tx(`${last.winners.map(label).join(" and ")} ${last.winners.length > 1 ? "take" : "takes"} it`)}
             </p>
           </div>
         ) : (
-          <p className="text-center text-[11px] text-muted/60">{inMatch ? "everyone throws, then they turn over together" : "sit down, two or more, then start"}</p>
+          <p className="text-center text-[11px] text-muted/60">{inMatch ? tx("everyone throws, then they turn over together") : tx("sit down, two or more, then start")}</p>
         )}
       </div>
 
       {/* Your hand */}
       {state.winner ? (
         <div className="flex items-center gap-2">
-          <p className="min-w-0 flex-1 text-[12px] font-semibold text-warm">{label(state.winner)} wins the match</p>
-          <button type="button" disabled={!canEdit || busy || seated.length < 2} onClick={() => void begin()} className="min-h-10 rounded-xl bg-chalk px-4 text-[12px] font-semibold text-ink-950 disabled:opacity-40">
-            again
-          </button>
+          <p className="min-w-0 flex-1 text-[12px] font-semibold text-warm">{label(state.winner)}{" "}{tx("wins the match")}</p>
+          <button type="button" disabled={!canEdit || busy || seated.length < 2} onClick={() => void begin()} className="min-h-10 rounded-xl bg-chalk px-4 text-[12px] font-semibold text-ink-950 disabled:opacity-40">{tx("again")}</button>
         </div>
       ) : inMatch && imPlaying ? (
         <div className="grid grid-cols-3 gap-2">
@@ -266,7 +262,7 @@ export default function Rps({ item, state: raw }: { item: Item<"game">; state: u
           onClick={() => void begin()}
           className="min-h-10 rounded-xl bg-chalk text-[12px] font-semibold text-ink-950 disabled:opacity-40"
         >
-          {seated.length < 2 ? "two people need to sit down" : "start"}
+          {seated.length < 2 ? tx("two people need to sit down") : tx("start")}
         </button>
       )}
     </div>

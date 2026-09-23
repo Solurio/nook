@@ -25,6 +25,7 @@ import {
 } from "@/lib/bomb";
 import type { Item } from "@/lib/types";
 import { loadWords, type Dictionary } from "./words";
+import { t as tx } from "@/lib/i18n";
 
 /**
  * Bomb Party. The bomb goes round with a few letters on it; the one holding
@@ -128,18 +129,17 @@ export default function Bomb({ item, state: raw }: { item: Item<"game">; state: 
     <div className="surface grain relative flex size-full flex-col gap-2 overflow-hidden rounded-2xl p-2.5">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted/70">
         <span className="flex items-center gap-0.5">
-          <button type="button" disabled={!canEdit || playing || state.seatCount <= MIN_SEATS} onClick={() => void write({ ...state, seatCount: state.seatCount - 1 })} aria-label="one chair fewer" className="grid size-7 place-items-center rounded hover:bg-white/10 disabled:opacity-30">
+          <button type="button" disabled={!canEdit || playing || state.seatCount <= MIN_SEATS} onClick={() => void write({ ...state, seatCount: state.seatCount - 1 })} aria-label={tx("one chair fewer")} className="grid size-7 place-items-center rounded hover:bg-white/10 disabled:opacity-30">
             <Minus className="size-3" strokeWidth={2.6} />
           </button>
-          <span className="tabular-nums text-chalk">{state.seatCount}</span> chairs
-          <button type="button" disabled={!canEdit || playing || state.seatCount >= MAX_SEATS} onClick={() => void write({ ...state, seatCount: state.seatCount + 1 })} aria-label="one chair more" className="grid size-7 place-items-center rounded hover:bg-white/10 disabled:opacity-30">
+          <span className="tabular-nums text-chalk">{state.seatCount}</span>{" "}{tx("chairs")}<button type="button" disabled={!canEdit || playing || state.seatCount >= MAX_SEATS} onClick={() => void write({ ...state, seatCount: state.seatCount + 1 })} aria-label={tx("one chair more")} className="grid size-7 place-items-center rounded hover:bg-white/10 disabled:opacity-30">
             <Plus className="size-3" strokeWidth={2.6} />
           </button>
         </span>
         <span className="flex items-center gap-0.5">
           {[1, 2, 3].map((n) => (
             <button key={n} type="button" disabled={!canEdit || playing} onClick={() => void write({ ...state, startLives: n })} className={clsx("min-h-7 rounded-md px-1.5 disabled:opacity-60", state.startLives === n ? "bg-white/12 text-chalk" : "hover:bg-white/8")}>
-              {n} {n === 1 ? "life" : "lives"}
+              {n} {n === 1 ? tx("life") : tx("lives")}
             </button>
           ))}
         </span>
@@ -170,7 +170,7 @@ export default function Bomb({ item, state: raw }: { item: Item<"game">; state: 
             >
               {playing && state.turn === chair && <BombIcon className="size-4 shrink-0 text-[#e0655c]" />}
               <span className={clsx("min-w-0 flex-1 truncate text-[11px]", chair === myChair ? "text-chalk" : "text-muted")}>
-                {state.seats[chair] ?? <span className="text-muted/50">seat {index + 1}</span>}
+                {state.seats[chair] ?? <span className="text-muted/50">{tx("seat")}{" "}{index + 1}</span>}
                 {(state.wins[chair] ?? 0) > 0 && <span className="ml-1 text-warm">{state.wins[chair]}</span>}
               </span>
               {inGame && (
@@ -203,25 +203,21 @@ export default function Bomb({ item, state: raw }: { item: Item<"game">; state: 
               </span>
             </div>
             <p className="text-[11px] text-muted">
-              {label(state.turn)}&apos;s bomb
-              {state.last && (
+              {label(state.turn)}{tx("'s bomb")}{state.last && (
                 <>
                   {" "}
-                  · {label(state.last.chair)} said <b className="text-chalk">{state.last.word}</b>
+                  · {label(state.last.chair)}{" "}{tx("said")}{" "}<b className="text-chalk">{state.last.word}</b>
                 </>
               )}
             </p>
-            {boom && state.lastBang && <p className="text-[12px] font-bold text-[#f2a4b8]">BOOM -- {label(state.lastBang.chair)} loses a life</p>}
+            {boom && state.lastBang && <p className="text-[12px] font-bold text-[#f2a4b8]">{tx("BOOM --")}{" "}{label(state.lastBang.chair)}{" "}{tx("loses a life")}</p>}
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2 text-center">
-            {state.winner && <p className="text-sm font-semibold text-warm">{label(state.winner)} is the last one standing</p>}
-            <p className="max-w-64 text-[11px] text-muted/70">
-              type a five-letter word with the letters on the bomb before it goes off -- a real one, it is checked. Everyone who
-              sits down plays; with nobody sitting, every chair plays from this screen.
-            </p>
+            {state.winner && <p className="text-sm font-semibold text-warm">{label(state.winner)}{" "}{tx("is the last one standing")}</p>}
+            <p className="max-w-64 text-[11px] text-muted/70">{tx("type a five-letter word with the letters on the bomb before it goes off -- a real one, it is checked. Everyone who sits down plays; with nobody sitting, every chair plays from this screen.")}</p>
             <button type="button" disabled={!canEdit || !ready} onClick={() => begin()} className="min-h-10 rounded-xl bg-chalk px-4 text-[12px] font-semibold text-ink-950 disabled:opacity-40">
-              {!ready ? "opening the dictionary..." : state.winner ? "again" : "light it"}
+              {!ready ? tx("opening the dictionary...") : state.winner ? tx("again") : tx("light it")}
             </button>
           </div>
         )}
@@ -255,15 +251,13 @@ export default function Bomb({ item, state: raw }: { item: Item<"game">; state: 
             autoCorrect="off"
             spellCheck={false}
             enterKeyHint="send"
-            placeholder={holding ? `five letters, with ${state.prompt.toUpperCase()}...` : `${label(state.turn)} is thinking`}
+            placeholder={holding ? tx(`five letters, with ${state.prompt.toUpperCase()}...`) : tx(`${label(state.turn)} is thinking`)}
             className={clsx(
               "h-11 min-w-0 flex-1 rounded-xl bg-white/6 px-3 text-[14px] text-chalk outline-none placeholder:text-muted/50 focus:bg-white/10 disabled:opacity-50",
               why && "ring-1 ring-[#e0655c]/60",
             )}
           />
-          <button type="submit" disabled={!holding || !word.trim()} className="h-11 rounded-xl bg-chalk px-4 text-[12px] font-semibold text-ink-950 disabled:opacity-40">
-            go
-          </button>
+          <button type="submit" disabled={!holding || !word.trim()} className="h-11 rounded-xl bg-chalk px-4 text-[12px] font-semibold text-ink-950 disabled:opacity-40">{tx("go")}</button>
         </form>
       )}
       {why && <p className="-mt-1 text-[10px] text-[#f2a4b8]">{why}</p>}

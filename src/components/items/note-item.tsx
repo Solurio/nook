@@ -5,6 +5,7 @@ import { useRoom } from "@/realtime/room-provider";
 import { useRoomStore } from "@/state/room-store";
 import { useDebouncedSave } from "@/lib/use-debounced-save";
 import type { Item } from "@/lib/types";
+import { t } from "@/lib/i18n";
 
 export default function NoteItem({ item, editing }: { item: Item<"note">; editing: boolean }) {
   const { canEdit } = useRoom();
@@ -23,7 +24,7 @@ export default function NoteItem({ item, editing }: { item: Item<"note">; editin
       ) : (
         <p className="size-full overflow-hidden font-[family-name:var(--font-hand)] text-2xl leading-snug whitespace-pre-wrap text-ink-950">
           {item.data.body || (
-            <span className="text-ink-950/35">{canEdit ? "double-click to write" : "empty"}</span>
+            <span className="text-ink-950/35">{canEdit ? t("double-click to write") : t("empty")}</span>
           )}
         </p>
       )}
@@ -63,7 +64,7 @@ function NoteEditor({ item }: { item: Item<"note"> }) {
         event.stopPropagation();
       }}
       spellCheck={false}
-      placeholder="write something"
+      placeholder={t("write something")}
       className="size-full resize-none bg-transparent font-[family-name:var(--font-hand)] text-2xl leading-snug text-ink-950 outline-none placeholder:text-ink-950/35"
     />
   );

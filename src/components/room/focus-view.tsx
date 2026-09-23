@@ -6,6 +6,7 @@ import { useRoomStore } from "@/state/room-store";
 import ItemRenderer from "@/components/items/item-renderer";
 import ItemErrorBoundary from "@/components/canvas/item-error-boundary";
 import type { AnyItem } from "@/lib/types";
+import { t } from "@/lib/i18n";
 
 /** What to call the thing on the back bar. */
 const KIND_NAME: Record<AnyItem["kind"], string> = {
@@ -78,9 +79,7 @@ export default function FocusView() {
           onClick={close}
           className="flex min-h-11 items-center gap-1 rounded-xl pr-3 pl-1.5 text-sm font-medium text-chalk transition hover:bg-white/8"
         >
-          <ChevronLeft className="size-5" strokeWidth={2.4} />
-          back to the room
-        </button>
+          <ChevronLeft className="size-5" strokeWidth={2.4} />{t("back to the room")}</button>
         <span className="ml-auto pr-2 text-[11px] text-muted/60">{KIND_NAME[item.kind]}</span>
       </div>
 

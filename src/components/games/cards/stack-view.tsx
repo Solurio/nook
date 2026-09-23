@@ -4,6 +4,10 @@ import clsx from "clsx";
 import { Lock } from "lucide-react";
 import { readFace, type Stack, type TableState } from "@/lib/table";
 import PlayingCard, { cardHeight } from "@/components/cards/playing-card";
+import { t } from "@/lib/i18n";
+
+/** A pile's name, in the reader's language. "draw" is the pile here, not the verb. */
+const pileName = (label: string) => (label === "draw" && t("draw pile") !== "draw pile" ? t("draw pile") : t(label));
 
 /** How many cards of a spread one can see at once before it is just a fan of edges. */
 const MOST = 16;
@@ -72,7 +76,7 @@ export default function StackView({
           className="grid place-items-center rounded-[6px] border-2 border-dashed border-white/25 text-[9px] text-white/45"
           style={{ width: cardW, height: tallest }}
         >
-          {stack.label ?? "empty"}
+          {stack.label ? pileName(stack.label) : t("empty")}
         </div>
       ) : spread ? (
         <div className="relative" style={{ height: tallest + 10 }}>
@@ -157,7 +161,7 @@ export default function StackView({
       )}
       {(stack.label || ownerName) && size > 0 && (
         <span className="absolute top-full left-1/2 mt-1 -translate-x-1/2 rounded bg-black/35 px-1.5 py-px text-[9px] whitespace-nowrap text-white/75">
-          {stack.label ?? `${ownerName}'s`}
+          {stack.label ? pileName(stack.label) : `${ownerName}'s`}
         </span>
       )}
       {selected && (

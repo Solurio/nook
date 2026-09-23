@@ -7,6 +7,7 @@ import { evaluateTicTacToe, resetTicTacToe } from "@/lib/games";
 import { canPlay, takeSeat, turnHint } from "@/lib/seats";
 import GameTable from "./table";
 import type { Item, TicTacToeState } from "@/lib/types";
+import { t } from "@/lib/i18n";
 
 const SIDES = ["x", "o"] as const;
 const TINT = { x: "#f6c177", o: "#8bc7e8" } as const;
@@ -78,7 +79,7 @@ export default function TicTacToe({
               type="button"
               onClick={() => play(index)}
               disabled={!canEdit || over || Boolean(cell)}
-              aria-label={cell ? `${cell} on square ${index + 1}` : `square ${index + 1}`}
+              aria-label={cell ? t(`${cell} on square ${index + 1}`) : t(`square ${index + 1}`)}
               className={clsx(
                 "grid touch-manipulation place-items-center rounded-xl text-2xl font-semibold transition",
                 winning

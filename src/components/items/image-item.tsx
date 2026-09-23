@@ -6,6 +6,7 @@ import { ImagePlus } from "lucide-react";
 import { useRoom } from "@/realtime/room-provider";
 import { prepareImage } from "@/lib/image-upload";
 import type { Item } from "@/lib/types";
+import { t } from "@/lib/i18n";
 
 export default function ImageItem({
   item,
@@ -52,9 +53,7 @@ export default function ImageItem({
       style={{ borderRadius: polaroid ? 4 : radius }}
     >
       {broken ? (
-        <div className="grid size-full place-items-center bg-ink-800 px-4 text-center text-xs text-muted">
-          this image did not load
-        </div>
+        <div className="grid size-full place-items-center bg-ink-800 px-4 text-center text-xs text-muted">{t("this image did not load")}</div>
       ) : (
         <img
           src={url}
@@ -119,9 +118,7 @@ function EmptySlot({
             onClick={() => fileRef.current?.click()}
             className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-chalk px-3 py-2 text-xs font-semibold text-ink-950 transition hover:bg-white"
           >
-            <ImagePlus className="size-3.5" strokeWidth={2.4} />
-            choose a file
-          </button>
+            <ImagePlus className="size-3.5" strokeWidth={2.4} />{t("choose a file")}</button>
           <input
             ref={fileRef}
             type="file"
@@ -144,7 +141,7 @@ function EmptySlot({
             <input
               value={value}
               onChange={(event) => setValue(event.target.value)}
-              placeholder="or paste an image url"
+              placeholder={t("or paste an image url")}
               spellCheck={false}
               className="w-full rounded-xl bg-white/8 px-3 py-2 text-xs ring-1 ring-white/12 outline-none placeholder:text-muted/60 focus:ring-glow/50"
             />
@@ -153,7 +150,7 @@ function EmptySlot({
       ) : (
         <div className="flex flex-col items-center gap-1.5 text-muted">
           <ImagePlus className="size-5" strokeWidth={1.8} />
-          <span className="text-xs">empty frame</span>
+          <span className="text-xs">{t("empty frame")}</span>
         </div>
       )}
     </div>

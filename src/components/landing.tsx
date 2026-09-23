@@ -15,6 +15,8 @@ import {
   saveLocalIdentity,
   type RecentRoom,
 } from "@/lib/identity";
+import { t } from "@/lib/i18n";
+import { LanguagePicker } from "@/components/localized";
 
 export default function Landing() {
   const router = useRouter();
@@ -116,27 +118,20 @@ export default function Landing() {
           <div className="grid size-9 place-items-center rounded-xl bg-glow/20 ring-1 ring-glow/35">
             <DoorOpen className="size-4.5 text-glow" strokeWidth={2} />
           </div>
-          <span className="text-lg font-semibold tracking-tight">nook</span>
+          <span className="text-lg font-semibold tracking-tight">{t("nook")}</span>
+          <LanguagePicker className="ml-auto" />
         </header>
 
         <div className="flex flex-1 flex-col justify-center py-16">
           <div className="max-w-2xl">
             <p className="mb-5 inline-flex items-center gap-1.5 rounded-full bg-white/5 px-3 py-1 text-xs text-muted ring-1 ring-white/10">
-              <Sparkles className="size-3 text-warm" strokeWidth={2.2} />
-              rooms that stay put
-            </p>
+              <Sparkles className="size-3 text-warm" strokeWidth={2.2} />{t("rooms that stay put")}</p>
 
-            <h1 className="text-5xl leading-[1.05] font-semibold tracking-tight text-balance sm:text-6xl">
-              A little room on the internet,
-              <br />
-              <span className="text-glow">shared with people you like.</span>
+            <h1 className="text-5xl leading-[1.05] font-semibold tracking-tight text-balance sm:text-6xl">{t("A little room on the internet,")}<br />
+              <span className="text-glow">{t("shared with people you like.")}</span>
             </h1>
 
-            <p className="mt-6 max-w-lg text-base leading-relaxed text-muted">
-              Pin photos, scribble notes, queue music, watch things together and
-              play a round of something. Everything you drop stays exactly where
-              you left it, and everyone in the room sees it happen live.
-            </p>
+            <p className="mt-6 max-w-lg text-base leading-relaxed text-muted">{t("Pin photos, scribble notes, queue music, watch things together and play a round of something. Everything you drop stays exactly where you left it, and everyone in the room sees it happen live.")}</p>
 
             <div className="mt-9 space-y-3">
               <form
@@ -146,10 +141,10 @@ export default function Landing() {
                 <input
                   value={roomName}
                   onChange={(e) => setRoomName(e.target.value)}
-                  placeholder="name your nook"
+                  placeholder={t("name your nook")}
                   spellCheck={false}
                   maxLength={48}
-                  aria-label="room name"
+                  aria-label={t("room name")}
                   className="w-full rounded-2xl bg-white/6 px-4 py-3 text-sm ring-1 ring-white/10 outline-none transition placeholder:text-muted/60 focus:bg-white/9 focus:ring-glow/45 sm:w-64"
                 />
                 <button
@@ -162,7 +157,7 @@ export default function Landing() {
                   ) : (
                     <DoorOpen className="size-4" strokeWidth={2.4} />
                   )}
-                  {busy ? "opening" : "make a nook"}
+                  {busy ? t("opening") : t("make a nook")}
                   {!busy && (
                     <ArrowRight
                       className="size-4 transition-transform group-hover:translate-x-0.5"
@@ -174,12 +169,11 @@ export default function Landing() {
 
               <p className="text-xs text-muted/70">
                 {preview ? (
-                  <>
-                    your link will be <span className="text-muted">/r/?r=</span>
+                  <>{t("your link will be")}{" "}<span className="text-muted">/r/?r=</span>
                     <span className="text-glow">{preview}</span>
                   </>
                 ) : (
-                  "the name becomes the link. leave it blank for a random one."
+                  t("the name becomes the link. leave it blank for a random one.")
                 )}
               </p>
 
@@ -187,26 +181,21 @@ export default function Landing() {
                 <input
                   value={joinValue}
                   onChange={(e) => setJoinValue(e.target.value)}
-                  placeholder="or paste a nook link"
+                  placeholder={t("or paste a nook link")}
                   spellCheck={false}
-                  aria-label="nook link"
+                  aria-label={t("nook link")}
                   className="w-full rounded-2xl bg-white/6 px-4 py-3 text-sm ring-1 ring-white/10 outline-none transition placeholder:text-muted/60 focus:bg-white/9 focus:ring-glow/45 sm:w-64"
                 />
                 <button
                   type="submit"
                   className="shrink-0 rounded-2xl bg-white/6 px-4 py-3 text-sm font-medium text-muted ring-1 ring-white/10 transition hover:bg-white/10 hover:text-chalk"
-                >
-                  join
-                </button>
+                >{t("join")}</button>
               </form>
             </div>
 
             {!configured && (
-              <p className="mt-5 max-w-lg rounded-xl bg-warm/10 px-4 py-3 text-xs leading-relaxed text-warm ring-1 ring-warm/25">
-                Supabase keys are missing. Copy <code>.env.example</code> to{" "}
-                <code>.env.local</code>, fill in your project URL and anon key, then
-                restart the dev server. The README walks through it.
-              </p>
+              <p className="mt-5 max-w-lg rounded-xl bg-warm/10 px-4 py-3 text-xs leading-relaxed text-warm ring-1 ring-warm/25">{t("Supabase keys are missing. Copy")}{" "}<code>.env.example</code>{" "}{t("to")}{" "}
+                <code>.env.local</code>{t(", fill in your project URL and anon key, then restart the dev server. The README walks through it.")}</p>
             )}
 
             {error && (
@@ -218,9 +207,7 @@ export default function Landing() {
 
           {recent.length > 0 && (
             <section className="mt-16">
-              <h2 className="mb-3 text-xs font-medium tracking-wide text-muted uppercase">
-                you have been here
-              </h2>
+              <h2 className="mb-3 text-xs font-medium tracking-wide text-muted uppercase">{t("you have been here")}</h2>
               <ul className="flex flex-wrap gap-2">
                 {recent.map((entry) => (
                   <li key={entry.slug} className="group relative">
@@ -234,7 +221,7 @@ export default function Landing() {
                     <button
                       type="button"
                       onClick={() => drop(entry.slug)}
-                      aria-label={`Forget ${entry.name}`}
+                      aria-label={t(`Forget ${entry.name}`)}
                       className="absolute top-1/2 right-2.5 -translate-y-1/2 rounded-lg p-1 text-muted/50 opacity-0 transition group-hover:opacity-100 hover:bg-white/10 hover:text-chalk"
                     >
                       <X className="size-3.5" strokeWidth={2.4} />
@@ -247,9 +234,9 @@ export default function Landing() {
         </div>
 
         <footer className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted/60">
-          <span>anyone with the link can walk in</span>
-          <span>no account, no email</span>
-          <span>lock the room when you want it left alone</span>
+          <span>{t("anyone with the link can walk in")}</span>
+          <span>{t("no account, no email")}</span>
+          <span>{t("lock the room when you want it left alone")}</span>
         </footer>
       </div>
     </main>

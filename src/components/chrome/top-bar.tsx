@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import { useRoom } from "@/realtime/room-provider";
 import { useRoomStore } from "@/state/room-store";
+import { t } from "@/lib/i18n";
+import { LanguagePicker } from "@/components/localized";
 
 export default function TopBar() {
   const { renameRoom, canEdit, isOwner, setLocked } = useRoom();
@@ -49,7 +51,7 @@ export default function TopBar() {
             and the browser's own back button already goes home. */}
         <Link
           href="/"
-          aria-label="back to the front door"
+          aria-label={t("back to the front door")}
           className="hidden size-8 place-items-center rounded-xl text-muted transition hover:bg-white/8 hover:text-chalk sm:grid"
         >
           <DoorOpen className="size-4" strokeWidth={2.2} />
@@ -71,10 +73,10 @@ export default function TopBar() {
             type="button"
             disabled={!canEdit}
             onClick={() => setEditingName(true)}
-            title={canEdit ? "rename this nook" : undefined}
+            title={canEdit ? t("rename this nook") : undefined}
             className="max-w-[9.5rem] truncate rounded-xl px-2.5 py-1.5 text-sm font-medium transition hover:bg-white/8 disabled:hover:bg-transparent sm:max-w-52"
           >
-            {room?.name ?? "a nook"}
+            {room?.name ?? t("a nook")}
           </button>
         )}
 
@@ -85,7 +87,7 @@ export default function TopBar() {
             connection === "connecting" && "bg-warm animate-pulse",
             connection === "offline" && "bg-red-400",
           )}
-          title={connection === "live" ? "connected" : connection}
+          title={connection === "live" ? t("connected") : connection}
         />
       </div>
 
@@ -93,7 +95,7 @@ export default function TopBar() {
         <button
           type="button"
           onClick={() => setPanel(panel === "peers" ? null : "peers")}
-          title="who is here"
+          title={t("who is here")}
           className={clsx(
             "flex h-8 items-center gap-1.5 rounded-xl px-2.5 text-xs font-medium transition",
             panel === "peers" ? "bg-glow/22 text-glow" : "text-muted hover:bg-white/8 hover:text-chalk",
@@ -106,7 +108,7 @@ export default function TopBar() {
         <button
           type="button"
           onClick={() => setPanel(panel === "chat" ? null : "chat")}
-          title="chat"
+          title={t("chat")}
           className={clsx(
             "relative grid size-8 place-items-center rounded-xl transition",
             panel === "chat" ? "bg-glow/22 text-glow" : "text-muted hover:bg-white/8 hover:text-chalk",
@@ -124,7 +126,7 @@ export default function TopBar() {
           type="button"
           disabled={!canEdit}
           onClick={() => setPanel(panel === "background" ? null : "background")}
-          title="change the walls"
+          title={t("change the walls")}
           className={clsx(
             "hidden size-8 place-items-center rounded-xl transition disabled:opacity-40 sm:grid",
             panel === "background"
@@ -139,7 +141,7 @@ export default function TopBar() {
           <button
             type="button"
             onClick={() => void setLocked(!room?.locked)}
-            title={room?.locked ? "unlock so others can edit" : "lock so only you can edit"}
+            title={room?.locked ? t("unlock so others can edit") : t("lock so only you can edit")}
             className={clsx(
               "hidden size-8 place-items-center rounded-xl transition sm:grid",
               room?.locked
@@ -160,7 +162,7 @@ export default function TopBar() {
         <button
           type="button"
           onClick={() => setMore(true)}
-          aria-label="more"
+          aria-label={t("more")}
           className={clsx(
             "grid size-8 place-items-center rounded-xl transition sm:hidden",
             room?.locked ? "bg-warm/22 text-warm" : "text-muted active:bg-white/10",
@@ -169,13 +171,15 @@ export default function TopBar() {
           <MoreHorizontal className="size-4" strokeWidth={2.4} />
         </button>
 
+        <LanguagePicker compact className="hidden sm:flex" />
+
         <div className="mx-0.5 hidden h-5 w-px bg-white/10 sm:block" />
 
         <button
           type="button"
           onClick={copyLink}
-          title={copied ? "copied" : "copy the invite link"}
-          aria-label="copy the invite link"
+          title={copied ? t("copied") : t("copy the invite link")}
+          aria-label={t("copy the invite link")}
           className="flex h-8 items-center gap-1.5 rounded-xl bg-chalk px-2 text-xs font-semibold text-ink-950 transition hover:bg-white sm:px-3"
         >
           {copied ? (
@@ -184,7 +188,7 @@ export default function TopBar() {
             <Link2 className="size-3.5" strokeWidth={2.6} />
           )}
           {/* The word costs more width than a phone can spare up here. */}
-          <span className="hidden sm:inline">{copied ? "copied" : "invite"}</span>
+          <span className="hidden sm:inline">{copied ? t("copied") : t("invite")}</span>
         </button>
       </div>
 
@@ -266,7 +270,7 @@ function MoreSheet({
     <div className="pointer-events-auto fixed inset-0 z-60 flex flex-col justify-end sm:hidden">
       <button
         type="button"
-        aria-label="close"
+        aria-label={t("close")}
         onClick={onClose}
         className="absolute inset-0 bg-ink-950/55"
       />
@@ -280,9 +284,7 @@ function MoreSheet({
           onClick={onWalls}
           className="flex min-h-12 w-full items-center gap-3 rounded-xl px-2 text-left text-sm transition active:bg-white/8 disabled:opacity-40"
         >
-          <Palette className="size-5 shrink-0 text-glow" strokeWidth={2} />
-          change the walls
-        </button>
+          <Palette className="size-5 shrink-0 text-glow" strokeWidth={2} />{t("change the walls")}</button>
 
         {isOwner && (
           <button
@@ -296,18 +298,18 @@ function MoreSheet({
               <Unlock className="size-5 shrink-0 text-glow" strokeWidth={2} />
             )}
             <span className="min-w-0">
-              {locked ? "unlock, so others can edit" : "lock, so only you can edit"}
+              {locked ? t("unlock, so others can edit") : t("lock, so only you can edit")}
             </span>
           </button>
         )}
+
+        <LanguagePicker className="my-2 w-fit" />
 
         <Link
           href="/"
           className="flex min-h-12 w-full items-center gap-3 rounded-xl px-2 text-left text-sm text-muted transition active:bg-white/8"
         >
-          <DoorOpen className="size-5 shrink-0" strokeWidth={2} />
-          back to the front door
-        </Link>
+          <DoorOpen className="size-5 shrink-0" strokeWidth={2} />{t("back to the front door")}</Link>
       </div>
     </div>
   );

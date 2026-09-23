@@ -6,6 +6,7 @@ import { useRoom } from "@/realtime/room-provider";
 import { useRoomStore } from "@/state/room-store";
 import { blocksFraming, resolveLink, withParent } from "@/lib/embeds";
 import type { Item } from "@/lib/types";
+import { t } from "@/lib/i18n";
 
 /**
  * A window onto another page that the whole room shares. The address is part of
@@ -76,7 +77,7 @@ export default function EmbedItem({
               go(draft);
             }}
           >
-            <p className="mb-2 text-xs text-muted">what should live in this window?</p>
+            <p className="mb-2 text-xs text-muted">{t("what should live in this window?")}</p>
             <input
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
@@ -85,14 +86,12 @@ export default function EmbedItem({
               spellCheck={false}
               className="w-full rounded-xl bg-white/8 px-3 py-2 text-xs ring-1 ring-white/12 outline-none placeholder:text-muted/60 focus:ring-glow/50"
             />
-            <p className="mt-2 text-[10px] leading-relaxed text-muted/60">
-              everyone in the room gets this window, on the same page.
-            </p>
+            <p className="mt-2 text-[10px] leading-relaxed text-muted/60">{t("everyone in the room gets this window, on the same page.")}</p>
           </form>
         ) : (
           <div className="text-muted">
             <Globe className="mx-auto mb-2 size-5" strokeWidth={1.8} />
-            <p className="text-xs">an empty window</p>
+            <p className="text-xs">{t("an empty window")}</p>
           </div>
         )}
       </div>
@@ -119,7 +118,7 @@ export default function EmbedItem({
                 event.stopPropagation();
                 if (event.key === "Escape") setEditing(false);
               }}
-              placeholder="go somewhere else"
+              placeholder={t("go somewhere else")}
               spellCheck={false}
               autoFocus
               className="min-w-0 flex-1 rounded-lg bg-white/8 px-2 py-1 text-[11px] ring-1 ring-white/12 outline-none focus:ring-glow/50"
@@ -127,13 +126,11 @@ export default function EmbedItem({
             <button
               type="submit"
               className="shrink-0 rounded-lg bg-glow/25 px-2 py-1 text-[11px] font-medium text-glow"
-            >
-              go
-            </button>
+            >{t("go")}</button>
             <button
               type="button"
               onClick={() => setEditing(false)}
-              aria-label="cancel"
+              aria-label={t("cancel")}
               className="grid size-6 shrink-0 place-items-center rounded-lg text-muted hover:text-chalk"
             >
               <X className="size-3.5" strokeWidth={2.2} />
@@ -148,18 +145,18 @@ export default function EmbedItem({
                 setDraft(url);
                 setEditing(true);
               }}
-              title={canEdit ? "go somewhere else, for everyone" : url}
+              title={canEdit ? t("go somewhere else, for everyone") : url}
               className="min-w-0 flex-1 truncate text-left text-[11px] text-muted transition hover:text-chalk disabled:hover:text-muted"
             >
               {title ?? safeHost(url)}
-              {openedBy && <span className="text-muted/50"> {"·"} opened by {openedBy}</span>}
+              {openedBy && <span className="text-muted/50"> {"·"}{" "}{t("opened by")}{" "}{openedBy}</span>}
             </button>
 
             <button
               type="button"
               onClick={() => setReloadKey((k) => k + 1)}
-              aria-label="reload"
-              title="reload"
+              aria-label={t("reload")}
+              title={t("reload")}
               className="grid size-7 shrink-0 place-items-center rounded-lg text-muted transition hover:bg-white/8 hover:text-chalk"
             >
               <RotateCw className="size-3.5" strokeWidth={2.2} />
@@ -168,7 +165,7 @@ export default function EmbedItem({
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="open in a new tab"
+              aria-label={t("open in a new tab")}
               className="grid size-7 shrink-0 place-items-center rounded-lg text-muted transition hover:bg-white/8 hover:text-chalk"
             >
               <ExternalLink className="size-3.5" strokeWidth={2.2} />
@@ -182,19 +179,15 @@ export default function EmbedItem({
           <div className="max-w-[280px] space-y-2 text-muted">
             <ShieldAlert className="mx-auto size-5 text-warm" strokeWidth={1.8} />
             <p className="text-xs leading-relaxed">
-              <span className="text-chalk">{safeHost(url)}</span> will not open inside another page
-              (the site blocks it). Open it in a new tab, or use the{" "}
-              <span className="text-chalk">shared browser</span> to watch it together.
-            </p>
+              <span className="text-chalk">{safeHost(url)}</span>{" "}{t("will not open inside another page (the site blocks it). Open it in a new tab, or use the")}{" "}
+              <span className="text-chalk">{t("shared browser")}</span>{" "}{t("to watch it together.")}</p>
             <a
               href={url}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 rounded-lg bg-white/8 px-2.5 py-1 text-[11px] text-chalk transition hover:bg-white/12"
             >
-              <ExternalLink className="size-3" strokeWidth={2.2} />
-              open in a tab
-            </a>
+              <ExternalLink className="size-3" strokeWidth={2.2} />{t("open in a tab")}</a>
           </div>
         </div>
       ) : (

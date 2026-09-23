@@ -60,6 +60,7 @@ import { emptyTable } from "@/lib/table";
 import { radioMedia } from "@/lib/radio";
 import BrushPopover from "./brush-popover";
 import StickersPanel from "./stickers-panel";
+import { t } from "@/lib/i18n";
 
 type GameGroup = "table" | "secrets" | "boards";
 
@@ -225,7 +226,7 @@ export default function Dock() {
             room is better off with the width. */}
         <div className="surface hidden items-center gap-0.5 rounded-2xl p-1.5 sm:flex">
           <DockButton
-            label="zoom out"
+            label={t("zoom out")}
             onClick={() => zoomAt(0.85, window.innerWidth / 2, window.innerHeight / 2)}
           >
             <Minus className="size-4" strokeWidth={2.4} />
@@ -233,13 +234,13 @@ export default function Dock() {
           <button
             type="button"
             onClick={() => setViewport({ x: 0, y: 0, scale: 1 })}
-            title="back to the middle"
+            title={t("back to the middle")}
             className="min-w-11 rounded-xl px-1.5 py-1.5 text-[11px] font-medium tabular-nums text-muted transition hover:bg-white/8 hover:text-chalk"
           >
             {Math.round(viewport.scale * 100)}%
           </button>
           <DockButton
-            label="zoom in"
+            label={t("zoom in")}
             onClick={() => zoomAt(1.18, window.innerWidth / 2, window.innerHeight / 2)}
           >
             <Plus className="size-4" strokeWidth={2.4} />
@@ -249,14 +250,14 @@ export default function Dock() {
         {/* Tools: point, draw, erase */}
         <div className="surface relative flex items-center gap-0.5 rounded-2xl p-1.5">
           <DockButton
-            label="point and drag (V)"
+            label={t("point and drag (V)")}
             active={tool === "select"}
             onClick={() => setTool("select")}
           >
             <MousePointer2 className="size-4.5" strokeWidth={2} />
           </DockButton>
           <DockButton
-            label="draw on the room (B)"
+            label={t("draw on the room (B)")}
             disabled={!canEdit}
             active={tool === "draw"}
             onClick={() => setTool(tool === "draw" ? "select" : "draw")}
@@ -264,7 +265,7 @@ export default function Dock() {
             <Brush className="size-4.5" strokeWidth={2} />
           </DockButton>
           <DockButton
-            label="erase (E)"
+            label={t("erase (E)")}
             disabled={!canEdit}
             active={tool === "erase"}
             onClick={() => setTool(tool === "erase" ? "select" : "erase")}
@@ -280,11 +281,11 @@ export default function Dock() {
             in a big room is the one thing you cannot pinch your way out of, so
             the way back sits here rather than three taps into a sheet. */}
         <div className="surface flex items-center gap-0.5 rounded-2xl p-1.5 sm:hidden">
-          <DockButton label="fit everything" onClick={fitEverything}>
+          <DockButton label={t("fit everything")} onClick={fitEverything}>
             <Maximize2 className="size-5" strokeWidth={2.2} />
           </DockButton>
           <DockButton
-            label="add something"
+            label={t("add something")}
             disabled={!canEdit}
             active={sheetOpen}
             onClick={() => {
@@ -299,45 +300,45 @@ export default function Dock() {
 
         {/* Add things */}
         <div className="surface relative hidden items-center gap-0.5 rounded-2xl p-1.5 sm:flex">
-          <DockButton label="pin a picture" disabled={!canEdit} onClick={() => add("image")}>
+          <DockButton label={t("pin a picture")} disabled={!canEdit} onClick={() => add("image")}>
             <ImagePlus className="size-4.5" strokeWidth={2} />
           </DockButton>
           <DockButton
             ref={stickerRef}
-            label="gifs and stickers"
+            label={t("gifs and stickers")}
             disabled={!canEdit}
             active={panel === "stickers"}
             onClick={() => setPanel(panel === "stickers" ? null : "stickers")}
           >
             <Sticker className="size-4.5" strokeWidth={2} />
           </DockButton>
-          <DockButton label="lay a document on the table (PDF)" disabled={!canEdit} onClick={() => add("pdf")}>
+          <DockButton label={t("lay a document on the table (PDF)")} disabled={!canEdit} onClick={() => add("pdf")}>
             <BookOpen className="size-4.5" strokeWidth={2} />
           </DockButton>
-          <DockButton label="put the OMORI radio on (loops for everyone)" disabled={!canEdit} onClick={() => void addRadio()}>
+          <DockButton label={t("put the OMORI radio on (loops for everyone)")} disabled={!canEdit} onClick={() => void addRadio()}>
             <Disc3 className="size-4.5" strokeWidth={2} />
           </DockButton>
-          <DockButton label="leave a note" disabled={!canEdit} onClick={() => add("note")}>
+          <DockButton label={t("leave a note")} disabled={!canEdit} onClick={() => add("note")}>
             <StickyNote className="size-4.5" strokeWidth={2} />
           </DockButton>
-          <DockButton label="big text" disabled={!canEdit} onClick={() => add("text")}>
+          <DockButton label={t("big text")} disabled={!canEdit} onClick={() => add("text")}>
             <Type className="size-4.5" strokeWidth={2} />
           </DockButton>
-          <DockButton label="music or video" disabled={!canEdit} onClick={() => add("media")}>
+          <DockButton label={t("music or video")} disabled={!canEdit} onClick={() => add("media")}>
             <Music4 className="size-4.5" strokeWidth={2} />
           </DockButton>
-          <DockButton label="a window to somewhere" disabled={!canEdit} onClick={() => add("embed")}>
+          <DockButton label={t("a window to somewhere")} disabled={!canEdit} onClick={() => add("embed")}>
             <Globe className="size-4.5" strokeWidth={2} />
           </DockButton>
           <DockButton
-            label="transmit a tab (live, one shares)"
+            label={t("transmit a tab (live, one shares)")}
             disabled={!canEdit}
             onClick={() => add("screencast")}
           >
             <MonitorUp className="size-4.5" strokeWidth={2} />
           </DockButton>
           <DockButton
-            label="shared browser (hyperbeam, both control)"
+            label={t("shared browser (hyperbeam, both control)")}
             disabled={!canEdit}
             onClick={() => add("cobrowse")}
           >
@@ -345,7 +346,7 @@ export default function Dock() {
           </DockButton>
 
           <DockButton
-            label="games"
+            label={t("games")}
             disabled={!canEdit}
             active={gamesOpen}
             onClick={() => {
@@ -366,8 +367,8 @@ export default function Dock() {
                       <GameOption
                         key={game.title}
                         icon={game.icon}
-                        title={game.title}
-                        hint={game.hint}
+                        title={t(game.title)}
+                        hint={t(game.hint)}
                         onClick={() =>
                           game.kind === "token" || game.kind === "grid"
                             ? add(game.kind)
@@ -385,7 +386,7 @@ export default function Dock() {
         {/* Reactions */}
         <div className="surface relative flex items-center rounded-2xl p-1.5">
           <DockButton
-            label={reaction ? `${reaction} loaded -- tap the room, or tap here to put it down` : "react"}
+            label={reaction ? t(`${reaction} loaded -- tap the room, or tap here to put it down`) : t("react")}
             active={reactionsOpen || Boolean(reaction)}
             onClick={() => {
               // While one is loaded the button unloads it; that is what you
@@ -468,7 +469,7 @@ function AddSheet({
     <div className="pointer-events-auto fixed inset-0 z-60 flex flex-col justify-end sm:hidden">
       <button
         type="button"
-        aria-label="close"
+        aria-label={t("close")}
         onClick={onClose}
         className="absolute inset-0 bg-ink-950/55"
       />
@@ -477,11 +478,11 @@ function AddSheet({
         <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
 
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold">add to the room</h2>
+          <h2 className="text-sm font-semibold">{t("add to the room")}</h2>
           <button
             type="button"
             onClick={onClose}
-            aria-label="close"
+            aria-label={t("close")}
             className="grid size-9 place-items-center rounded-xl text-muted transition hover:bg-white/8 hover:text-chalk"
           >
             <X className="size-4" strokeWidth={2.4} />
@@ -491,7 +492,7 @@ function AddSheet({
         <div className="grid grid-cols-2 gap-2">
           {things.map((thing) => (
             <SheetTile key={thing.label} disabled={!canEdit} onClick={thing.run} icon={thing.icon}>
-              {thing.label}
+              {t(thing.label)}
             </SheetTile>
           ))}
         </div>
@@ -510,20 +511,18 @@ function AddSheet({
                       : onAdd("game", game.kind, game.setup?.())
                   }
                   icon={game.icon}
-                  hint={game.hint}
+                  hint={t(game.hint)}
                 >
-                  {game.title}
+                  {t(game.title)}
                 </SheetTile>
               ))}
             </div>
           </div>
         ))}
 
-        <h2 className="mt-5 mb-3 text-sm font-semibold">view</h2>
+        <h2 className="mt-5 mb-3 text-sm font-semibold">{t("view")}</h2>
         <div className="grid grid-cols-2 gap-2">
-          <SheetTile onClick={onFit} icon={<Maximize2 className="size-5" strokeWidth={2} />}>
-            fit everything
-          </SheetTile>
+          <SheetTile onClick={onFit} icon={<Maximize2 className="size-5" strokeWidth={2} />}>{t("fit everything")}</SheetTile>
         </div>
       </div>
     </div>
@@ -559,7 +558,7 @@ function SheetTile({
         <span className="block leading-tight text-balance">{children}</span>
         {hint && (
           <span className="mt-0.5 block text-[11px] leading-tight font-normal text-balance text-muted/70">
-            {hint}
+            {t(hint)}
           </span>
         )}
       </span>
@@ -625,7 +624,7 @@ function GameOption({
       </span>
       <span className="min-w-0">
         <span className="block truncate text-xs font-medium">{title}</span>
-        <span className="block truncate text-[11px] text-muted/70">{hint}</span>
+        <span className="block truncate text-[11px] text-muted/70">{t(hint)}</span>
       </span>
     </button>
   );

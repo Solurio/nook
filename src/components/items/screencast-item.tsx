@@ -8,6 +8,7 @@ import { useRoomStore } from "@/state/room-store";
 import { useScreencast } from "@/realtime/use-screencast";
 import Slider from "@/components/chrome/slider";
 import type { Item } from "@/lib/types";
+import { t } from "@/lib/i18n";
 
 /**
  * A live tab/screen share. Whoever "takes the seat" shares a tab from their own
@@ -99,7 +100,7 @@ export default function ScreencastItem({ item }: { item: Item<"screencast"> }) {
         <div className="flex items-center gap-2 border-b border-white/8 px-3 py-2">
           <Radio className="size-3.5 shrink-0 animate-pulse text-red-400" strokeWidth={2.4} />
           <span className="min-w-0 flex-1 truncate text-[11px] text-muted">
-            {amBroadcaster ? "you are sharing" : `${broadcaster.name} is sharing`}
+            {amBroadcaster ? t("you are sharing") : t(`${broadcaster.name} is sharing`)}
             {data.url ? ` · ${safeHost(data.url)}` : ""}
           </span>
         </div>
@@ -114,9 +115,7 @@ export default function ScreencastItem({ item }: { item: Item<"screencast"> }) {
           />
 
           {!amBroadcaster && !remoteStream && (
-            <div className="absolute inset-0 grid place-items-center text-xs text-muted">
-              connecting to the stream...
-            </div>
+            <div className="absolute inset-0 grid place-items-center text-xs text-muted">{t("connecting to the stream...")}</div>
           )}
 
           {/* The whole picture is the tap target. The old pill was small enough
@@ -128,9 +127,7 @@ export default function ScreencastItem({ item }: { item: Item<"screencast"> }) {
               className="absolute inset-0 grid place-items-center bg-ink-950/45 transition hover:bg-ink-950/35"
             >
               <span className="flex items-center gap-2 rounded-full bg-chalk px-5 py-3 text-sm font-semibold text-ink-950 shadow-xl">
-                <Volume2 className="size-4.5" strokeWidth={2.4} />
-                tap for sound
-              </span>
+                <Volume2 className="size-4.5" strokeWidth={2.4} />{t("tap for sound")}</span>
             </button>
           )}
         </div>
@@ -142,14 +139,12 @@ export default function ScreencastItem({ item }: { item: Item<"screencast"> }) {
                 type="button"
                 onClick={() => void end()}
                 className="flex-1 rounded-lg bg-red-500/20 py-2 text-xs font-semibold text-red-200 transition hover:bg-red-500/30"
-              >
-                stop sharing
-              </button>
+              >{t("stop sharing")}</button>
               {hasAudio && (
                 <button
                   type="button"
                   onClick={() => setAudioMuted(!audioMuted)}
-                  title={audioMuted ? "let them hear it again" : "cut the sound going out"}
+                  title={audioMuted ? t("let them hear it again") : t("cut the sound going out")}
                   className={clsx(
                     "flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium transition",
                     audioMuted
@@ -162,7 +157,7 @@ export default function ScreencastItem({ item }: { item: Item<"screencast"> }) {
                   ) : (
                     <Volume2 className="size-3.5" strokeWidth={2.2} />
                   )}
-                  {audioMuted ? "muted" : "sound on"}
+                  {audioMuted ? t("muted") : t("sound on")}
                 </button>
               )}
             </>
@@ -183,9 +178,7 @@ export default function ScreencastItem({ item }: { item: Item<"screencast"> }) {
                   onClick={() => void begin()}
                   className="flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-white/8 px-2.5 py-2 text-xs font-semibold text-chalk transition hover:bg-white/12"
                 >
-                  <Hand className="size-3.5" strokeWidth={2.2} />
-                  take over
-                </button>
+                  <Hand className="size-3.5" strokeWidth={2.2} />{t("take over")}</button>
               )}
             </>
           )}
@@ -201,7 +194,7 @@ export default function ScreencastItem({ item }: { item: Item<"screencast"> }) {
         <div className="w-full max-w-[320px] space-y-2.5">
           <div className="flex items-center justify-center gap-1.5 text-muted">
             <MonitorUp className="size-4" strokeWidth={2} />
-            <span className="text-xs font-medium">share a tab</span>
+            <span className="text-xs font-medium">{t("share a tab")}</span>
           </div>
 
           <div className="flex gap-1.5">
@@ -209,7 +202,7 @@ export default function ScreencastItem({ item }: { item: Item<"screencast"> }) {
               value={urlDraft}
               onChange={(event) => setUrlDraft(event.target.value)}
               onKeyDown={(event) => event.stopPropagation()}
-              placeholder="link (optional)"
+              placeholder={t("link (optional)")}
               spellCheck={false}
               className="min-w-0 flex-1 rounded-xl bg-white/8 px-3 py-2 text-xs ring-1 ring-white/12 outline-none placeholder:text-muted/60 focus:ring-glow/50"
             />
@@ -217,7 +210,7 @@ export default function ScreencastItem({ item }: { item: Item<"screencast"> }) {
               <button
                 type="button"
                 onClick={() => window.open(normalize(urlDraft), "_blank", "noopener")}
-                title="open it in a tab first, then share"
+                title={t("open it in a tab first, then share")}
                 className="grid size-9 shrink-0 place-items-center rounded-xl bg-white/8 text-muted transition hover:bg-white/12 hover:text-chalk"
               >
                 <ExternalLink className="size-3.5" strokeWidth={2.2} />
@@ -231,41 +224,28 @@ export default function ScreencastItem({ item }: { item: Item<"screencast"> }) {
               checked={shareSound}
               onChange={(event) => setShareSound(event.target.checked)}
               className="size-3.5"
-            />
-            send sound too
-          </label>
+            />{t("send sound too")}</label>
 
           <button
             type="button"
             onClick={() => void begin()}
             className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-chalk py-2.5 text-xs font-semibold text-ink-950 transition hover:bg-white"
           >
-            <MonitorUp className="size-3.5" strokeWidth={2.4} />
-            pick a tab and share
-          </button>
+            <MonitorUp className="size-3.5" strokeWidth={2.4} />{t("pick a tab and share")}</button>
 
           {notice === "unsupported" && (
-            <p className="rounded-lg bg-warm/10 px-2.5 py-1.5 text-[11px] leading-relaxed text-warm ring-1 ring-warm/25">
-              this browser will not share a screen. most phones cannot -- use a desktop on Chrome,
-              Edge or Firefox, over https.
-            </p>
+            <p className="rounded-lg bg-warm/10 px-2.5 py-1.5 text-[11px] leading-relaxed text-warm ring-1 ring-warm/25">{t("this browser will not share a screen. most phones cannot -- use a desktop on Chrome, Edge or Firefox, over https.")}</p>
           )}
           {notice === "denied" && (
-            <p className="rounded-lg bg-white/6 px-2.5 py-1.5 text-[11px] leading-relaxed text-muted">
-              sharing was cancelled or blocked. click again and, in the browser picker, choose the
-              tab or screen and confirm.
-            </p>
+            <p className="rounded-lg bg-white/6 px-2.5 py-1.5 text-[11px] leading-relaxed text-muted">{t("sharing was cancelled or blocked. click again and, in the browser picker, choose the tab or screen and confirm.")}</p>
           )}
 
-          <p className="text-[10px] leading-relaxed text-muted/60">
-            pick one tab rather than the whole screen and only that tab&apos;s sound goes out, so a
-            voice call in another window stays out of it. you can also cut the sound mid-share.
-          </p>
+          <p className="text-[10px] leading-relaxed text-muted/60">{t("pick one tab rather than the whole screen and only that tab's sound goes out, so a voice call in another window stays out of it. you can also cut the sound mid-share.")}</p>
         </div>
       ) : (
         <div className="text-muted">
           <MonitorUp className="mx-auto mb-2 size-5" strokeWidth={1.8} />
-          <p className="text-xs">nobody is sharing</p>
+          <p className="text-xs">{t("nobody is sharing")}</p>
         </div>
       )}
     </div>
@@ -289,8 +269,8 @@ function VolumeControl({
       <button
         type="button"
         onClick={onToggle}
-        title={muted ? "unmute" : "mute"}
-        aria-label={muted ? "unmute" : "mute"}
+        title={muted ? t("unmute") : t("mute")}
+        aria-label={muted ? t("unmute") : t("mute")}
         className="grid size-9 shrink-0 place-items-center rounded-lg bg-white/8 text-chalk transition hover:bg-white/12"
       >
         {muted ? (
@@ -299,7 +279,7 @@ function VolumeControl({
           <Volume2 className="size-4" strokeWidth={2.2} />
         )}
       </button>
-      <Slider label="volume" value={muted ? 0 : volume} onChange={onChange} className="min-w-0 flex-1" />
+      <Slider label={t("volume")} value={muted ? 0 : volume} onChange={onChange} className="min-w-0 flex-1" />
     </div>
   );
 }

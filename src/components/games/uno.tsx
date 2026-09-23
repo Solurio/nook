@@ -36,6 +36,7 @@ import {
 import type { Item } from "@/lib/types";
 import UnoCard from "@/components/cards/uno-card";
 import RulesSheet from "./rules-sheet";
+import { t } from "@/lib/i18n";
 
 /**
  * Uno, round the table. Your hand is yours alone -- a secret pile the
@@ -316,17 +317,15 @@ export default function Uno({ item, state: raw }: { item: Item<"game">; state: u
     <div className="surface grain relative flex size-full flex-col gap-2 overflow-hidden rounded-2xl p-2.5">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted/70">
         <span className="flex items-center gap-0.5">
-          <button type="button" disabled={!canEdit || state.seatCount <= MIN_SEATS} onClick={() => resize(-1)} aria-label="one chair fewer" className="grid size-7 place-items-center rounded disabled:opacity-30">
+          <button type="button" disabled={!canEdit || state.seatCount <= MIN_SEATS} onClick={() => resize(-1)} aria-label={t("one chair fewer")} className="grid size-7 place-items-center rounded disabled:opacity-30">
             <Minus className="size-3" />
           </button>
-          <span className="tabular-nums text-chalk">{state.seatCount}</span> chairs
-          <button type="button" disabled={!canEdit || state.seatCount >= MAX_SEATS} onClick={() => resize(1)} aria-label="one chair more" className="grid size-7 place-items-center rounded disabled:opacity-30">
+          <span className="tabular-nums text-chalk">{state.seatCount}</span>{" "}{t("chairs")}<button type="button" disabled={!canEdit || state.seatCount >= MAX_SEATS} onClick={() => resize(1)} aria-label={t("one chair more")} className="grid size-7 place-items-center rounded disabled:opacity-30">
             <Plus className="size-3" />
           </button>
         </span>
         <button type="button" onClick={() => setRules(true)} className="ml-auto flex items-center gap-1 rounded-lg px-1.5 py-1 hover:bg-white/8 hover:text-chalk">
-          <BookOpen className="size-3" /> rules
-        </button>
+          <BookOpen className="size-3" />{" "}{t("rules")}</button>
       </div>
 
       {/* Chairs */}
@@ -350,7 +349,7 @@ export default function Uno({ item, state: raw }: { item: Item<"game">; state: u
                 onClick={() => me && void write({ ...state, ...claimChair(state.seats, holders, chair, me) })}
                 className="min-w-0 flex-1 truncate text-left text-[11px]"
               >
-                <span className={who ? (isMine ? "text-chalk" : "text-muted") : "text-muted/50"}>{who ?? `seat ${i + 1}`}</span>
+                <span className={who ? (isMine ? "text-chalk" : "text-muted") : "text-muted/50"}>{who ?? t(`seat ${i + 1}`)}</span>
                 {(wins[chair] ?? 0) > 0 && <span className="ml-1 text-warm">{wins[chair]}</span>}
               </button>
               {count > 0 && (
@@ -360,12 +359,10 @@ export default function Uno({ item, state: raw }: { item: Item<"game">; state: u
                 </span>
               )}
               {state.called[chair] && count === 1 && (
-                <span className="rounded-full bg-[#d63a3a] px-1.5 text-[9px] font-bold text-white">uno</span>
+                <span className="rounded-full bg-[#d63a3a] px-1.5 text-[9px] font-bold text-white">{t("uno")}</span>
               )}
               {exposed && !isMine && canEdit && (
-                <button type="button" onClick={() => void catchOut(chair)} className="rounded-lg bg-warm/25 px-1.5 py-1 text-[10px] font-semibold text-warm">
-                  catch!
-                </button>
+                <button type="button" onClick={() => void catchOut(chair)} className="rounded-lg bg-warm/25 px-1.5 py-1 text-[10px] font-semibold text-warm">{t("catch!")}</button>
               )}
             </div>
           );
@@ -380,7 +377,7 @@ export default function Uno({ item, state: raw }: { item: Item<"game">; state: u
               type="button"
               disabled={!myTurn || state.drew === state.turn || busy || gated}
               onClick={() => void draw()}
-              title="draw a card"
+              title={t("draw a card")}
               className="relative transition active:scale-95 disabled:cursor-default"
             >
               <UnoCard card={null} down width={60} />
@@ -412,14 +409,13 @@ export default function Uno({ item, state: raw }: { item: Item<"game">; state: u
             onClick={() => void deal()}
             className="flex min-h-11 items-center gap-2 rounded-xl bg-[#f7f4ee] px-4 text-[13px] font-semibold text-[#1b1a22] shadow-lg active:scale-95 disabled:opacity-50"
           >
-            <Layers className="size-4" /> deal seven each
-          </button>
+            <Layers className="size-4" />{" "}{t("deal seven each")}</button>
         )}
 
         {/* Calling a colour: for a wild just played, or a round that opened on one */}
         {(wildFor || (dealt && state.color === null && myTurn && shownChair === state.turn && !gated)) && (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-xl bg-ink-950/80">
-            <p className="text-[12px] text-chalk">call a colour</p>
+            <p className="text-[12px] text-chalk">{t("call a colour")}</p>
             <div className="grid grid-cols-2 gap-2">
               {COLORS.map((c) => (
                 <button
@@ -433,9 +429,7 @@ export default function Uno({ item, state: raw }: { item: Item<"game">; state: u
               ))}
             </div>
             {wildFor && (
-              <button type="button" onClick={() => setWildFor(null)} className="text-[11px] text-muted">
-                keep the wild
-              </button>
+              <button type="button" onClick={() => setWildFor(null)} className="text-[11px] text-muted">{t("keep the wild")}</button>
             )}
           </div>
         )}
@@ -445,8 +439,7 @@ export default function Uno({ item, state: raw }: { item: Item<"game">; state: u
       <div className="min-h-[5.5rem]">
         {gated && hand.length > 0 ? (
           <button type="button" onClick={() => setLookingAt(state.turn)} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-white/8 text-[12px] text-chalk">
-            <Eye className="size-4" /> pass the phone to {label(state.turn)}, then tap to look
-          </button>
+            <Eye className="size-4" />{" "}{t("pass the phone to")}{" "}{label(state.turn)}{t(", then tap to look")}</button>
         ) : hand.length > 0 ? (
           <div className="flex gap-1 overflow-x-auto px-1 pt-3 pb-1">
             {hand.map((card, i) => {
@@ -471,65 +464,47 @@ export default function Uno({ item, state: raw }: { item: Item<"game">; state: u
           </div>
         ) : (
           <p className="pt-6 text-center text-[11px] text-muted/50">
-            {myChair ? (dealt ? "no cards" : "waiting for the deal") : "sit down to be dealt in"}
+            {myChair ? (dealt ? t("no cards") : t("waiting for the deal")) : t("sit down to be dealt in")}
           </p>
         )}
       </div>
 
       <div className="flex items-center gap-2">
         <p className="min-w-0 flex-1 truncate text-[11px] text-muted">
-          {headline}
+          {t(headline)}
           <span className="text-muted/50"> · {state.log.at(-1) ?? ""}</span>
         </p>
         {myTurn && shownChair === state.turn && hand.length === 2 && !state.called[state.turn] && (
           <button type="button" onClick={() => void callUno(state.turn)} className="flex min-h-9 items-center gap-1 rounded-lg bg-[#d63a3a] px-2.5 text-[11px] font-bold text-white">
-            <Megaphone className="size-3.5" /> uno!
-          </button>
+            <Megaphone className="size-3.5" />{" "}{t("uno!")}</button>
         )}
         {myChair && state.exposed === myChair && (
           <button type="button" onClick={() => void callUno(myChair)} className="flex min-h-9 items-center gap-1 rounded-lg bg-[#d63a3a] px-2.5 text-[11px] font-bold text-white">
-            <Megaphone className="size-3.5" /> uno!
-          </button>
+            <Megaphone className="size-3.5" />{" "}{t("uno!")}</button>
         )}
         {myTurn && state.drew === state.turn && (
-          <button type="button" onClick={() => void pass()} className="min-h-9 rounded-lg bg-white/8 px-2.5 text-[11px] text-chalk">
-            keep it
-          </button>
+          <button type="button" onClick={() => void pass()} className="min-h-9 rounded-lg bg-white/8 px-2.5 text-[11px] text-chalk">{t("keep it")}</button>
         )}
-        <button type="button" disabled={!canEdit || busy} onClick={() => void deal()} aria-label="deal a new round" title="deal a new round" className="grid size-9 place-items-center rounded-lg text-muted hover:bg-white/8 hover:text-chalk disabled:opacity-40">
+        <button type="button" disabled={!canEdit || busy} onClick={() => void deal()} aria-label={t("deal a new round")} title={t("deal a new round")} className="grid size-9 place-items-center rounded-lg text-muted hover:bg-white/8 hover:text-chalk disabled:opacity-40">
           <RotateCcw className="size-3.5" />
         </button>
       </div>
 
       {rules && (
-        <RulesSheet title="how uno goes" onClose={() => setRules(false)}>
-          <p>
-            Everyone starts with seven. On your go, put down a card that matches the one on top of the
-            pile, by <b>colour</b> or by <b>number or symbol</b>. A <b>wild</b> goes on anything and you call
-            the colour that follows.
-          </p>
-          <p>
-            Nothing you can play, or would rather not? <b>Draw one</b>. If it fits you may put it straight
+        <RulesSheet title={t("how uno goes")} onClose={() => setRules(false)}>
+          <p>{t("Everyone starts with seven. On your go, put down a card that matches the one on top of the pile, by")}{" "}<b>{t("colour")}</b>{" "}{t("or by")}{" "}<b>{t("number or symbol")}</b>. A <b>{t("wild")}</b>{" "}{t("goes on anything and you call the colour that follows.")}</p>
+          <p>{t("Nothing you can play, or would rather not?")}{" "}<b>{t("Draw one")}</b>. If it fits you may put it straight
             down; otherwise play moves on.
           </p>
-          <h4>the special cards</h4>
+          <h4>{t("the special cards")}</h4>
           <p>
-            <b>Skip</b> -- the next player misses their go. <b>Reverse</b> -- play turns round (with two
-            players, it is a skip). <b>Draw two</b> -- the next player draws two and misses their go.
-          </p>
+            <b>{t("Skip")}</b>{" "}{t("-- the next player misses their go.")}{" "}<b>{t("Reverse")}</b>{" "}{t("-- play turns round (with two players, it is a skip).")}{" "}<b>{t("Draw two")}</b>{" "}{t("-- the next player draws two and misses their go.")}</p>
           <p>
-            <b>Wild draw four</b> -- call a colour; the next player draws four and misses their go. You may
-            only play it when you hold nothing of the colour in play.
-          </p>
-          <h4>uno</h4>
-          <p>
-            When you are about to go down to one card, press <b>uno!</b> first. Get down to one without
-            calling it and anyone can <b>catch</b> you before the next card is played: you draw two.
-          </p>
-          <p>The first to get rid of every card takes the round. The dealer moves one chair along each round.</p>
-          <p className="text-muted/60">
-            Your hand is private to you -- not hidden on screen, but never sent to anyone else at all.
-          </p>
+            <b>{t("Wild draw four")}</b>{" "}{t("-- call a colour; the next player draws four and misses their go. You may only play it when you hold nothing of the colour in play.")}</p>
+          <h4>{t("uno")}</h4>
+          <p>{t("When you are about to go down to one card, press")}{" "}<b>{t("uno!")}</b>{" "}{t("first. Get down to one without calling it and anyone can")}{" "}<b>{t("catch")}</b>{" "}{t("you before the next card is played: you draw two.")}</p>
+          <p>{t("The first to get rid of every card takes the round. The dealer moves one chair along each round.")}</p>
+          <p className="text-muted/60">{t("Your hand is private to you -- not hidden on screen, but never sent to anyone else at all.")}</p>
         </RulesSheet>
       )}
     </div>

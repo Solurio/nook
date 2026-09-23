@@ -32,6 +32,7 @@ import { useRoom } from "@/realtime/room-provider";
 import { useRoomStore } from "@/state/room-store";
 import { NOTE_TINTS } from "@/lib/items";
 import type { AnyItem, FrameStyle, Item, TextEffect } from "@/lib/types";
+import { t } from "@/lib/i18n";
 
 const TEXT_COLORS = ["#f4efe6", "#f6c177", "#f2a4b8", "#a6d189", "#8bc7e8", "#c4a7f0"];
 
@@ -85,15 +86,11 @@ export default function Inspector() {
     return (
       <div className="pointer-events-none absolute inset-x-0 top-16 z-50 flex justify-center px-3">
         <div className="surface animate-drift-in pointer-events-auto flex items-center gap-2 rounded-2xl py-1.5 pr-1.5 pl-3 text-[12px] text-chalk">
-          <Link2 className="size-4 text-glow" strokeWidth={2.2} />
-          tap the thing to tie it to
-          <button
+          <Link2 className="size-4 text-glow" strokeWidth={2.2} />{t("tap the thing to tie it to")}<button
             type="button"
             onClick={() => setLinking(null)}
             className="min-h-9 rounded-xl px-3 text-[11px] text-muted hover:bg-white/8 hover:text-chalk"
-          >
-            never mind
-          </button>
+          >{t("never mind")}</button>
         </div>
       </div>
     );
@@ -128,10 +125,10 @@ function DeskStrip({ item, readOnly }: { item: AnyItem; readOnly: boolean }) {
     return (
       <div className="pointer-events-none absolute inset-x-0 top-16 z-40 hidden justify-center px-3 sm:flex">
         <div className="surface pointer-events-auto flex items-center gap-1 rounded-2xl p-1.5">
-          <Action label="open it full screen" onClick={() => focus(item.id)}>
+          <Action label={t("open it full screen")} onClick={() => focus(item.id)}>
             <Maximize2 className="size-4" strokeWidth={2.2} />
           </Action>
-          <span className="pr-1.5 text-[11px] text-muted">the room is locked</span>
+          <span className="pr-1.5 text-[11px] text-muted">{t("the room is locked")}</span>
         </div>
       </div>
     );
@@ -148,7 +145,7 @@ function DeskStrip({ item, readOnly }: { item: AnyItem; readOnly: boolean }) {
               onPick={(tint) => void updateData(item.id, { ...(item as Item<"note">).data, tint })}
             />
             <Divider />
-            <Action label="write" onClick={() => setEditing(item.id)}>
+            <Action label={t("write")} onClick={() => setEditing(item.id)}>
               <Pencil className="size-4" strokeWidth={2.2} />
             </Action>
           </>
@@ -156,7 +153,7 @@ function DeskStrip({ item, readOnly }: { item: AnyItem; readOnly: boolean }) {
 
         {!pinned && item.kind === "text" && (
           <>
-            <Action label="edit" onClick={() => setEditing(item.id)}>
+            <Action label={t("edit")} onClick={() => setEditing(item.id)}>
               <Pencil className="size-4" strokeWidth={2.2} />
             </Action>
             <Divider />
@@ -168,11 +165,11 @@ function DeskStrip({ item, readOnly }: { item: AnyItem; readOnly: boolean }) {
         {!pinned && item.kind === "token" && <TokenControls item={item as Item<"token">} />}
         {!pinned && item.kind === "grid" && <GridControls item={item as Item<"grid">} />}
 
-        {pinned && <span className="px-2.5 text-[11px] text-warm">stuck to the wall</span>}
+        {pinned && <span className="px-2.5 text-[11px] text-warm">{t("stuck to the wall")}</span>}
 
         <Divider />
 
-        <Action label="open it full screen" onClick={() => focus(item.id)}>
+        <Action label={t("open it full screen")} onClick={() => focus(item.id)}>
           <Maximize2 className="size-4" strokeWidth={2.2} />
         </Action>
 
@@ -181,23 +178,23 @@ function DeskStrip({ item, readOnly }: { item: AnyItem; readOnly: boolean }) {
         {/* Far to near. The outer two clear the whole pile; the inner two step
             past a single neighbour, which is what you want when something is
             hiding behind one particular photo. */}
-        <Action label="send to the back" onClick={() => void restack(item.id, "back")}>
+        <Action label={t("send to the back")} onClick={() => void restack(item.id, "back")}>
           <SendToBack className="size-4" strokeWidth={2.2} />
         </Action>
-        <Action label="one step back" onClick={() => void restack(item.id, "backward")}>
+        <Action label={t("one step back")} onClick={() => void restack(item.id, "backward")}>
           <ChevronDown className="size-4" strokeWidth={2.2} />
         </Action>
-        <Action label="one step forward" onClick={() => void restack(item.id, "forward")}>
+        <Action label={t("one step forward")} onClick={() => void restack(item.id, "forward")}>
           <ChevronUp className="size-4" strokeWidth={2.2} />
         </Action>
-        <Action label="bring to the front" onClick={() => void restack(item.id, "front")}>
+        <Action label={t("bring to the front")} onClick={() => void restack(item.id, "front")}>
           <BringToFront className="size-4" strokeWidth={2.2} />
         </Action>
 
         <Divider />
 
         <Action
-          label={pinned ? "unpin" : "pin where it is"}
+          label={pinned ? t("unpin") : t("pin where it is")}
           active={pinned}
           onClick={() => void updateData(item.id, { ...item.data, pinned: !pinned })}
         >
@@ -205,7 +202,7 @@ function DeskStrip({ item, readOnly }: { item: AnyItem; readOnly: boolean }) {
         </Action>
         <LinkActions item={item} />
 
-        <Action label="duplicate" onClick={() => void duplicateItem(item.id)}>
+        <Action label={t("duplicate")} onClick={() => void duplicateItem(item.id)}>
           <Copy className="size-4" strokeWidth={2.2} />
         </Action>
         <Action label="remove" danger onClick={() => void deleteItem(item.id)}>
@@ -236,17 +233,15 @@ function ThumbBar({ item, readOnly }: { item: AnyItem; readOnly: boolean }) {
         <div className="mb-1.5 flex items-center gap-2 px-1">
           <span className="min-w-0 truncate text-[11px] font-medium text-muted">
             {KIND_NAME[item.kind]}
-            {readOnly && <span className="text-warm"> · the room is locked</span>}
-            {!readOnly && pinned && <span className="text-warm"> · stuck to the wall</span>}
+            {readOnly && <span className="text-warm">{" "}{t("· the room is locked")}</span>}
+            {!readOnly && pinned && <span className="text-warm">{" "}{t("· stuck to the wall")}</span>}
           </span>
           <button
             type="button"
             onClick={() => select(null)}
             className="ml-auto flex min-h-8 shrink-0 items-center gap-1 rounded-lg px-2 text-[11px] font-medium text-muted transition active:bg-white/10"
           >
-            <Check className="size-3.5" strokeWidth={2.4} />
-            done
-          </button>
+            <Check className="size-3.5" strokeWidth={2.4} />{t("done")}</button>
         </div>
 
         <div className="flex items-stretch gap-1.5">
@@ -255,12 +250,10 @@ function ThumbBar({ item, readOnly }: { item: AnyItem; readOnly: boolean }) {
             onClick={() => focus(item.id)}
             className="flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-glow/20 px-3 text-[13px] font-semibold text-glow transition active:bg-glow/30"
           >
-            <Maximize2 className="size-4" strokeWidth={2.4} />
-            open
-          </button>
+            <Maximize2 className="size-4" strokeWidth={2.4} />{t("open")}</button>
 
           {!readOnly && !pinned && (item.kind === "note" || item.kind === "text") && (
-            <ThumbAction label="write" onClick={() => setEditing(item.id)}>
+            <ThumbAction label={t("write")} onClick={() => setEditing(item.id)}>
               <Pencil className="size-4.5" strokeWidth={2.2} />
             </ThumbAction>
           )}
@@ -268,7 +261,7 @@ function ThumbBar({ item, readOnly }: { item: AnyItem; readOnly: boolean }) {
           {!readOnly && (
             <>
               <ThumbAction
-                label={pinned ? "unpin" : "pin"}
+                label={pinned ? t("unpin") : t("pin")}
                 active={pinned}
                 onClick={() => void updateData(item.id, { ...item.data, pinned: !pinned })}
               >
@@ -277,11 +270,11 @@ function ThumbBar({ item, readOnly }: { item: AnyItem; readOnly: boolean }) {
 
               <LinkActions item={item} thumb />
 
-              <ThumbAction label="copy" onClick={() => void duplicateItem(item.id)}>
+              <ThumbAction label={t("copy")} onClick={() => void duplicateItem(item.id)}>
                 <Copy className="size-4.5" strokeWidth={2.2} />
               </ThumbAction>
 
-              <ThumbAction label="delete" danger onClick={() => void deleteItem(item.id)}>
+              <ThumbAction label={t("delete")} danger onClick={() => void deleteItem(item.id)}>
                 <Trash2 className="size-4.5" strokeWidth={2.2} />
               </ThumbAction>
             </>
@@ -292,17 +285,17 @@ function ThumbBar({ item, readOnly }: { item: AnyItem; readOnly: boolean }) {
             on a row that scrolls rather than one that squeezes. */}
         {!readOnly && (
           <div className="-mx-1 mt-1.5 flex items-center gap-1 overflow-x-auto px-1 pb-0.5">
-            <span className="shrink-0 pr-0.5 text-[10px] text-muted/55">layer</span>
-            <ThumbAction small label="to back" onClick={() => void restack(item.id, "back")}>
+            <span className="shrink-0 pr-0.5 text-[10px] text-muted/55">{t("layer")}</span>
+            <ThumbAction small label={t("to back")} onClick={() => void restack(item.id, "back")}>
               <SendToBack className="size-4" strokeWidth={2.2} />
             </ThumbAction>
-            <ThumbAction small label="back" onClick={() => void restack(item.id, "backward")}>
+            <ThumbAction small label={t("back")} onClick={() => void restack(item.id, "backward")}>
               <ChevronDown className="size-4" strokeWidth={2.2} />
             </ThumbAction>
-            <ThumbAction small label="forward" onClick={() => void restack(item.id, "forward")}>
+            <ThumbAction small label={t("forward")} onClick={() => void restack(item.id, "forward")}>
               <ChevronUp className="size-4" strokeWidth={2.2} />
             </ThumbAction>
-            <ThumbAction small label="to front" onClick={() => void restack(item.id, "front")}>
+            <ThumbAction small label={t("to front")} onClick={() => void restack(item.id, "front")}>
               <BringToFront className="size-4" strokeWidth={2.2} />
             </ThumbAction>
 
@@ -383,8 +376,8 @@ function TextControls({ item }: { item: Item<"text"> }) {
         onChange={(event) =>
           void updateData(item.id, { ...data, size: Number(event.target.value) })
         }
-        aria-label="text size"
-        title="size"
+        aria-label={t("text size")}
+        title={t("size")}
         className="h-1 w-20 shrink-0 cursor-pointer appearance-none rounded-full bg-white/15 accent-glow"
       />
 
@@ -420,13 +413,13 @@ function TextControls({ item }: { item: Item<"text"> }) {
         onChange={(event) =>
           void updateData(item.id, { ...data, effect: event.target.value as TextEffect })
         }
-        aria-label="text effect"
-        title="effect"
+        aria-label={t("text effect")}
+        title={t("effect")}
         className="h-8 shrink-0 cursor-pointer rounded-xl bg-white/7 px-2 text-[11px] text-muted ring-1 ring-white/10 outline-none focus:ring-glow/45"
       >
         {TEXT_EFFECTS.map((effect) => (
           <option key={effect.id} value={effect.id} className="bg-ink-900 text-chalk">
-            {effect.label}
+            {t(effect.label)}
           </option>
         ))}
       </select>
@@ -462,7 +455,7 @@ function ImageControls({ item }: { item: Item<"image"> }) {
               : "text-muted hover:bg-white/8 hover:text-chalk",
           )}
         >
-          {frame.label}
+          {t(frame.label)}
         </button>
       ))}
     </>
@@ -490,11 +483,11 @@ function LinkActions({ item, thumb }: { item: AnyItem; thumb?: boolean }) {
   const icon = group ? <Unlink2 className={size} strokeWidth={2.2} /> : <Link2 className={size} strokeWidth={2.2} />;
   const run = () => (group ? letGo() : setLinking(item.id));
   return thumb ? (
-    <ThumbAction label={group ? "untie" : "tie to"} onClick={run}>
+    <ThumbAction label={group ? t("untie") : t("tie to")} onClick={run}>
       {icon}
     </ThumbAction>
   ) : (
-    <Action label={group ? "untie it from the others" : "tie it to something, so they move together"} active={Boolean(group)} onClick={run}>
+    <Action label={group ? t("untie it from the others") : t("tie it to something, so they move together")} active={Boolean(group)} onClick={run}>
       {icon}
     </Action>
   );
@@ -547,18 +540,18 @@ function TokenControls({ item }: { item: Item<"token"> }) {
         key={data.label}
         defaultValue={data.label}
         maxLength={24}
-        placeholder="name"
+        placeholder={t("name")}
         onBlur={(event) => event.target.value !== data.label && save({ label: event.target.value.trim() })}
         onKeyDown={(event) => event.key === "Enter" && (event.target as HTMLInputElement).blur()}
         className="h-8 w-24 shrink-0 rounded-lg bg-white/8 px-2 text-[12px] text-chalk outline-none placeholder:text-muted/50"
       />
       <Swatches values={TOKEN_COLORS} active={data.color} onPick={(color) => save({ color })} />
-      <Action label={data.shape === "round" ? "make it square" : "make it round"} onClick={() => save({ shape: data.shape === "round" ? "square" : "round" })}>
+      <Action label={data.shape === "round" ? t("make it square") : t("make it round")} onClick={() => save({ shape: data.shape === "round" ? "square" : "round" })}>
         <Square className="size-4" strokeWidth={2.2} />
       </Action>
-      <PicturePick label="put a picture on it" onPicked={(image) => save({ image })} />
+      <PicturePick label={t("put a picture on it")} onPicked={(image) => save({ image })} />
       {data.image && (
-        <Action label="take the picture off" onClick={() => save({ image: undefined })}>
+        <Action label={t("take the picture off")} onClick={() => save({ image: undefined })}>
           <Trash2 className="size-4" strokeWidth={2.2} />
         </Action>
       )}
@@ -573,17 +566,17 @@ function GridControls({ item }: { item: Item<"grid"> }) {
   const cell = data.cell ?? 48;
   return (
     <>
-      <Action label="squares" active={data.shape !== "hex"} onClick={() => save({ shape: "square" })}>
+      <Action label={t("squares")} active={data.shape !== "hex"} onClick={() => save({ shape: "square" })}>
         <Square className="size-4" strokeWidth={2.2} />
       </Action>
-      <Action label="hexes" active={data.shape === "hex"} onClick={() => save({ shape: "hex" })}>
+      <Action label={t("hexes")} active={data.shape === "hex"} onClick={() => save({ shape: "hex" })}>
         <Hexagon className="size-4" strokeWidth={2.2} />
       </Action>
-      <Action label="smaller cells" onClick={() => save({ cell: Math.max(MIN_CELL, cell - 4) })}>
+      <Action label={t("smaller cells")} onClick={() => save({ cell: Math.max(MIN_CELL, cell - 4) })}>
         <Minus className="size-4" strokeWidth={2.2} />
       </Action>
       <span className="w-7 shrink-0 text-center text-[11px] tabular-nums text-muted">{cell}</span>
-      <Action label="bigger cells" onClick={() => save({ cell: Math.min(MAX_CELL, cell + 4) })}>
+      <Action label={t("bigger cells")} onClick={() => save({ cell: Math.min(MAX_CELL, cell + 4) })}>
         <Plus className="size-4" strokeWidth={2.2} />
       </Action>
       {data.shape !== "hex" && (
@@ -599,9 +592,9 @@ function GridControls({ item }: { item: Item<"grid"> }) {
         </button>
       )}
       <Swatches values={["#f4efe6", "#100d16", "#f6c177", "#8bc7e8"]} active={data.color} onPick={(color) => save({ color })} />
-      <PicturePick label="put a map under it" onPicked={(image) => save({ image })} />
+      <PicturePick label={t("put a map under it")} onPicked={(image) => save({ image })} />
       {data.image && (
-        <Action label="take the map away" onClick={() => save({ image: undefined })}>
+        <Action label={t("take the map away")} onClick={() => save({ image: undefined })}>
           <Trash2 className="size-4" strokeWidth={2.2} />
         </Action>
       )}
@@ -625,7 +618,7 @@ function Swatches({
           key={value}
           type="button"
           onClick={() => onPick(value)}
-          aria-label={`colour ${value}`}
+          aria-label={t(`colour ${value}`)}
           className={clsx(
             "size-6 shrink-0 rounded-full transition hover:scale-110 sm:size-5",
             active === value && "ring-2 ring-chalk ring-offset-2 ring-offset-ink-800",

@@ -23,6 +23,7 @@ import {
   unmasked,
 } from "@/lib/spyfall";
 import type { Item, SpyfallState } from "@/lib/types";
+import { t } from "@/lib/i18n";
 
 /**
  * Spyfall. Everybody is somewhere together and knows what they do there --
@@ -165,18 +166,18 @@ export default function Spyfall({ item, state }: { item: Item<"game">; state: Sp
             type="button"
             disabled={!canEdit || state.seatCount <= MIN_SEATS}
             onClick={() => resize(-1)}
-            aria-label="one chair fewer"
+            aria-label={t("one chair fewer")}
             className="grid size-7 place-items-center rounded transition hover:bg-white/10 hover:text-chalk disabled:opacity-30"
           >
             <Minus className="size-3" strokeWidth={2.6} />
           </button>
           <span className="tabular-nums text-chalk">{state.seatCount}</span>
-          <span>chairs</span>
+          <span>{t("chairs")}</span>
           <button
             type="button"
             disabled={!canEdit || state.seatCount >= MAX_SEATS}
             onClick={() => resize(1)}
-            aria-label="one chair more"
+            aria-label={t("one chair more")}
             className="grid size-7 place-items-center rounded transition hover:bg-white/10 hover:text-chalk disabled:opacity-30"
           >
             <Plus className="size-3" strokeWidth={2.6} />
@@ -187,16 +188,15 @@ export default function Spyfall({ item, state }: { item: Item<"game">; state: Sp
           type="button"
           disabled={!canEdit}
           onClick={() => write({ ...state, pack: state.pack === "en" ? "pt" : "en", called: false })}
-          title="switch the list of places"
+          title={t("switch the list of places")}
           className="flex items-center gap-1 rounded-lg px-1.5 py-1 transition hover:bg-white/8 hover:text-chalk disabled:opacity-40"
         >
           <Languages className="size-3" strokeWidth={2.2} />
-          {state.pack === "en" ? "english" : "portugues"}
+          {state.pack === "en" ? t("english") : t("portugues")}
         </button>
 
         <span className="ml-auto flex items-center gap-1.5">
-          <span className="text-muted/50">
-            spy {state.wins.spy} · table {state.wins.table}
+          <span className="text-muted/50">{t("spy")}{" "}{state.wins.spy}{" "}{t("· table")}{" "}{state.wins.table}
           </span>
           <span className={clsx("tabular-nums", expired ? "font-semibold text-warm" : "text-chalk")}>
             {clock(left)}
@@ -212,7 +212,7 @@ export default function Spyfall({ item, state }: { item: Item<"game">; state: Sp
                 seconds: state.startedAt === null ? state.seconds : left,
               })
             }
-            aria-label={state.startedAt === null ? "start the clock" : "stop the clock"}
+            aria-label={state.startedAt === null ? t("start the clock") : t("stop the clock")}
             className="grid size-7 place-items-center rounded-lg transition hover:bg-white/10 hover:text-chalk disabled:opacity-30"
           >
             {state.startedAt === null ? (
@@ -236,7 +236,7 @@ export default function Spyfall({ item, state }: { item: Item<"game">; state: Sp
               type="button"
               disabled={!canEdit || !me}
               onClick={() => me && write({ ...state, ...claimChair(state.seats, holders, chair, me) })}
-              title={who ? (isMine ? "stand up" : who) : "sit here"}
+              title={who ? (isMine ? t("stand up") : who) : t("sit here")}
               className={clsx(
                 "flex min-h-9 min-w-0 flex-1 basis-24 items-center gap-1.5 rounded-xl px-2 py-1.5 text-left transition disabled:opacity-50",
                 caught ? "bg-warm/20 ring-1 ring-warm/50" : "bg-white/5 hover:bg-white/9",
@@ -246,15 +246,15 @@ export default function Spyfall({ item, state }: { item: Item<"game">; state: Sp
                 {who ? (
                   <span className={isMine ? "text-chalk" : "text-muted"}>{who}</span>
                 ) : (
-                  <span className="text-muted/55">seat {index + 1}</span>
+                  <span className="text-muted/55">{t("seat")}{" "}{index + 1}</span>
                 )}
               </span>
               {called && dealt && (
                 <span className="shrink-0 truncate text-[9px] text-muted/70">
-                  {chair === end.spy ? "the spy" : (end.roles[chair] ?? "...")}
+                  {chair === end.spy ? t("the spy") : (end.roles[chair] ?? "...")}
                 </span>
               )}
-              {!who && <span className="shrink-0 text-[9px] text-muted/35">open</span>}
+              {!who && <span className="shrink-0 text-[9px] text-muted/35">{t("open")}</span>}
             </button>
           );
         })}
@@ -263,27 +263,24 @@ export default function Spyfall({ item, state }: { item: Item<"game">; state: Sp
       {/* What you were told */}
       <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto rounded-xl bg-ink-950/25 p-2 inset-ring inset-ring-white/6">
         {!dealt ? (
-          <p className="my-auto text-center text-[11px] text-muted/50">
-            everyone sits down, then deal to send them somewhere
-          </p>
+          <p className="my-auto text-center text-[11px] text-muted/50">{t("everyone sits down, then deal to send them somewhere")}</p>
         ) : called ? (
           <div className="my-auto text-center">
             {end.waitingOn.length > 0 ? (
-              <p className="text-[11px] text-muted/60">turning the cards over...</p>
+              <p className="text-[11px] text-muted/60">{t("turning the cards over...")}</p>
             ) : (
               <>
-                <p className="text-[11px] text-muted/60">everyone was at the</p>
+                <p className="text-[11px] text-muted/60">{t("everyone was at the")}</p>
                 <p className="text-sm font-semibold text-chalk">{end.place ?? "?"}</p>
                 <p className="mt-1 text-[11px] text-warm">
-                  {end.spy ? label(end.spy) : "somebody"} was the spy
-                </p>
+                  {end.spy ? label(end.spy) : t("somebody")}{" "}{t("was the spy")}</p>
               </>
             )}
           </div>
         ) : (
           <>
             <p className="text-[10px] text-muted/60">
-              {expired ? "time is up -- last chance to accuse" : "ask each other questions. Nothing written down."}
+              {expired ? t("time is up -- last chance to accuse") : t("ask each other questions. Nothing written down.")}
             </p>
 
             {/* Your own card, or an empty chair's on a phone passed round. It
@@ -300,11 +297,11 @@ export default function Spyfall({ item, state }: { item: Item<"game">; state: Sp
                   )}
                 >
                   <Eye className="size-3.5" strokeWidth={2.2} />
-                  {myChair ? "your card" : label(chair)}
+                  {myChair ? t("your card") : label(chair)}
                 </button>
               ))}
               {lookable.length === 0 && (
-                <p className="text-[11px] text-muted/50">you are watching this round</p>
+                <p className="text-[11px] text-muted/50">{t("you are watching this round")}</p>
               )}
             </div>
 
@@ -321,16 +318,12 @@ export default function Spyfall({ item, state }: { item: Item<"game">; state: Sp
                   type="button"
                   onClick={() => callIt(true)}
                   className="min-h-9 rounded-lg bg-white/8 px-2.5 py-1.5 text-[11px] text-chalk transition hover:bg-white/12"
-                >
-                  we caught the spy
-                </button>
+                >{t("we caught the spy")}</button>
                 <button
                   type="button"
                   onClick={() => callIt(false)}
                   className="min-h-9 rounded-lg bg-warm/15 px-2.5 py-1.5 text-[11px] text-warm transition hover:bg-warm/25"
-                >
-                  the spy got away
-                </button>
+                >{t("the spy got away")}</button>
               </div>
             )}
           </>
@@ -344,14 +337,14 @@ export default function Spyfall({ item, state }: { item: Item<"game">; state: Sp
           className="flex min-w-0 flex-1 items-center gap-1.5 truncate rounded-lg px-1.5 py-1 text-left text-[10px] text-muted transition hover:bg-white/8 hover:text-chalk"
         >
           <MapPin className="size-3 shrink-0" strokeWidth={2.2} />
-          <span className="truncate">all {pack.length} places</span>
+          <span className="truncate">{t("all")}{" "}{pack.length}{" "}{t("places")}</span>
         </button>
         <button
           type="button"
           disabled={!canEdit || busy}
           onClick={() => void newRound()}
-          aria-label="deal a new round"
-          title="deal a new round"
+          aria-label={t("deal a new round")}
+          title={t("deal a new round")}
           className="grid size-9 shrink-0 place-items-center rounded-lg text-muted transition hover:bg-white/8 hover:text-chalk disabled:opacity-40 sm:size-8"
         >
           <RotateCcw className="size-3.5" strokeWidth={2.2} />
@@ -361,14 +354,12 @@ export default function Spyfall({ item, state }: { item: Item<"game">; state: Sp
       {places && (
         <div className="absolute inset-0 z-10 flex flex-col rounded-2xl bg-ink-950/94 p-2.5 backdrop-blur-sm">
           <div className="mb-2 flex shrink-0 items-center justify-between">
-            <h3 className="text-[11px] font-semibold text-chalk">where it might be</h3>
+            <h3 className="text-[11px] font-semibold text-chalk">{t("where it might be")}</h3>
             <button
               type="button"
               onClick={() => setPlaces(false)}
               className="min-h-8 rounded-lg px-2 py-1 text-[10px] text-muted transition hover:bg-white/8 hover:text-chalk"
-            >
-              close
-            </button>
+            >{t("close")}</button>
           </div>
           <div className="grid min-h-0 flex-1 grid-cols-2 gap-x-2 gap-y-0.5 overflow-y-auto text-[11px] text-muted">
             {pack.map((place) => (

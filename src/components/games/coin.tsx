@@ -8,6 +8,7 @@ import { useRoomStore } from "@/state/room-store";
 import { newId } from "@/lib/slug";
 import { LABEL_MAX, METALS, emptyCoin, faceLabel, flip, streak, type CoinState, type Metal, type Side } from "@/lib/coin";
 import type { Item } from "@/lib/types";
+import { t } from "@/lib/i18n";
 
 const METAL: Record<Metal, { face: string; rim: string; ink: string }> = {
   gold: { face: "radial-gradient(circle at 35% 30%, #fde6b0 0%, #f6c177 38%, #b98236 100%)", rim: "#8c5f22", ink: "#5a3a10" },
@@ -80,7 +81,7 @@ export default function Coin({ item, state: raw }: { item: Item<"game">; state: 
         type="button"
         onClick={() => setEditing(true)}
         disabled={!canEdit}
-        aria-label="change the coin"
+        aria-label={t("change the coin")}
         className="absolute top-2 right-2 z-10 grid size-9 place-items-center rounded-lg text-muted transition hover:bg-white/8 hover:text-chalk disabled:opacity-30"
       >
         <Settings2 className="size-4" />
@@ -94,7 +95,7 @@ export default function Coin({ item, state: raw }: { item: Item<"game">; state: 
           type="button"
           onClick={toss}
           disabled={!canEdit || flying}
-          aria-label="flip the coin"
+          aria-label={t("flip the coin")}
           className="relative aspect-square w-[min(9rem,60%)] rounded-full outline-none [perspective:700px] focus-visible:ring-2 focus-visible:ring-glow"
         >
           <div
@@ -133,17 +134,15 @@ export default function Coin({ item, state: raw }: { item: Item<"game">; state: 
           <>
             <p className="animate-drift-in text-[20px] leading-none font-bold text-chalk">{name(latest.side)}</p>
             <p className="mt-1 text-[10px] text-muted">
-              {latest.by} flipped it
-              {run && run.length > 1 && (
+              {latest.by}{" "}{t("flipped it")}{run && run.length > 1 && (
                 <>
                   {" "}
-                  · {run.length} {name(run.side)} in a row
-                </>
+                  · {run.length} {name(run.side)}{" "}{t("in a row")}</>
               )}
             </p>
           </>
         ) : (
-          <p className="text-[11px] text-muted/60">{flying ? "..." : "tap the coin"}</p>
+          <p className="text-[11px] text-muted/60">{flying ? "..." : t("tap the coin")}</p>
         )}
       </div>
 
@@ -166,8 +165,8 @@ export default function Coin({ item, state: raw }: { item: Item<"game">; state: 
       {editing && (
         <div className="absolute inset-0 z-20 flex flex-col gap-3 rounded-2xl bg-ink-950/95 p-3 backdrop-blur-sm">
           <div className="flex items-center justify-between">
-            <h3 className="text-[12px] font-semibold text-chalk">the coin</h3>
-            <button type="button" onClick={() => setEditing(false)} aria-label="close" className="grid size-9 place-items-center rounded-lg text-muted hover:bg-white/8 hover:text-chalk">
+            <h3 className="text-[12px] font-semibold text-chalk">{t("the coin")}</h3>
+            <button type="button" onClick={() => setEditing(false)} aria-label={t("close")} className="grid size-9 place-items-center rounded-lg text-muted hover:bg-white/8 hover:text-chalk">
               <X className="size-4" />
             </button>
           </div>
@@ -200,9 +199,7 @@ export default function Coin({ item, state: raw }: { item: Item<"game">; state: 
             type="button"
             onClick={() => void write({ ...state, flips: [], tally: { heads: 0, tails: 0 } })}
             className="mt-auto min-h-9 rounded-lg text-[11px] text-muted hover:bg-white/8 hover:text-chalk"
-          >
-            forget the flips so far
-          </button>
+          >{t("forget the flips so far")}</button>
         </div>
       )}
     </div>

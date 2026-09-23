@@ -2,6 +2,7 @@
 
 import clsx from "clsx";
 import type { Face } from "@/lib/bang";
+import { t } from "@/lib/i18n";
 
 const INK = "#1a1420";
 const RED = "#b3261e";
@@ -109,7 +110,7 @@ export default function BangDie({
           )}
         </svg>
         {locked && (
-          <span className="absolute -top-1 -right-1 grid size-4 place-items-center rounded-full bg-[#b3261e] text-[8px] font-bold text-white" aria-label="locked">
+          <span className="absolute -top-1 -right-1 grid size-4 place-items-center rounded-full bg-[#b3261e] text-[8px] font-bold text-white" aria-label={t("locked")}>
             !
           </span>
         )}

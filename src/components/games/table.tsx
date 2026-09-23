@@ -3,6 +3,7 @@
 import clsx from "clsx";
 import { RotateCcw, Users } from "lucide-react";
 import { isOpenTable, type Seats } from "@/lib/seats";
+import { t } from "@/lib/i18n";
 
 /**
  * The shell every board game sits in: chairs along the top, the board in the
@@ -65,7 +66,7 @@ export default function GameTable<K extends string>({
           {open && !over && (
             <Users className="size-3.5 shrink-0 text-muted/60" strokeWidth={2.2} />
           )}
-          <span className="truncate">{status}</span>
+          <span className="truncate">{t(status)}</span>
         </p>
 
         <div className="flex shrink-0 items-center gap-2">
@@ -75,8 +76,8 @@ export default function GameTable<K extends string>({
               type="button"
               disabled={!canEdit}
               onClick={onRestart}
-              aria-label="new game"
-              title="new game"
+              aria-label={t("new game")}
+              title={t("new game")}
               className="grid size-8 place-items-center rounded-lg text-muted transition hover:bg-white/8 hover:text-chalk disabled:opacity-40 sm:size-7"
             >
               <RotateCcw className="size-3.5" strokeWidth={2.2} />
@@ -111,7 +112,7 @@ function Chair({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      title={who ? (mine ? "stand up" : who) : `sit as ${label}`}
+      title={who ? (mine ? t("stand up") : who) : t(`sit as ${label}`)}
       className={clsx(
         "flex min-h-9 min-w-0 flex-1 items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-left transition disabled:opacity-50",
         active ? "bg-white/12 ring-1 ring-glow/45" : "bg-white/5 hover:bg-white/9",
@@ -128,10 +129,10 @@ function Chair({
         {who ? (
           <span className={mine ? "text-chalk" : "text-muted"}>{who}</span>
         ) : (
-          <span className="text-muted/60">{label} &middot; open</span>
+          <span className="text-muted/60">{label}{" "}{t("· open")}</span>
         )}
       </span>
-      {mine && <span className="shrink-0 text-[10px] font-medium text-glow">you</span>}
+      {mine && <span className="shrink-0 text-[10px] font-medium text-glow">{t("you")}</span>}
     </button>
   );
 }

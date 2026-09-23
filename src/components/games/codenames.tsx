@@ -27,6 +27,7 @@ import {
 } from "@/lib/codenames";
 import type { CodenamesState, Item } from "@/lib/types";
 import RulesSheet from "./rules-sheet";
+import { t } from "@/lib/i18n";
 
 const TEAM_TINT: Record<Team, string> = { red: "#e0655c", blue: "#6aa9e0" };
 
@@ -187,7 +188,7 @@ export default function Codenames({
               type="button"
               disabled={!canEdit || !me}
               onClick={() => me && void write({ ...state, ...claimChair(state.seats, holders, chair, me) })}
-              title={who ? (isMine ? "stand up" : who) : `become the ${team} spymaster`}
+              title={who ? (isMine ? t("stand up") : who) : t(`become the ${team} spymaster`)}
               className={clsx(
                 "flex min-h-10 min-w-0 flex-1 items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-left transition disabled:opacity-50",
                 state.turn === team && !over && dealt ? "bg-white/12 ring-1 ring-glow/45" : "bg-white/5 hover:bg-white/9",
@@ -195,7 +196,7 @@ export default function Codenames({
             >
               <span className="size-3 shrink-0 rounded-full ring-1 ring-white/25" style={{ background: TEAM_TINT[team] }} />
               <span className="min-w-0 flex-1 truncate text-[11px]">
-                {who ? <span className={isMine ? "text-chalk" : "text-muted"}>{who}</span> : <span className="text-muted/55">{team} spymaster</span>}
+                {who ? <span className={isMine ? "text-chalk" : "text-muted"}>{who}</span> : <span className="text-muted/55">{team}{" "}{t("spymaster")}</span>}
               </span>
               {dealt && (
                 <span className="shrink-0 text-[11px] font-semibold tabular-nums text-muted">
@@ -205,7 +206,7 @@ export default function Codenames({
             </button>
           );
         })}
-        <button type="button" onClick={() => setRules(true)} aria-label="rules" className="grid size-10 shrink-0 place-items-center rounded-xl text-muted hover:bg-white/8 hover:text-chalk">
+        <button type="button" onClick={() => setRules(true)} aria-label={t("rules")} className="grid size-10 shrink-0 place-items-center rounded-xl text-muted hover:bg-white/8 hover:text-chalk">
           <BookOpen className="size-4" />
         </button>
       </div>
@@ -239,9 +240,7 @@ export default function Codenames({
           );
         })}
         {state.words.length === 0 && (
-          <p className="col-span-5 my-auto text-center text-[11px] text-muted/50">
-            spymasters sit down first -- the key is dealt to whoever is in those chairs
-          </p>
+          <p className="col-span-5 my-auto text-center text-[11px] text-muted/50">{t("spymasters sit down first -- the key is dealt to whoever is in those chairs")}</p>
         )}
       </div>
 
@@ -250,10 +249,10 @@ export default function Codenames({
         <p className="min-w-0 flex-1 truncate text-xs font-medium text-muted">
           {state.clue && !over ? (
             <span className="text-chalk">
-              {state.clue.word} <span className="text-muted">for {state.clue.count}</span>
+              {state.clue.word} <span className="text-muted">{t("for")}{" "}{state.clue.count}</span>
             </span>
           ) : (
-            status
+            t(status)
           )}
         </p>
 
@@ -261,7 +260,7 @@ export default function Codenames({
           <button
             type="button"
             onClick={() => setShowKey((v) => !v)}
-            title={showKey ? "hide the key" : "show the key"}
+            title={showKey ? t("hide the key") : t("show the key")}
             className={clsx(
               "grid size-9 shrink-0 place-items-center rounded-lg transition sm:size-8",
               showKey ? "bg-glow/22 text-glow" : "text-muted hover:bg-white/8 hover:text-chalk",
@@ -272,7 +271,7 @@ export default function Codenames({
         )}
 
         {!over && dealt && (
-          <button type="button" disabled={!canEdit || busy} onClick={() => void endTurn()} title="hand the turn over" aria-label="hand the turn over" className="grid size-9 shrink-0 place-items-center rounded-lg text-muted transition hover:bg-white/8 hover:text-chalk disabled:opacity-40 sm:size-8">
+          <button type="button" disabled={!canEdit || busy} onClick={() => void endTurn()} title={t("hand the turn over")} aria-label={t("hand the turn over")} className="grid size-9 shrink-0 place-items-center rounded-lg text-muted transition hover:bg-white/8 hover:text-chalk disabled:opacity-40 sm:size-8">
             <SkipForward className="size-3.5" strokeWidth={2.2} />
           </button>
         )}
@@ -281,13 +280,13 @@ export default function Codenames({
           type="button"
           disabled={!canEdit || busy}
           onClick={() => void deal(state.pack === "en" ? "pt" : "en")}
-          title={`switch to ${PACK_NAME[state.pack === "en" ? "pt" : "en"]} and deal`}
+          title={t(`switch to ${PACK_NAME[state.pack === "en" ? "pt" : "en"]} and deal`)}
           className="min-h-9 shrink-0 rounded-lg px-2 py-1.5 text-[10px] font-medium text-muted transition hover:bg-white/8 hover:text-chalk disabled:opacity-40"
         >
           {PACK_NAME[state.pack]}
         </button>
 
-        <button type="button" disabled={!canEdit || busy} onClick={() => void deal(state.pack)} aria-label="new board" title="new board" className="grid size-9 shrink-0 place-items-center rounded-lg text-muted transition hover:bg-white/8 hover:text-chalk disabled:opacity-40 sm:size-8">
+        <button type="button" disabled={!canEdit || busy} onClick={() => void deal(state.pack)} aria-label={t("new board")} title={t("new board")} className="grid size-9 shrink-0 place-items-center rounded-lg text-muted transition hover:bg-white/8 hover:text-chalk disabled:opacity-40 sm:size-8">
           <RotateCcw className="size-3.5" strokeWidth={2.2} />
         </button>
       </div>
@@ -298,17 +297,10 @@ export default function Codenames({
       )}
 
       {rules && (
-        <RulesSheet title="how codenames goes" onClose={() => setRules(false)}>
-          <p>
-            Two teams, red and blue. Each has a <b>spymaster</b> who can see which of the twenty five words
-            belong to which side -- nobody else can, not even whoever dealt.
-          </p>
-          <p>
-            On your side&apos;s turn, the spymaster gives <b>one word and a number</b>: a clue linking that many
-            of your words. Your team taps words to guess. Your own colour lets you keep going; a neutral word or
-            the other side&apos;s ends the turn; the <b>assassin</b> loses you the game on the spot.
-          </p>
-          <p>First to turn over all their words wins. The side going first has nine, the other eight.</p>
+        <RulesSheet title={t("how codenames goes")} onClose={() => setRules(false)}>
+          <p>{t("Two teams, red and blue. Each has a")}{" "}<b>{t("spymaster")}</b>{" "}{t("who can see which of the twenty five words belong to which side -- nobody else can, not even whoever dealt.")}</p>
+          <p>{t("On your side's turn, the spymaster gives")}{" "}<b>{t("one word and a number")}</b>{t(": a clue linking that many of your words. Your team taps words to guess. Your own colour lets you keep going; a neutral word or the other side's ends the turn; the")}{" "}<b>{t("assassin")}</b>{" "}{t("loses you the game on the spot.")}</p>
+          <p>{t("First to turn over all their words wins. The side going first has nine, the other eight.")}</p>
         </RulesSheet>
       )}
     </div>
@@ -335,7 +327,7 @@ function ClueBox({ onGive }: { onGive: (word: string, count: number) => void }) 
         value={word}
         onChange={(event) => setWord(event.target.value)}
         onKeyDown={(event) => event.stopPropagation()}
-        placeholder="your one word"
+        placeholder={t("your one word")}
         spellCheck={false}
         className="min-h-9 min-w-0 flex-1 rounded-lg bg-white/8 px-2.5 py-1.5 text-xs ring-1 ring-white/12 outline-none placeholder:text-muted/55 focus:ring-glow/50"
       />
@@ -346,12 +338,10 @@ function ClueBox({ onGive }: { onGive: (word: string, count: number) => void }) 
         value={count}
         onChange={(event) => setCount(Number(event.target.value))}
         onKeyDown={(event) => event.stopPropagation()}
-        aria-label="how many"
+        aria-label={t("how many")}
         className="min-h-9 w-12 rounded-lg bg-white/8 px-2 py-1.5 text-center text-xs tabular-nums ring-1 ring-white/12 outline-none focus:ring-glow/50"
       />
-      <button type="submit" className="min-h-9 shrink-0 rounded-lg bg-glow/25 px-2.5 py-1.5 text-[11px] font-medium text-glow transition hover:bg-glow/35">
-        give
-      </button>
+      <button type="submit" className="min-h-9 shrink-0 rounded-lg bg-glow/25 px-2.5 py-1.5 text-[11px] font-medium text-glow transition hover:bg-glow/35">{t("give")}</button>
     </form>
   );
 }

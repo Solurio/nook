@@ -59,6 +59,7 @@ import {
   type Trade,
 } from "@/lib/monopoly";
 import type { Item } from "@/lib/types";
+import { t as tx } from "@/lib/i18n";
 
 /** Where each of the forty squares sits on an eleven by eleven board: GO in the bottom right. */
 function spot(at: number): { row: number; col: number } {
@@ -77,8 +78,11 @@ function side(at: number): "bottom" | "left" | "top" | "right" | "corner" {
   return "right";
 }
 
-const short = (name: string) =>
-  name
+/** A square's name, cut to fit -- or, in another language, its translation. */
+function short(name: string) {
+  const local = tx(name);
+  if (local !== name) return local;
+  return name
     .replace(" Avenue", "")
     .replace(" Railroad", " RR")
     .replace("Community Chest", "Chest")
@@ -87,6 +91,7 @@ const short = (name: string) =>
     .replace("Pennsylvania", "Penn.")
     .replace(" Place", "")
     .replace("Mediterranean", "Mediterr.");
+}
 
 function SpaceIcon({ s, className }: { s: Space; className?: string }) {
   const cls = clsx("shrink-0", className);
@@ -128,7 +133,7 @@ export default function Monopoly({ item, state: raw }: { item: Item<"game">; sta
   const myChair = chairOf(state.seats, holders, me) as Chair | null;
   const open = chairs.every((c) => !state.seats[c]);
   const inGame = state.order;
-  const names = (c: Chair) => state.seats[c] ?? `player ${Number(c.slice(1)) + 1}`;
+  const names = (c: Chair) => state.seats[c] ?? tx(`player ${Number(c.slice(1)) + 1}`);
 
   /** Who this device is playing for right now: its own chair, or on an open table whoever is up. */
   const actor: Chair | null = myChair && inGame.includes(myChair) ? myChair : open ? state.turn : null;
@@ -197,9 +202,9 @@ export default function Monopoly({ item, state: raw }: { item: Item<"game">; sta
       const seated = chairs.filter((c) => state.seats[c]).length;
       return (
         <div className="flex flex-col items-center gap-2 text-center">
-          <p className="text-[13px] font-semibold text-chalk">Monopoly</p>
+          <p className="text-[13px] font-semibold text-chalk">{tx("Monopoly")}</p>
           <p className="max-w-56 text-[11px] text-muted">
-            {seated >= 2 ? `${seated} players sitting down.` : "sit down to play, or leave every chair empty and pass one device round."}
+            {seated >= 2 ? tx(`${seated} players sitting down.`) : tx("sit down to play, or leave every chair empty and pass one device round.")}
           </p>
           <div className="flex items-center gap-1">
             {[2, 3, 4, 5, 6, 8].map((n) => (
@@ -219,16 +224,14 @@ export default function Monopoly({ item, state: raw }: { item: Item<"game">; sta
             onClick={() => void save((fresh) => ({ ...fresh, jackpot: !fresh.jackpot }))}
             className={clsx("rounded-lg px-2 py-1 text-[10px]", state.jackpot ? "bg-glow/25 text-glow" : "bg-white/6 text-muted")}
           >
-            {state.jackpot ? "Free Parking collects the fines" : "Free Parking is just parking"}
+            {state.jackpot ? tx("Free Parking collects the fines") : tx("Free Parking is just parking")}
           </button>
           <button
             type="button"
             disabled={!canEdit || busy}
             onClick={start}
             className="min-h-10 rounded-xl bg-[#f3ead7] px-4 text-[12px] font-semibold text-[#2a2118] shadow disabled:opacity-40"
-          >
-            start the game
-          </button>
+          >{tx("start the game")}</button>
         </div>
       );
     }
@@ -239,7 +242,7 @@ export default function Monopoly({ item, state: raw }: { item: Item<"game">; sta
       <div className="flex w-full flex-col items-center gap-1.5 text-center">
         <p className="text-[12px] text-chalk">
           <span className="mr-1 inline-block size-2.5 rounded-full align-middle" style={{ background: p?.color }} />
-          {state.phase === "over" ? `${names(state.winner as Chair)} owns the town` : myTurn ? "your turn" : `${who}'s turn`}
+          {state.phase === "over" ? tx(`${names(state.winner as Chair)} owns the town`) : myTurn ? tx("your turn") : tx(`${who}'s turn`)}
         </p>
         {state.dice && (
           <div className="flex gap-1.5">
@@ -252,8 +255,8 @@ export default function Monopoly({ item, state: raw }: { item: Item<"game">; sta
         )}
         {drawnCard && (
           <p className="max-w-60 rounded-lg bg-[#f6e7c1] px-2 py-1 text-[10px] text-[#3a2a12] shadow">
-            <span className="font-semibold">{state.drawn?.deck === "chance" ? "Chance" : "Community Chest"}: </span>
-            {drawnCard.text}
+            <span className="font-semibold">{state.drawn?.deck === "chance" ? tx("Chance") : tx("Community Chest")}: </span>
+            {tx(drawnCard.text)}
           </p>
         )}
 
@@ -262,18 +265,16 @@ export default function Monopoly({ item, state: raw }: { item: Item<"game">; sta
           {debt && (actor === debt.who || open) && (
             <>
               <p className="w-full text-[10px] text-amber-200">
-                {names(debt.who)} owes ${-state.players[debt.who].cash}. sell houses or mortgage to raise it.
+                {names(debt.who)}{" "}{tx("owes $")}{-state.players[debt.who].cash}. sell houses or mortgage to raise it.
               </p>
-              <Act onClick={() => void save((fresh) => goBroke(fresh, debt.who, names))} danger>
-                give up
-              </Act>
+              <Act onClick={() => void save((fresh) => goBroke(fresh, debt.who, names))} danger>{tx("give up")}</Act>
             </>
           )}
           {auction && (
             <div className="flex w-full flex-col items-center gap-1 rounded-xl bg-white/6 p-1.5">
               <p className="text-[11px] text-chalk">
                 <Gavel className="mr-1 inline size-3.5" />
-                {BOARD[auction.at].name}: {auction.by ? `$${auction.bid} from ${names(auction.by)}` : "no bids yet"}
+                {BOARD[auction.at].name}: {auction.by ? tx(`$${auction.bid} from ${names(auction.by)}`) : tx("no bids yet")}
               </p>
               {open && (
                 <select
@@ -284,8 +285,7 @@ export default function Monopoly({ item, state: raw }: { item: Item<"game">; sta
                   {inGame
                     .filter((c) => !state.players[c].bankrupt)
                     .map((c) => (
-                      <option key={c} value={c}>
-                        bidding as {names(c)}
+                      <option key={c} value={c}>{tx("bidding as")}{" "}{names(c)}
                       </option>
                     ))}
                 </select>
@@ -297,42 +297,38 @@ export default function Monopoly({ item, state: raw }: { item: Item<"game">; sta
                       +${step}
                     </Act>
                   ))}
-                  <Act onClick={() => void save((fresh) => leaveAuction(fresh, bidder, names))}>drop out</Act>
+                  <Act onClick={() => void save((fresh) => leaveAuction(fresh, bidder, names))}>{tx("drop out")}</Act>
                 </div>
               )}
               {myTurn && (
-                <Act onClick={() => void save((fresh) => closeAuction(fresh, names))}>close the auction</Act>
+                <Act onClick={() => void save((fresh) => closeAuction(fresh, names))}>{tx("close the auction")}</Act>
               )}
             </div>
           )}
           {myTurn && pending?.kind === "buy" && (
             <>
-              <Act onClick={() => void save((fresh) => buy(fresh, names))} primary disabled={(state.players[state.turn]?.cash ?? 0) < (BOARD[pending.at] as { price: number }).price}>
-                buy {short(BOARD[pending.at].name)} for ${(BOARD[pending.at] as { price: number }).price}
+              <Act onClick={() => void save((fresh) => buy(fresh, names))} primary disabled={(state.players[state.turn]?.cash ?? 0) < (BOARD[pending.at] as { price: number }).price}>{tx("buy")}{" "}{short(BOARD[pending.at].name)}{" "}{tx("for $")}{(BOARD[pending.at] as { price: number }).price}
               </Act>
-              <Act onClick={() => void save((fresh) => decline(fresh, names))}>auction it</Act>
+              <Act onClick={() => void save((fresh) => decline(fresh, names))}>{tx("auction it")}</Act>
             </>
           )}
           {myTurn && state.phase === "roll" && !pending && (
             <>
               <Act onClick={() => void save((fresh) => roll(fresh, names))} primary>
-                <Dice5 className="size-4" /> {state.doubles > 0 ? "roll again" : "roll"}
+                <Dice5 className="size-4" /> {state.doubles > 0 ? tx("roll again") : tx("roll")}
               </Act>
               {p?.jailed && (
                 <>
-                  <Act onClick={() => void save((fresh) => payOut(fresh, names))} disabled={(p?.cash ?? 0) < 50}>
-                    pay $50
-                  </Act>
-                  {p.free.length > 0 && <Act onClick={() => void save((fresh) => freeCard(fresh, names))}>use the card</Act>}
+                  <Act onClick={() => void save((fresh) => payOut(fresh, names))} disabled={(p?.cash ?? 0) < 50}>{tx("pay $50")}</Act>
+                  {p.free.length > 0 && <Act onClick={() => void save((fresh) => freeCard(fresh, names))}>{tx("use the card")}</Act>}
                 </>
               )}
             </>
           )}
-          {myTurn && state.phase === "moved" && !pending && <Act onClick={() => void save((fresh) => endTurn(fresh))}>end turn</Act>}
+          {myTurn && state.phase === "moved" && !pending && <Act onClick={() => void save((fresh) => endTurn(fresh))}>{tx("end turn")}</Act>}
           {state.phase !== "over" && actor && inGame.length > 1 && (
             <Act onClick={() => setTrading(true)}>
-              <Handshake className="size-3.5" /> trade
-            </Act>
+              <Handshake className="size-3.5" />{" "}{tx("trade")}</Act>
           )}
         </div>
 
@@ -349,7 +345,7 @@ export default function Monopoly({ item, state: raw }: { item: Item<"game">; sta
         <div className="max-h-16 w-full max-w-64 overflow-y-auto text-[9px] leading-snug text-muted/80 no-scrollbar">
           {state.log.slice(0, 6).map((line, i) => (
             <p key={i} className={i === 0 ? "text-muted" : undefined}>
-              {line}
+              {tx(line)}
             </p>
           ))}
         </div>
@@ -374,7 +370,7 @@ export default function Monopoly({ item, state: raw }: { item: Item<"game">; sta
                 c === state.turn && state.phase !== "setup" ? "bg-glow/18 ring-1 ring-glow/45" : "bg-white/5",
                 p?.bankrupt && "opacity-40 line-through",
               )}
-              title={p ? `worth $${worth(state, c)}` : undefined}
+              title={p ? tx(`worth $${worth(state, c)}`) : undefined}
             >
               <span className="size-2.5 rounded-full" style={{ background: p?.color ?? TOKENS[i % TOKENS.length] }} />
               <span className={clsx("max-w-20 truncate", state.seats[c] ? "text-chalk" : "text-muted/60")}>{names(c)}</span>
@@ -508,14 +504,11 @@ export default function Monopoly({ item, state: raw }: { item: Item<"game">; sta
 
       {state.phase !== "setup" && (
         <div className="flex items-center justify-between text-[9px] text-muted/70">
-          <span>
-            houses left {housesLeft(state).houses} · hotels {housesLeft(state).hotels}
-            {state.jackpot ? ` · on Free Parking $${state.pot}` : ""}
+          <span>{tx("houses left")}{" "}{housesLeft(state).houses}{" "}{tx("· hotels")}{" "}{housesLeft(state).hotels}
+            {state.jackpot ? tx(` · on Free Parking $${state.pot}`) : ""}
           </span>
           {canEdit && (
-            <button type="button" onClick={() => void save((fresh) => ({ ...upgradeMonopoly({ version: 1 }), seats: fresh.seats, holders: fresh.holders, seatCount: fresh.seatCount, jackpot: fresh.jackpot }))} className="rounded px-1.5 hover:text-chalk">
-              new game
-            </button>
+            <button type="button" onClick={() => void save((fresh) => ({ ...upgradeMonopoly({ version: 1 }), seats: fresh.seats, holders: fresh.holders, seatCount: fresh.seatCount, jackpot: fresh.jackpot }))} className="rounded px-1.5 hover:text-chalk">{tx("new game")}</button>
           )}
         </div>
       )}
@@ -582,34 +575,34 @@ function Deed({
     <div className="absolute inset-0 z-20 grid place-items-center bg-black/30 p-3" onClick={onClose}>
       <div className="w-full max-w-64 overflow-hidden rounded-xl bg-[#fbf8ef] text-[#1f1a14] shadow-2xl" onClick={(event) => event.stopPropagation()}>
         <div className="relative px-3 py-2 text-center" style={{ background: s.kind === "street" ? GROUP_COLOR[s.group] : "#e6e0cf" }}>
-          <p className="text-[9px] tracking-widest uppercase opacity-70">{s.kind === "street" ? "title deed" : s.kind === "rail" ? "railroad" : s.kind === "utility" ? "utility" : ""}</p>
+          <p className="text-[9px] tracking-widest uppercase opacity-70">{s.kind === "street" ? tx("title deed") : s.kind === "rail" ? tx("railroad") : s.kind === "utility" ? tx("utility") : ""}</p>
           <p className="text-[14px] font-bold">{s.name}</p>
-          <button type="button" onClick={onClose} aria-label="close" className="absolute top-1.5 right-1.5 grid size-6 place-items-center rounded-full bg-black/10">
+          <button type="button" onClick={onClose} aria-label={tx("close")} className="absolute top-1.5 right-1.5 grid size-6 place-items-center rounded-full bg-black/10">
             <X className="size-3.5" />
           </button>
         </div>
         <div className="space-y-0.5 px-3 py-2 text-[11px]">
           {s.kind === "street" && (
             <>
-              <Line label="rent" value={s.rents[0]} />
-              <Line label="with the whole set" value={s.rents[0] * 2} />
+              <Line label={tx("rent")} value={s.rents[0]} />
+              <Line label={tx("with the whole set")} value={s.rents[0] * 2} />
               {[1, 2, 3, 4].map((n) => (
-                <Line key={n} label={`with ${n} house${n > 1 ? "s" : ""}`} value={s.rents[n]} />
+                <Line key={n} label={tx(`with ${n} house${n > 1 ? "s" : ""}`)} value={s.rents[n]} />
               ))}
-              <Line label="with a hotel" value={s.rents[5]} />
-              <Line label="each house costs" value={s.house} />
+              <Line label={tx("with a hotel")} value={s.rents[5]} />
+              <Line label={tx("each house costs")} value={s.house} />
             </>
           )}
-          {s.kind === "rail" && [1, 2, 3, 4].map((n) => <Line key={n} label={`${n} railroad${n > 1 ? "s" : ""} owned`} value={[25, 50, 100, 200][n - 1]} />)}
-          {s.kind === "utility" && <p className="text-[10px]">Four times the dice with one utility; ten times with both.</p>}
-          {s.kind === "tax" && <p>Pay ${s.amount}.</p>}
+          {s.kind === "rail" && [1, 2, 3, 4].map((n) => <Line key={n} label={tx(`${n} railroad${n > 1 ? "s" : ""} owned`)} value={[25, 50, 100, 200][n - 1]} />)}
+          {s.kind === "utility" && <p className="text-[10px]">{tx("Four times the dice with one utility; ten times with both.")}</p>}
+          {s.kind === "tax" && <p>{tx("Pay $")}{s.amount}.</p>}
           {!isOwnable(s) && s.kind !== "tax" && <p className="text-[10px] text-[#5a4f3f]">{describe(s)}</p>}
           {isOwnable(s) && (
             <>
-              <Line label="price" value={s.price} />
-              <Line label="mortgage value" value={Math.floor(s.price / 2)} />
+              <Line label={tx("price")} value={s.price} />
+              <Line label={tx("mortgage value")} value={Math.floor(s.price / 2)} />
               <p className="pt-1 text-[10px] text-[#5a4f3f]">
-                {d ? `${names(d.by)}'s${d.mortgaged ? ", mortgaged" : ""}${d.houses === 5 ? ", with a hotel" : d.houses ? `, ${d.houses} house${d.houses > 1 ? "s" : ""}` : ""} · rent now $${rentFor(state, at, 7)}` : "for sale"}
+                {d ? tx(`${names(d.by)}'s${d.mortgaged ? ", mortgaged" : ""}${d.houses === 5 ? ", with a hotel" : d.houses ? `, ${d.houses} house${d.houses > 1 ? "s" : ""}` : ""} · rent now $${rentFor(state, at, 7)}`) : tx("for sale")}
               </p>
             </>
           )}
@@ -619,14 +612,12 @@ function Deed({
             {s.kind === "street" && (
               <>
                 <DeedButton onClick={onBuild} disabled={Boolean(problem)} title={problem ?? ""}>
-                  {d.houses === 4 ? "build a hotel" : "build a house"}
+                  {d.houses === 4 ? tx("build a hotel") : tx("build a house")}
                 </DeedButton>
-                <DeedButton onClick={onSell} disabled={d.houses === 0}>
-                  sell a house
-                </DeedButton>
+                <DeedButton onClick={onSell} disabled={d.houses === 0}>{tx("sell a house")}</DeedButton>
               </>
             )}
-            {d.mortgaged ? <DeedButton onClick={onUnmortgage}>lift the mortgage</DeedButton> : <DeedButton onClick={onMortgage}>mortgage</DeedButton>}
+            {d.mortgaged ? <DeedButton onClick={onUnmortgage}>{tx("lift the mortgage")}</DeedButton> : <DeedButton onClick={onMortgage}>{tx("mortgage")}</DeedButton>}
             {problem && s.kind === "street" && <p className="w-full text-[9px] text-[#7a6a52]">{problem}</p>}
           </div>
         )}
@@ -676,14 +667,12 @@ function TradeView({ trade, names, canAnswer, onAnswer }: { trade: Trade; names:
   return (
     <div className="w-full max-w-64 rounded-xl bg-white/8 p-1.5 text-[10px] text-chalk">
       <p>
-        {names(trade.from)} offers {names(trade.to)} <b>{list(trade.give)}</b> for <b>{list(trade.get)}</b>
+        {names(trade.from)}{" "}{tx("offers")}{" "}{names(trade.to)} <b>{list(trade.give)}</b>{" "}{tx("for")}{" "}<b>{list(trade.get)}</b>
       </p>
       {canAnswer && (
         <div className="mt-1 flex justify-center gap-1">
-          <Act onClick={() => onAnswer(true)} primary>
-            deal
-          </Act>
-          <Act onClick={() => onAnswer(false)}>no deal</Act>
+          <Act onClick={() => onAnswer(true)} primary>{tx("deal")}</Act>
+          <Act onClick={() => onAnswer(false)}>{tx("no deal")}</Act>
         </div>
       )}
     </div>
@@ -714,7 +703,7 @@ function TradeBuilder({
       <div className="surface-raised w-full max-w-80 rounded-xl p-2 shadow-2xl" onClick={(event) => event.stopPropagation()}>
         <div className="mb-2 flex items-center gap-1">
           <Handshake className="size-4 text-glow" />
-          <span className="text-[12px] text-chalk">a trade with</span>
+          <span className="text-[12px] text-chalk">{tx("a trade with")}</span>
           <select value={to ?? ""} onChange={(event) => setTo(event.target.value as Chair)} className="h-7 rounded-md bg-white/8 px-1 text-[11px] text-chalk">
             {others.map((c) => (
               <option key={c} value={c}>
@@ -722,7 +711,7 @@ function TradeBuilder({
               </option>
             ))}
           </select>
-          <button type="button" onClick={onClose} aria-label="close" className="ml-auto grid size-7 place-items-center rounded-md text-muted hover:text-chalk">
+          <button type="button" onClick={onClose} aria-label={tx("close")} className="ml-auto grid size-7 place-items-center rounded-md text-muted hover:text-chalk">
             <X className="size-4" />
           </button>
         </div>
@@ -737,9 +726,7 @@ function TradeBuilder({
           disabled={!to}
           onClick={() => to && onSend({ from, to, give, get })}
           className="mt-2 min-h-9 w-full rounded-lg bg-[#f3ead7] text-[12px] font-semibold text-[#2a2118] disabled:opacity-40"
-        >
-          offer it
-        </button>
+        >{tx("offer it")}</button>
       </div>
     </div>
   );
@@ -763,7 +750,7 @@ function TradeColumn({
   const toggle = (at: number) => set({ ...side, squares: side.squares.includes(at) ? side.squares.filter((x) => x !== at) : [...side.squares, at] });
   return (
     <div className="min-w-0 flex-1">
-      <p className="mb-1 truncate text-[10px] text-muted">{names(who)} gives</p>
+      <p className="mb-1 truncate text-[10px] text-muted">{names(who)}{" "}{tx("gives")}</p>
       <label className="mb-1 flex items-center gap-1 text-[10px] text-muted">
         $
         <input
@@ -795,9 +782,7 @@ function TradeColumn({
             type="button"
             onClick={() => set({ ...side, free: side.free ? 0 : 1 })}
             className={clsx("w-full rounded-md px-1 py-0.5 text-left text-[10px]", side.free ? "bg-glow/25 text-glow" : "bg-white/5 text-muted")}
-          >
-            a jail card
-          </button>
+          >{tx("a jail card")}</button>
         )}
       </div>
     </div>

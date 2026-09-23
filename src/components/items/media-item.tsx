@@ -34,6 +34,7 @@ import Slider from "@/components/chrome/slider";
 import ProviderPlayer from "./players/provider-player";
 import type { PlayerControl, PlayerState } from "./players/types";
 import type { Item, MediaData, MediaProvider, MediaTrack } from "@/lib/types";
+import { t as tx } from "@/lib/i18n";
 
 /** How far the local playhead may wander before we snap it back. */
 const DRIFT_TOLERANCE_SEC = 1.4;
@@ -375,8 +376,8 @@ export default function MediaItem({
           <div className="absolute inset-0 grid place-items-center bg-ink-900 px-6 text-center">
             <div className="text-muted">
               <Music4 className="mx-auto mb-2 size-6" strokeWidth={1.7} />
-              <p className="text-sm">nothing queued yet</p>
-              <p className="mt-1 text-xs opacity-70">cola um link do youtube, soundcloud ou um .mp3</p>
+              <p className="text-sm">{tx("nothing queued yet")}</p>
+              <p className="mt-1 text-xs opacity-70">{tx("paste a youtube or soundcloud link, or an .mp3")}</p>
             </div>
           </div>
         )}
@@ -398,9 +399,7 @@ export default function MediaItem({
             }}
             className="absolute bottom-2.5 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-chalk/95 px-3 py-1.5 text-xs font-semibold text-ink-950 shadow-lg transition hover:bg-white"
           >
-            <VolumeX className="size-3.5" strokeWidth={2.4} />
-            playing muted &mdash; tap for sound
-          </button>
+            <VolumeX className="size-3.5" strokeWidth={2.4} />{tx("playing muted — tap for sound")}</button>
         )}
       </div>
 
@@ -414,7 +413,7 @@ export default function MediaItem({
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-xs font-medium">{track.title}</p>
-            <p className="truncate text-[11px] text-muted">added by {track.addedBy}</p>
+            <p className="truncate text-[11px] text-muted">{tx("added by")}{" "}{track.addedBy}</p>
           </div>
         </div>
       )}
@@ -429,7 +428,7 @@ export default function MediaItem({
 
         <div className="flex items-center gap-1.5">
           <IconButton
-            label="previous"
+            label={tx("previous")}
             disabled={!canEdit || media.index === 0}
             onClick={() => advance(media, -1)}
           >
@@ -440,7 +439,7 @@ export default function MediaItem({
             type="button"
             onClick={toggle}
             disabled={!canEdit || !track}
-            aria-label={media.playing ? "pause" : "play"}
+            aria-label={media.playing ? tx("pause") : tx("play")}
             className="grid size-9 place-items-center rounded-full bg-chalk text-ink-950 transition hover:bg-white disabled:opacity-40"
           >
             {media.playing ? (
@@ -451,7 +450,7 @@ export default function MediaItem({
           </button>
 
           <IconButton
-            label="next"
+            label={tx("next")}
             disabled={!canEdit || media.index >= media.queue.length - 1}
             onClick={() => advance(media, 1)}
           >
@@ -459,7 +458,7 @@ export default function MediaItem({
           </IconButton>
 
           <div className="mx-1 flex flex-1 items-center gap-1.5">
-            <IconButton label={muted ? "unmute" : "mute"} onClick={() => setMuted((m) => !m)}>
+            <IconButton label={muted ? tx("unmute") : tx("mute")} onClick={() => setMuted((m) => !m)}>
               {muted ? (
                 <VolumeX className="size-4" strokeWidth={2.2} />
               ) : (
@@ -467,7 +466,7 @@ export default function MediaItem({
               )}
             </IconButton>
             <Slider
-              label="volume"
+              label={tx("volume")}
               value={muted ? 0 : volume}
               onChange={(next) => {
                 setMuted(false);
@@ -478,7 +477,7 @@ export default function MediaItem({
           </div>
 
           <IconButton
-            label="audio only"
+            label={tx("audio only")}
             active={media.audioOnly}
             disabled={!canEdit}
             onClick={() => write({ ...media, audioOnly: !media.audioOnly })}
@@ -491,7 +490,7 @@ export default function MediaItem({
           </IconButton>
 
           <IconButton
-            label={media.repeat === "one" ? "repeating this track" : media.repeat === "all" ? "repeating the queue" : "repeat"}
+            label={media.repeat === "one" ? tx("repeating this track") : media.repeat === "all" ? tx("repeating the queue") : tx("repeat")}
             active={Boolean(media.repeat && media.repeat !== "off")}
             disabled={!canEdit}
             onClick={() =>
@@ -502,7 +501,7 @@ export default function MediaItem({
           </IconButton>
 
           <IconButton
-            label="queue"
+            label={tx("queue")}
             active={showQueue}
             onClick={() => setShowQueue((v) => !v)}
           >
@@ -524,14 +523,14 @@ export default function MediaItem({
                   value={adding}
                   onChange={(event) => setAdding(event.target.value)}
                   onKeyDown={(event) => event.stopPropagation()}
-                  placeholder="youtube, soundcloud or .mp3"
+                  placeholder={tx("youtube, soundcloud or .mp3")}
                   spellCheck={false}
                   className="min-w-0 flex-1 rounded-lg bg-white/8 px-2.5 py-1.5 text-xs ring-1 ring-white/10 outline-none placeholder:text-muted/60 focus:ring-glow/50"
                 />
                 {/* Dragging a file in is not a thing on a phone, so the queue
                     takes an upload directly. */}
                 <label
-                  title={uploading ? "uploading" : "upload a song or clip"}
+                  title={uploading ? tx("uploading") : tx("upload a song or clip")}
                   className="grid size-7 shrink-0 cursor-pointer place-items-center rounded-lg bg-white/8 text-muted transition hover:bg-white/12 hover:text-chalk"
                 >
                   {uploading ? (
@@ -552,7 +551,7 @@ export default function MediaItem({
                 </label>
                 <button
                   type="submit"
-                  aria-label="add to queue"
+                  aria-label={tx("add to queue")}
                   className="grid size-7 shrink-0 place-items-center rounded-lg bg-glow/25 text-glow transition hover:bg-glow/35"
                 >
                   <Plus className="size-3.5" strokeWidth={2.6} />
@@ -593,7 +592,7 @@ export default function MediaItem({
                 </li>
               ))}
               {media.queue.length === 0 && (
-                <li className="px-2 py-1.5 text-xs text-muted/60">the queue is empty</li>
+                <li className="px-2 py-1.5 text-xs text-muted/60">{tx("the queue is empty")}</li>
               )}
             </ul>
           </div>
@@ -621,7 +620,7 @@ function Scrubber({
       <span className="w-8 shrink-0 text-right">{formatClock(elapsed)}</span>
       <div
         role="slider"
-        aria-label="seek"
+        aria-label={tx("seek")}
         aria-valuemin={0}
         aria-valuemax={Math.round(duration)}
         aria-valuenow={Math.round(elapsed)}

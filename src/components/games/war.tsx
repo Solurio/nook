@@ -74,6 +74,7 @@ import DieFace from "./die-face";
 import RulesSheet from "./rules-sheet";
 import WarBoard from "./war-board";
 import WarMapEditor from "./war-map-editor";
+import { t as tx } from "@/lib/i18n";
 
 type Placed = Record<Territory, number>;
 
@@ -106,9 +107,9 @@ function TerritoryCard({ world, card, picked, onClick }: { world: WarWorld; card
         picked ? "-translate-y-1.5 border-warm shadow-[0_0_12px_rgba(246,193,119,0.35)]" : "border-white/12",
       )}
       style={info ? { borderTopColor: tint, borderTopWidth: 3 } : undefined}
-      title={info ? `${info.name}, ${continentName(world, info.continent)}` : "joker: any figure"}
+      title={info ? `${info.name}, ${continentName(world, info.continent)}` : tx("joker: any figure")}
     >
-      <span className="line-clamp-2 text-[8.5px] leading-tight text-chalk">{info ? info.name : "joker"}</span>
+      <span className="line-clamp-2 text-[8.5px] leading-tight text-chalk">{info ? info.name : tx("joker")}</span>
       {joker ? (
         <span className="flex gap-px text-warm">
           <ShapeMark shape="square" size={7} />
@@ -474,17 +475,16 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
               type="button"
               disabled={!canEdit || state.seatCount <= MIN_SEATS}
               onClick={() => void write({ ...state, seatCount: state.seatCount - 1 })}
-              aria-label="one chair fewer"
+              aria-label={tx("one chair fewer")}
               className="grid size-7 place-items-center rounded hover:bg-white/10 disabled:opacity-30"
             >
               <Minus className="size-3" strokeWidth={2.6} />
             </button>
-            <span className="tabular-nums text-chalk">{state.seatCount}</span> armies
-            <button
+            <span className="tabular-nums text-chalk">{state.seatCount}</span>{" "}{tx("armies")}<button
               type="button"
               disabled={!canEdit || state.seatCount >= MAX_SEATS}
               onClick={() => void write({ ...state, seatCount: state.seatCount + 1 })}
-              aria-label="one chair more"
+              aria-label={tx("one chair more")}
               className="grid size-7 place-items-center rounded hover:bg-white/10 disabled:opacity-30"
             >
               <Plus className="size-3" strokeWidth={2.6} />
@@ -507,12 +507,12 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
                 turn ? "bg-white/12 ring-1 ring-warm/60" : "bg-white/5",
                 out && "opacity-40",
               )}
-              title={playing ? `${held(state, chair).length} territories, ${cards} cards` : "sit here"}
+              title={playing ? tx(`${held(state, chair).length} territories, ${cards} cards`) : tx("sit here")}
             >
               <span className="size-2.5 shrink-0 rounded-full ring-1 ring-white/30" style={{ background: COLOR_HEX[color].fill }} />
               {out && <Skull className="size-3" />}
               <span className={clsx("max-w-24 truncate", chair === myChair ? "text-chalk" : "text-muted")}>
-                {state.seats[chair] ?? <span className="text-muted/50">seat {index + 1}</span>}
+                {state.seats[chair] ?? <span className="text-muted/50">{tx("seat")}{" "}{index + 1}</span>}
               </span>
               {playing && !out && (
                 <span className="tabular-nums text-muted/70">
@@ -529,11 +529,10 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
           onClick={() => setMapping(true)}
           className="ml-auto flex min-h-7 items-center gap-1 rounded-lg px-1.5 hover:bg-white/8 hover:text-chalk"
         >
-          <MapIcon className="size-3" /> {`${world.name || "map"} & rules`}
+          <MapIcon className="size-3" /> {tx(`${world.name || "map"} & rules`)}
         </button>
         <button type="button" onClick={() => setManual(true)} className="flex min-h-7 items-center gap-1 rounded-lg px-1.5 hover:bg-white/8 hover:text-chalk">
-          <BookOpen className="size-3" /> rules
-        </button>
+          <BookOpen className="size-3" />{" "}{tx("rules")}</button>
       </div>
 
       {/* The map */}
@@ -571,7 +570,7 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
                 />
               ))}
             </span>
-            <span className="text-[10px] text-muted">vs</span>
+            <span className="text-[10px] text-muted">{tx("vs")}</span>
             <span className="flex gap-1">
               {battle.defend.map((v, i) => (
                 <DieFace
@@ -588,7 +587,7 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
             </span>
             <span className="text-[10px] leading-tight text-muted">
               -{battle.lost[0]} / -{battle.lost[1]}
-              {battle.throws > 1 && <span className="block">{battle.throws} throws</span>}
+              {battle.throws > 1 && <span className="block">{battle.throws}{" "}{tx("throws")}</span>}
             </span>
           </div>
         )}
@@ -600,19 +599,16 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
           <>
             {state.phase === "over" && state.winner && (
               <span className="text-warm">
-                <b>{label(state.winner)}</b> wins
-                {objectiveOf(state.winner) ? `: ${objectiveText(world, objectiveOf(state.winner) as Objective)}` : ""}
+                <b>{label(state.winner)}</b>{" "}{tx("wins")}{objectiveOf(state.winner) ? `: ${objectiveText(world, objectiveOf(state.winner) as Objective)}` : ""}
               </span>
             )}
             {state.phase !== "over" && (
-              <span className="text-muted/75">
-                on <b className="text-chalk">{world.name || "a map"}</b> ({world.territories.length} territories,{" "}
-                {rules.goal === "conquest" ? "last one standing wins" : "secret objectives"}). Empty chairs play from whoever deals.
-              </span>
+              <span className="text-muted/75">{tx("on")}{" "}<b className="text-chalk">{world.name || tx("a map")}</b> ({world.territories.length}{" "}{tx("territories,")}{" "}
+                {rules.goal === "conquest" ? tx("last one standing wins") : tx("secret objectives")}{tx("). Empty chairs play from whoever deals.")}</span>
             )}
             {setupProblem && <span className="w-full text-[#f2a4b8]">{setupProblem}</span>}
             <button type="button" disabled={!canEdit || busy || Boolean(setupProblem)} onClick={() => void deal()} className="ml-auto min-h-9 rounded-xl bg-chalk px-4 text-[12px] font-semibold text-ink-950 disabled:opacity-40">
-              {state.phase === "over" ? "deal again" : "deal"}
+              {state.phase === "over" ? tx("deal again") : tx("deal")}
             </button>
           </>
         ) : (
@@ -620,27 +616,27 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
             <span className="flex items-center gap-1 text-chalk">
               <span className="size-2.5 rounded-full" style={{ background: COLOR_HEX[colorOf(state, state.turn)].fill }} />
               {statusLine()}
-              <span className="text-muted/60">· round {state.round}</span>
+              <span className="text-muted/60">{tx("· round")}{" "}{state.round}</span>
             </span>
 
             {myTurn && state.step === "place" && (
               <>
                 <span className="text-muted">
                   {mustTrade
-                    ? `${rules.mustTradeAt} cards: trade three first`
+                    ? tx(`${rules.mustTradeAt} cards: trade three first`)
                     : toPlace > 0
-                      ? `${toPlace} to place${Object.entries(left.continent)
+                      ? tx(`${toPlace} to place${Object.entries(left.continent)
                           .filter(([, n]) => n)
                           .map(([c, n]) => ` · ${n} in ${continentName(world, c)}`)
-                          .join("")} -- tap your territories`
-                      : "all placed"}
+                          .join("")} -- tap your territories`)
+                      : tx("all placed")}
                 </span>
                 <span className="ml-auto flex gap-1">
                   <button
                     type="button"
                     disabled={!current.history.length}
                     onClick={undoArmy}
-                    aria-label="take the last one back"
+                    aria-label={tx("take the last one back")}
                     className="grid size-9 place-items-center rounded-lg bg-white/8 text-chalk disabled:opacity-30"
                   >
                     <Undo2 className="size-3.5" />
@@ -651,7 +647,7 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
                     onClick={() => void commitPlacement()}
                     className="min-h-9 rounded-xl bg-chalk px-4 text-[12px] font-semibold text-ink-950 disabled:opacity-40"
                   >
-                    {state.round <= 1 ? "place and pass" : "place them"}
+                    {state.round <= 1 ? tx("place and pass") : tx("place them")}
                   </button>
                 </span>
               </>
@@ -661,9 +657,9 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
               <>
                 <span className="text-muted">
                   {!sel.from
-                    ? "tap one of yours with two or more armies"
+                    ? tx("tap one of yours with two or more armies")
                     : !chosenTo
-                      ? `from ${tname(sel.from)}: tap a neighbour to attack`
+                      ? tx(`from ${tname(sel.from)}: tap a neighbour to attack`)
                       : `${tname(sel.from)} -> ${tname(chosenTo)}`}
                 </span>
                 <span className="ml-auto flex flex-wrap items-center gap-1">
@@ -680,30 +676,24 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
                               "min-h-8 min-w-8 rounded-md text-[11px] tabular-nums disabled:opacity-25",
                               Math.min(dice, maxDice) === n ? "bg-[#e0524a] text-white" : "text-chalk",
                             )}
-                            aria-label={`${n} dice`}
+                            aria-label={tx(`${n} dice`)}
                           >
                             {n}
                           </button>
                         ))}
                       </span>
-                      <button type="button" disabled={busy} onClick={() => void fire(false)} className="min-h-9 rounded-xl bg-[#e0524a] px-3 text-[12px] font-semibold text-white active:scale-95">
-                        attack
-                      </button>
-                      <button type="button" disabled={busy} onClick={() => void fire(true)} className="min-h-9 rounded-xl bg-white/10 px-3 text-[11px] text-chalk" title="throw after throw until it falls or you run out">
-                        all in
-                      </button>
+                      <button type="button" disabled={busy} onClick={() => void fire(false)} className="min-h-9 rounded-xl bg-[#e0524a] px-3 text-[12px] font-semibold text-white active:scale-95">{tx("attack")}</button>
+                      <button type="button" disabled={busy} onClick={() => void fire(true)} className="min-h-9 rounded-xl bg-white/10 px-3 text-[11px] text-chalk" title={tx("throw after throw until it falls or you run out")}>{tx("all in")}</button>
                     </>
                   )}
-                  <button type="button" disabled={busy} onClick={() => void doneAttacking()} className="min-h-9 rounded-xl bg-white/10 px-3 text-[11px] text-chalk">
-                    done attacking
-                  </button>
+                  <button type="button" disabled={busy} onClick={() => void doneAttacking()} className="min-h-9 rounded-xl bg-white/10 px-3 text-[11px] text-chalk">{tx("done attacking")}</button>
                 </span>
               </>
             )}
 
             {myTurn && state.step === "occupy" && state.occupy && (
               <>
-                <span className="text-muted">how many march in?</span>
+                <span className="text-muted">{tx("how many march in?")}</span>
                 <span className="ml-auto flex gap-1">
                   {Array.from({ length: state.occupy.max }, (_, i) => i + 1).map((n) => (
                     <button key={n} type="button" disabled={busy} onClick={() => void marchIn(n)} className="min-h-9 min-w-10 rounded-xl bg-chalk px-3 text-[12px] font-semibold text-ink-950">
@@ -717,27 +707,25 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
             {myTurn && state.step === "move" && (
               <>
                 <span className="text-muted">
-                  {!sel.from ? "move between your neighbours, or end the turn" : !chosenTo ? `from ${tname(sel.from)} to...` : ""}
+                  {!sel.from ? tx("move between your neighbours, or end the turn") : !chosenTo ? tx(`from ${tname(sel.from)} to...`) : ""}
                 </span>
                 <span className="ml-auto flex flex-wrap items-center gap-1">
                   {sel.from && chosenTo && (
                     <>
                       <span className="flex items-center gap-0.5 rounded-lg bg-white/6 px-0.5">
-                        <button type="button" onClick={() => setCount(Math.max(1, Math.min(count, maxMove) - 1))} aria-label="fewer" className="grid size-8 place-items-center text-chalk">
+                        <button type="button" onClick={() => setCount(Math.max(1, Math.min(count, maxMove) - 1))} aria-label={tx("fewer")} className="grid size-8 place-items-center text-chalk">
                           <Minus className="size-3" />
                         </button>
                         <span className="min-w-5 text-center tabular-nums text-chalk">{Math.min(count, maxMove)}</span>
-                        <button type="button" onClick={() => setCount(Math.min(maxMove, count + 1))} aria-label="more" className="grid size-8 place-items-center text-chalk">
+                        <button type="button" onClick={() => setCount(Math.min(maxMove, count + 1))} aria-label={tx("more")} className="grid size-8 place-items-center text-chalk">
                           <Plus className="size-3" />
                         </button>
                       </span>
-                      <button type="button" disabled={busy} onClick={() => void march()} className="min-h-9 rounded-xl bg-chalk px-3 text-[12px] font-semibold text-ink-950">
-                        move to {tname(chosenTo)}
+                      <button type="button" disabled={busy} onClick={() => void march()} className="min-h-9 rounded-xl bg-chalk px-3 text-[12px] font-semibold text-ink-950">{tx("move to")}{" "}{tname(chosenTo)}
                       </button>
                     </>
                   )}
-                  <button type="button" disabled={busy} onClick={() => void finishTurn()} className="min-h-9 rounded-xl bg-white/10 px-3 text-[11px] text-chalk">
-                    end turn{state.conquered ? " and draw" : ""}
+                  <button type="button" disabled={busy} onClick={() => void finishTurn()} className="min-h-9 rounded-xl bg-white/10 px-3 text-[11px] text-chalk">{tx("end turn")}{state.conquered ? tx(" and draw") : ""}
                   </button>
                 </span>
               </>
@@ -746,14 +734,12 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
             {!myTurn && <span className="ml-auto truncate text-[10px] text-muted/60">{state.log.at(-1)}</span>}
             {state.traded && state.step === "place" && (
               <span className="flex w-full items-center gap-1 text-[10px] text-muted/80">
-                {label(state.traded.chair)} traded
-                {state.traded.cards.map((c) => (
+                {label(state.traded.chair)}{" "}{tx("traded")}{state.traded.cards.map((c) => (
                   <span key={c} className="flex items-center gap-0.5 rounded bg-white/6 px-1 text-chalk">
-                    {isJoker(c) ? "joker" : tname(c)}
+                    {isJoker(c) ? tx("joker") : tname(c)}
                     {!isJoker(c) && <ShapeMark shape={figureOf(world, c) ?? "square"} size={7} color="#e0655c" />}
                   </span>
-                ))}
-                for {state.traded.armies}
+                ))}{tx("for")}{" "}{state.traded.armies}
               </span>
             )}
           </>
@@ -773,18 +759,16 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
                 {looking === shownObjectiveChair ? <EyeOff className="size-3.5 shrink-0" /> : <Eye className="size-3.5 shrink-0" />}
                 {looking === shownObjectiveChair ? (
                   <span>
-                    {shownObjectiveChair === myChair ? "your objective" : `${label(shownObjectiveChair)}'s objective`}:{" "}
+                    {shownObjectiveChair === myChair ? tx("your objective") : tx(`${label(shownObjectiveChair)}'s objective`)}:{" "}
                     <b className="text-chalk">{objectiveText(world, objectiveOf(shownObjectiveChair) as Objective)}</b>
                   </span>
                 ) : (
-                  <span>{shownObjectiveChair === myChair ? "your objective" : `${label(shownObjectiveChair)}'s objective`} (tap to look)</span>
+                  <span>{shownObjectiveChair === myChair ? tx("your objective") : tx(`${label(shownObjectiveChair)}'s objective`)}{" "}{tx("(tap to look)")}</span>
                 )}
               </button>
             ) : (
               ownedObjectives.length > 1 && (
-                <span className="flex flex-wrap items-center gap-1 text-muted">
-                  pass the phone, then look:
-                  {ownedObjectives.map((c) => (
+                <span className="flex flex-wrap items-center gap-1 text-muted">{tx("pass the phone, then look:")}{ownedObjectives.map((c) => (
                     <button
                       key={c}
                       type="button"
@@ -802,8 +786,7 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
               )
             )}
             {canTrade && hand.length >= 3 && (
-              <span className="text-[10px] text-muted/70">
-                three alike or one of each ({tradeValue(state.trades, rules)} armies{rules.ownedCardBonus ? `, +${rules.ownedCardBonus} on any pictured land you hold` : ""})
+              <span className="text-[10px] text-muted/70">{tx("three alike or one of each (")}{tradeValue(state.trades, rules)}{" "}{tx("armies")}{rules.ownedCardBonus ? tx(`, +${rules.ownedCardBonus} on any pictured land you hold`) : ""})
               </span>
             )}
           </div>
@@ -825,9 +808,7 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
                   disabled={busy || !tradeReady}
                   onClick={() => void tradeCards()}
                   className="min-h-9 self-center rounded-xl bg-chalk px-3 text-[12px] font-semibold text-ink-950 disabled:opacity-35"
-                >
-                  trade
-                </button>
+                >{tx("trade")}</button>
               )}
             </div>
           )}
@@ -839,35 +820,25 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
       )}
 
       {manual && (
-        <RulesSheet title={`WAR on ${world.name || "this map"}`} onClose={() => setManual(false)}>
+        <RulesSheet title={tx(`WAR on ${world.name || "this map"}`)} onClose={() => setManual(false)}>
           <p>
             {rules.goal === "conquest" ? (
-              <>The last army standing wins: take every territory there is.</>
+              <>{tx("The last army standing wins: take every territory there is.")}</>
             ) : (
-              <>
-                Every player gets a secret <b>objective</b>. Reach yours and you win -- it is shown to the table the moment you do.
+              <>{tx("Every player gets a secret")}{" "}<b>{tx("objective")}</b>. Reach yours and you win -- it is shown to the table the moment you do.
               </>
-            )}{" "}
-            The territories are dealt out, one army on each.
-          </p>
+            )}{" "}{tx("The territories are dealt out, one army on each.")}</p>
           <p>
             {rules.placeFirstRound && (
-              <>
-                The <b>first round</b> is only placing armies.{" "}
+              <>{tx("The")}{" "}<b>{tx("first round")}</b>{" "}{tx("is only placing armies.")}{" "}
               </>
-            )}
-            A turn goes: <b>reinforce</b>, <b>attack</b> if you like, <b>move</b> if you like
-            {rules.cards && (
-              <>
-                , and <b>draw a card</b> if you took at least one territory
-              </>
+            )}{tx("A turn goes:")}{" "}<b>{tx("reinforce")}</b>, <b>{tx("attack")}</b>{" "}{tx("if you like,")}{" "}<b>{tx("move")}</b>{" "}{tx("if you like")}{rules.cards && (
+              <>{tx(", and")}{" "}<b>{tx("draw a card")}</b>{" "}{tx("if you took at least one territory")}</>
             )}
             .
           </p>
-          <h4>reinforcements</h4>
-          <p>
-            The territories you hold divided by {rules.divisor} ({rules.minimum} at least), plus every continent you hold whole --
-            those armies go inside that continent:{" "}
+          <h4>{tx("reinforcements")}</h4>
+          <p>{tx("The territories you hold divided by")}{" "}{rules.divisor} ({rules.minimum}{" "}{tx("at least), plus every continent you hold whole -- those armies go inside that continent:")}{" "}
             {world.continents
               .filter((c) => c.bonus > 0 && world.territories.some((t) => t.continent === c.id))
               .map((c) => `${c.name} ${c.bonus}`)
@@ -876,38 +847,28 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
           </p>
           {rules.cards && (
             <>
-              <h4>cards</h4>
-              <p>
-                Three cards of the same figure, or one of each, trade for armies at the start of your turn: {rules.trades.join(", ")}
-                {rules.tradeStep ? `, then ${rules.tradeStep} more each time` : ""}, counted across the whole table.
-                {rules.ownedCardBonus > 0 && ` A card showing a territory you hold puts ${rules.ownedCardBonus} more armies there.`}
-                {rules.jokers > 0 && ` ${rules.jokers} jokers are any figure.`} With {rules.mustTradeAt} cards you have to trade.
-              </p>
+              <h4>{tx("cards")}</h4>
+              <p>{tx("Three cards of the same figure, or one of each, trade for armies at the start of your turn:")}{" "}{rules.trades.join(", ")}
+                {rules.tradeStep ? tx(`, then ${rules.tradeStep} more each time`) : ""}{tx(", counted across the whole table.")}{rules.ownedCardBonus > 0 && tx(` A card showing a territory you hold puts ${rules.ownedCardBonus} more armies there.`)}
+                {rules.jokers > 0 && tx(` ${rules.jokers} jokers are any figure.`)}{" "}{tx("With")}{" "}{rules.mustTradeAt}{" "}{tx("cards you have to trade.")}</p>
             </>
           )}
-          <h4>attacking</h4>
-          <p>
-            From a territory with two or more armies, into a neighbour. Up to {rules.attackDice} dice, never counting the army that
-            has to stay behind; the defence rolls one for each army there, up to {rules.defendDice}. Highest against highest, then
-            the next: whoever is lower loses an army, and a tie goes to the {rules.tiesToDefence ? "defence" : "attacker"}.
+          <h4>{tx("attacking")}</h4>
+          <p>{tx("From a territory with two or more armies, into a neighbour. Up to")}{" "}{rules.attackDice}{" "}{tx("dice, never counting the army that has to stay behind; the defence rolls one for each army there, up to")}{" "}{rules.defendDice}. Highest against highest, then
+            the next: whoever is lower loses an army, and a tie goes to the {rules.tiesToDefence ? tx("defence") : tx("attacker")}.
           </p>
-          <p>
-            Empty a territory and it is yours: march in at least one army, and no more than fought in the last throw. You can
-            carry on attacking from there.
-          </p>
-          <h4>moving</h4>
-          <p>After attacking, armies can move to neighbouring territories of yours. One always stays behind, and an army moves once a turn.</p>
-          <h4>knocking someone out</h4>
-          <p>
-            Take someone&apos;s last territory and their cards are yours -- up to {rules.mustTradeAt} in your hand, drawn blind.
-          </p>
+          <p>{tx("Empty a territory and it is yours: march in at least one army, and no more than fought in the last throw. You can carry on attacking from there.")}</p>
+          <h4>{tx("moving")}</h4>
+          <p>{tx("After attacking, armies can move to neighbouring territories of yours. One always stays behind, and an army moves once a turn.")}</p>
+          <h4>{tx("knocking someone out")}</h4>
+          <p>{tx("Take someone's last territory and their cards are yours -- up to")}{" "}{rules.mustTradeAt}{" "}{tx("in your hand, drawn blind.")}</p>
           {rules.goal === "objectives" && (
             <div className="space-y-1 border-t border-white/8 pt-2">
-              <h4>the objectives on this map</h4>
+              <h4>{tx("the objectives on this map")}</h4>
               {dealObjectives(world, rules.destroyObjectives ? ["blue"] : [], rules).map((o) => (
                 <p key={o}>
                   {objectiveText(world, o)}
-                  {o.startsWith("kill:") ? " (one of these for each colour at the table)" : ""}
+                  {o.startsWith("kill:") ? tx(" (one of these for each colour at the table)") : ""}
                 </p>
               ))}
             </div>

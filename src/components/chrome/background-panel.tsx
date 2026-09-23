@@ -7,6 +7,7 @@ import { useRoom } from "@/realtime/room-provider";
 import { prepareImage } from "@/lib/image-upload";
 import { useRoomStore } from "@/state/room-store";
 import type { Background } from "@/lib/types";
+import { t } from "@/lib/i18n";
 
 const SOLIDS = [
   "#100d16", "#1b2233", "#22201a", "#1d2b22",
@@ -38,11 +39,11 @@ export default function BackgroundPanel() {
   return (
     <aside className="surface animate-drift-in absolute inset-x-2 bottom-20 z-40 flex max-h-[68dvh] flex-col overflow-hidden rounded-3xl sm:inset-x-auto sm:top-16 sm:right-3 sm:bottom-auto sm:max-h-[calc(100dvh-9rem)] sm:w-[19rem]">
       <header className="flex items-center justify-between border-b border-white/8 px-4 py-3">
-        <h2 className="text-sm font-semibold">the walls</h2>
+        <h2 className="text-sm font-semibold">{t("the walls")}</h2>
         <button
           type="button"
           onClick={() => setPanel(null)}
-          aria-label="close"
+          aria-label={t("close")}
           className="grid size-6 place-items-center rounded-lg text-muted transition hover:bg-white/8 hover:text-chalk"
         >
           <X className="size-3.5" strokeWidth={2.4} />
@@ -50,7 +51,7 @@ export default function BackgroundPanel() {
       </header>
 
       <div className="space-y-5 overflow-y-auto px-4 py-4">
-        <Section title="gradients">
+        <Section title={t("gradients")}>
           <div className="grid grid-cols-3 gap-2">
             {GRADIENTS.map((preset) => {
               const active =
@@ -62,7 +63,7 @@ export default function BackgroundPanel() {
                   key={preset.from + preset.to}
                   type="button"
                   onClick={() => apply({ kind: "gradient", ...preset })}
-                  aria-label={`gradient ${preset.from}`}
+                  aria-label={t(`gradient ${preset.from}`)}
                   className={clsx(
                     "h-12 rounded-xl transition hover:scale-[1.04]",
                     active ? "ring-2 ring-glow ring-offset-2 ring-offset-ink-800" : "ring-1 ring-white/12",
@@ -76,7 +77,7 @@ export default function BackgroundPanel() {
           </div>
         </Section>
 
-        <Section title="flat colours">
+        <Section title={t("flat colours")}>
           <div className="grid grid-cols-4 gap-2">
             {SOLIDS.map((color) => {
               const active = background?.kind === "solid" && background.color === color;
@@ -85,7 +86,7 @@ export default function BackgroundPanel() {
                   key={color}
                   type="button"
                   onClick={() => apply({ kind: "solid", color })}
-                  aria-label={`colour ${color}`}
+                  aria-label={t(`colour ${color}`)}
                   className={clsx(
                     "h-9 rounded-xl transition hover:scale-[1.06]",
                     active ? "ring-2 ring-glow ring-offset-2 ring-offset-ink-800" : "ring-1 ring-white/12",
@@ -96,9 +97,7 @@ export default function BackgroundPanel() {
             })}
           </div>
 
-          <label className="mt-2 flex items-center justify-between rounded-xl bg-white/6 px-3 py-2 text-xs text-muted ring-1 ring-white/10">
-            pick your own
-            <input
+          <label className="mt-2 flex items-center justify-between rounded-xl bg-white/6 px-3 py-2 text-xs text-muted ring-1 ring-white/10">{t("pick your own")}<input
               type="color"
               value={background?.kind === "solid" ? background.color : "#1b1725"}
               onChange={(event) => apply({ kind: "solid", color: event.target.value })}
@@ -107,7 +106,7 @@ export default function BackgroundPanel() {
           </label>
         </Section>
 
-        <Section title="wallpaper">
+        <Section title={t("wallpaper")}>
           <div className="space-y-2">
             <label
               className={clsx(
@@ -120,7 +119,7 @@ export default function BackgroundPanel() {
               ) : (
                 <Upload className="size-3.5" strokeWidth={2.4} />
               )}
-              {uploading ? "sending" : "upload an image"}
+              {uploading ? t("sending") : t("upload an image")}
               <input
                 type="file"
                 accept="image/*"
@@ -157,7 +156,7 @@ export default function BackgroundPanel() {
                 value={urlDraft}
                 onChange={(event) => setUrlDraft(event.target.value)}
                 onKeyDown={(event) => event.stopPropagation()}
-                placeholder="or paste an image url"
+                placeholder={t("or paste an image url")}
                 spellCheck={false}
                 className="w-full rounded-xl bg-white/7 px-3 py-2 text-xs ring-1 ring-white/10 outline-none placeholder:text-muted/55 focus:ring-glow/45"
               />
@@ -186,7 +185,7 @@ export default function BackgroundPanel() {
 
               {background.fit === "tile" && (
                 <Slider
-                  label="tile size"
+                  label={t("tile size")}
                   min={60}
                   max={600}
                   step={10}
@@ -196,7 +195,7 @@ export default function BackgroundPanel() {
               )}
 
               <Slider
-                label="dim"
+                label={t("dim")}
                 min={0}
                 max={80}
                 step={5}

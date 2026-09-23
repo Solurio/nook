@@ -22,6 +22,7 @@ import {
 } from "@/lib/dice";
 import type { Item } from "@/lib/types";
 import DieFace from "./die-face";
+import { t } from "@/lib/i18n";
 
 const TRAY: Array<{ sides: number; name: string }> = [
   { sides: 4, name: "d4" },
@@ -106,7 +107,7 @@ export default function Dice({ item, state: raw }: { item: Item<"game">; state: 
         {latest ? (
           <Landed roll={latest} tumble={latest.id !== arrivedAfter} />
         ) : (
-          <p className="text-center text-[11px] text-muted/60">tap a die below, or type something like 4d6kh3</p>
+          <p className="text-center text-[11px] text-muted/60">{t("tap a die below, or type something like 4d6kh3")}</p>
         )}
       </div>
 
@@ -119,10 +120,10 @@ export default function Dice({ item, state: raw }: { item: Item<"game">; state: 
             disabled={!canEdit}
             onClick={() => setExpr((now) => withDie(now, die.sides))}
             className="flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-lg py-1 transition hover:bg-white/8 active:scale-95 disabled:opacity-40"
-            aria-label={`add a ${die.name}`}
+            aria-label={t(`add a ${die.name}`)}
           >
             <DieFace sides={die.sides} value={die.sides === 100 ? 100 : die.sides} size={28} tint="#c4a7f0" />
-            <span className="text-[9px] text-muted">{die.name}</span>
+            <span className="text-[9px] text-muted">{t(die.name)}</span>
           </button>
         ))}
       </div>
@@ -147,7 +148,7 @@ export default function Dice({ item, state: raw }: { item: Item<"game">; state: 
             autoCapitalize="off"
             autoCorrect="off"
             spellCheck={false}
-            aria-label="what to roll"
+            aria-label={t("what to roll")}
             placeholder="2d6+3"
             className={clsx(
               "h-10 w-full rounded-xl bg-white/6 pr-8 pl-3 font-mono text-[13px] text-chalk outline-none placeholder:text-muted/40 focus:bg-white/10",
@@ -158,7 +159,7 @@ export default function Dice({ item, state: raw }: { item: Item<"game">; state: 
             <button
               type="button"
               onClick={() => setExpr("")}
-              aria-label="clear"
+              aria-label={t("clear")}
               className="absolute top-1/2 right-1 grid size-8 -translate-y-1/2 place-items-center rounded-lg text-muted hover:text-chalk"
             >
               <Eraser className="size-3.5" />
@@ -169,14 +170,12 @@ export default function Dice({ item, state: raw }: { item: Item<"game">; state: 
           type="submit"
           disabled={!canEdit || !parsed.ok}
           className="h-10 shrink-0 rounded-xl bg-chalk px-4 text-[12px] font-semibold text-ink-950 transition active:scale-95 disabled:opacity-40"
-        >
-          roll
-        </button>
+        >{t("roll")}</button>
       </form>
 
       <p className="-mt-1 min-h-4 truncate px-1 text-[10px] text-muted/70">
         {error ?? (parsed.ok && odds
-          ? `${odds.lo === -Infinity ? "?" : odds.lo} to ${odds.hi === Infinity ? "no ceiling" : odds.hi} · averages ${round1(odds.mean)}`
+          ? t(`${odds.lo === -Infinity ? "?" : odds.lo} to ${odds.hi === Infinity ? "no ceiling" : odds.hi} · averages ${round1(odds.mean)}`)
           : expr.trim()
             ? (parsed as { error: string }).error
             : "")}
@@ -196,13 +195,13 @@ export default function Dice({ item, state: raw }: { item: Item<"game">; state: 
               title={combo.expr}
               className="min-h-8 rounded-lg px-2 text-[11px] text-chalk transition hover:bg-white/8 disabled:opacity-40"
             >
-              {combo.name}
+              {t(combo.name)}
             </button>
             {canEdit && (
               <button
                 type="button"
                 onClick={() => void write({ ...state, combos: state.combos.filter((c) => c !== combo) })}
-                aria-label={`forget ${combo.name}`}
+                aria-label={t(`forget ${combo.name}`)}
                 className="grid h-8 w-6 place-items-center text-muted/50 hover:text-chalk sm:hidden sm:group-hover:grid"
               >
                 <X className="size-3" />
@@ -216,8 +215,7 @@ export default function Dice({ item, state: raw }: { item: Item<"game">; state: 
             onClick={() => setNaming("")}
             className="flex min-h-8 items-center gap-1 rounded-lg px-2 text-[11px] text-muted hover:bg-white/8 hover:text-chalk"
           >
-            <Bookmark className="size-3" /> save this roll
-          </button>
+            <Bookmark className="size-3" />{" "}{t("save this roll")}</button>
         )}
         {naming !== null && (
           <form
@@ -232,13 +230,11 @@ export default function Dice({ item, state: raw }: { item: Item<"game">; state: 
               value={naming}
               onChange={(event) => setNaming(event.target.value)}
               onBlur={() => !naming.trim() && setNaming(null)}
-              placeholder="call it..."
+              placeholder={t("call it...")}
               maxLength={18}
               className="h-8 w-28 rounded-lg bg-white/8 px-2 text-[11px] text-chalk outline-none"
             />
-            <button type="submit" className="h-8 rounded-lg bg-white/10 px-2 text-[11px] text-chalk">
-              save
-            </button>
+            <button type="submit" className="h-8 rounded-lg bg-white/10 px-2 text-[11px] text-chalk">{t("save")}</button>
           </form>
         )}
         {state.history.length > 1 && (
@@ -255,8 +251,8 @@ export default function Dice({ item, state: raw }: { item: Item<"game">; state: 
       {showHistory && (
         <div className="absolute inset-0 z-20 flex flex-col rounded-2xl bg-ink-950/95 p-3 backdrop-blur-sm">
           <div className="mb-2 flex items-center justify-between">
-            <h3 className="text-[12px] font-semibold text-chalk">every roll so far</h3>
-            <button type="button" onClick={() => setShowHistory(false)} aria-label="close" className="grid size-9 place-items-center rounded-lg text-muted hover:bg-white/8 hover:text-chalk">
+            <h3 className="text-[12px] font-semibold text-chalk">{t("every roll so far")}</h3>
+            <button type="button" onClick={() => setShowHistory(false)} aria-label={t("close")} className="grid size-9 place-items-center rounded-lg text-muted hover:bg-white/8 hover:text-chalk">
               <X className="size-4" />
             </button>
           </div>
@@ -287,9 +283,7 @@ export default function Dice({ item, state: raw }: { item: Item<"game">; state: 
                 setShowHistory(false);
               }}
               className="mt-2 min-h-9 rounded-lg text-[11px] text-muted hover:bg-white/8 hover:text-chalk"
-            >
-              clear the history
-            </button>
+            >{t("clear the history")}</button>
           )}
         </div>
       )}
@@ -331,7 +325,7 @@ function Landed({ roll, tumble }: { roll: DiceRoll; tumble: boolean }) {
         <p className="text-[34px] leading-none font-bold tabular-nums text-chalk">{roll.total}</p>
         <p className="mt-1 text-[10px] text-muted">
           <span style={{ color: roll.tint }}>{roll.by}</span> · <span className="font-mono">{roll.label ?? roll.expr}</span>
-          {average !== null && dice.length > 1 && <> · {round1(average)} a die</>}
+          {average !== null && dice.length > 1 && <> · {round1(average)}{" "}{t("a die")}</>}
         </p>
       </div>
     </>

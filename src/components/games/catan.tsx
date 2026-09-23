@@ -67,6 +67,7 @@ import CatanBoardView, { PLAYER_COLOR } from "./catan-board-view";
 import { RESOURCE_NAME, ResourceChip } from "./catan-icons";
 import DieFace from "./die-face";
 import RulesSheet from "./rules-sheet";
+import { t } from "@/lib/i18n";
 
 type Build = "road" | "settlement" | "city";
 
@@ -90,7 +91,7 @@ function Counter({ value, max, onChange }: { value: Hand; max?: Hand; onChange: 
             type="button"
             disabled={max !== undefined && value[r] >= max[r]}
             onClick={() => onChange({ ...value, [r]: value[r] + 1 })}
-            aria-label={`one more ${r}`}
+            aria-label={t(`one more ${r}`)}
             className="disabled:opacity-40"
           >
             <ResourceChip r={r} n={value[r]} size={18} dim={value[r] === 0} />
@@ -99,7 +100,7 @@ function Counter({ value, max, onChange }: { value: Hand; max?: Hand; onChange: 
             type="button"
             disabled={value[r] === 0}
             onClick={() => onChange({ ...value, [r]: value[r] - 1 })}
-            aria-label={`one less ${r}`}
+            aria-label={t(`one less ${r}`)}
             className="grid size-5 place-items-center rounded text-muted hover:text-chalk disabled:opacity-25"
           >
             <Minus className="size-3" />
@@ -353,17 +354,16 @@ export default function Catan({ item, state: raw }: { item: Item<"game">; state:
               type="button"
               disabled={!canEdit || state.seatCount <= MIN_SEATS}
               onClick={() => void write({ ...state, seatCount: state.seatCount - 1 })}
-              aria-label="one chair fewer"
+              aria-label={t("one chair fewer")}
               className="grid size-7 place-items-center rounded hover:bg-white/10 disabled:opacity-30"
             >
               <Minus className="size-3" strokeWidth={2.6} />
             </button>
-            <span className="tabular-nums text-chalk">{state.seatCount}</span> players
-            <button
+            <span className="tabular-nums text-chalk">{state.seatCount}</span>{" "}{t("players")}<button
               type="button"
               disabled={!canEdit || state.seatCount >= MAX_SEATS}
               onClick={() => void write({ ...state, seatCount: state.seatCount + 1 })}
-              aria-label="one chair more"
+              aria-label={t("one chair more")}
               className="grid size-7 place-items-center rounded hover:bg-white/10 disabled:opacity-30"
             >
               <Plus className="size-3" strokeWidth={2.6} />
@@ -382,7 +382,7 @@ export default function Catan({ item, state: raw }: { item: Item<"game">; state:
                 "flex min-h-7 items-center gap-1 rounded-lg px-1.5 disabled:cursor-default",
                 playing && turn === chair ? "bg-white/12 ring-1 ring-warm/60" : "bg-white/5",
               )}
-              title={inGame ? `longest road ${longestRoadOf(state, chair)}, knights ${state.knights[chair] ?? 0}` : "sit here"}
+              title={inGame ? t(`longest road ${longestRoadOf(state, chair)}, knights ${state.knights[chair] ?? 0}`) : t("sit here")}
             >
               <span className="size-2.5 rounded-full ring-1 ring-black/30" style={{ background: PLAYER_COLOR[chair].fill }} />
               <span className={clsx("max-w-20 truncate", chair === myChair ? "text-chalk" : "text-muted")}>
@@ -394,16 +394,16 @@ export default function Catan({ item, state: raw }: { item: Item<"game">; state:
                     <Star className="size-2.5 fill-warm" />
                     {publicPoints(state, chair)}
                   </span>
-                  <span className="tabular-nums" title="resource cards">
+                  <span className="tabular-nums" title={t("resource cards")}>
                     {handSize(state.hands[chair] ?? emptyHand())}c
                   </span>
                   {(state.devCount[chair] ?? 0) > 0 && (
-                    <span className="tabular-nums text-glow/80" title="development cards">
+                    <span className="tabular-nums text-glow/80" title={t("development cards")}>
                       {state.devCount[chair]}d
                     </span>
                   )}
-                  {state.longestRoad === chair && <Waypoints className="size-3 text-warm" aria-label="longest road" />}
-                  {state.largestArmy === chair && <Shield className="size-3 text-warm" aria-label="largest army" />}
+                  {state.longestRoad === chair && <Waypoints className="size-3 text-warm" aria-label={t("longest road")} />}
+                  {state.largestArmy === chair && <Shield className="size-3 text-warm" aria-label={t("largest army")} />}
                 </>
               )}
               {(state.wins[chair] ?? 0) > 0 && <span className="text-warm">{state.wins[chair]}</span>}
@@ -411,19 +411,13 @@ export default function Catan({ item, state: raw }: { item: Item<"game">; state:
           );
         })}
         <button type="button" onClick={() => setManual(true)} className="ml-auto flex min-h-7 items-center gap-1 rounded-lg px-1.5 hover:bg-white/8 hover:text-chalk">
-          <BookOpen className="size-3" /> rules
-        </button>
+          <BookOpen className="size-3" />{" "}{t("rules")}</button>
       </div>
 
       {!state.board ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
-          <p className="max-w-80 text-[11px] text-muted/75">
-            Two to four players. A new island every game. Empty chairs play from whoever deals; sit down to keep your development
-            cards to yourself.
-          </p>
-          <button type="button" disabled={!canEdit || busy} onClick={() => void deal()} className="min-h-10 rounded-xl bg-chalk px-5 text-[12px] font-semibold text-ink-950 disabled:opacity-40">
-            deal
-          </button>
+          <p className="max-w-80 text-[11px] text-muted/75">{t("Two to four players. A new island every game. Empty chairs play from whoever deals; sit down to keep your development cards to yourself.")}</p>
+          <button type="button" disabled={!canEdit || busy} onClick={() => void deal()} className="min-h-10 rounded-xl bg-chalk px-5 text-[12px] font-semibold text-ink-950 disabled:opacity-40">{t("deal")}</button>
         </div>
       ) : (
         <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_15.5rem] gap-2 max-md:grid-cols-1 max-md:grid-rows-[minmax(0,1fr)_auto]">
@@ -450,15 +444,11 @@ export default function Catan({ item, state: raw }: { item: Item<"game">; state:
             </div>
 
             {state.phase === "over" && (
-              <button type="button" disabled={!canEdit || busy} onClick={() => void deal()} className="min-h-9 rounded-xl bg-chalk px-4 text-[12px] font-semibold text-ink-950">
-                a new island
-              </button>
+              <button type="button" disabled={!canEdit || busy} onClick={() => void deal()} className="min-h-9 rounded-xl bg-chalk px-4 text-[12px] font-semibold text-ink-950">{t("a new island")}</button>
             )}
 
             {myTurn && state.step === "roll" && (
-              <button type="button" disabled={busy} onClick={() => void move((s) => roll(s, randomBelow, label))} className="min-h-10 rounded-xl bg-chalk text-[12px] font-semibold text-ink-950 active:scale-95">
-                roll
-              </button>
+              <button type="button" disabled={busy} onClick={() => void move((s) => roll(s, randomBelow, label))} className="min-h-10 rounded-xl bg-chalk text-[12px] font-semibold text-ink-950 active:scale-95">{t("roll")}</button>
             )}
 
             {/* Discarding after a 7 */}
@@ -469,8 +459,7 @@ export default function Catan({ item, state: raw }: { item: Item<"game">; state:
                 return (
                   <div key={chair} className="flex flex-col gap-1 rounded-xl bg-[#e0655c]/10 p-1.5">
                     <span className="text-[#f2a4b8]">
-                      {label(chair)} discards {owed} ({handSize(draft)} chosen)
-                    </span>
+                      {label(chair)}{" "}{t("discards")}{" "}{owed} ({handSize(draft)}{" "}{t("chosen)")}</span>
                     <Counter value={draft} max={state.hands[chair]} onChange={(h) => setDiscards({ ...discards, [chair]: h })} />
                     <button
                       type="button"
@@ -480,9 +469,7 @@ export default function Catan({ item, state: raw }: { item: Item<"game">; state:
                         void move((s) => discard(s, chair, draft));
                       }}
                       className="min-h-8 rounded-lg bg-chalk font-semibold text-ink-950 disabled:opacity-35"
-                    >
-                      discard these
-                    </button>
+                    >{t("discard these")}</button>
                   </div>
                 );
               })}
@@ -526,8 +513,7 @@ export default function Catan({ item, state: raw }: { item: Item<"game">; state:
                   disabled={busy || deckLeft <= 0 || !canPay(hand, COST.dev)}
                   onClick={() => void buyCard()}
                   className="flex min-h-9 flex-col items-start gap-0.5 rounded-lg bg-white/6 px-1.5 py-1 text-left text-chalk disabled:opacity-35"
-                >
-                  card ({deckLeft} left) <Cost hand={COST.dev} />
+                >{t("card (")}{deckLeft}{" "}{t("left)")}{" "}<Cost hand={COST.dev} />
                 </button>
               </div>
             )}
@@ -536,7 +522,7 @@ export default function Catan({ item, state: raw }: { item: Item<"game">; state:
             {myTurn && state.step === "main" && hand && (
               <div className="flex flex-col gap-1 rounded-xl bg-white/4 p-1.5">
                 <span className="text-muted">
-                  {giving ? `give ${tradeRate(state, turn, giving)} ${giving} for...` : "trade with the bank: give"}
+                  {giving ? t(`give ${tradeRate(state, turn, giving)} ${giving} for...`) : t("trade with the bank: give")}
                 </span>
                 <span className="flex flex-wrap gap-1">
                   {RESOURCES.map((r) =>
@@ -551,7 +537,7 @@ export default function Catan({ item, state: raw }: { item: Item<"game">; state:
                           void move((s) => bankTrade(s, g, r));
                         }}
                         className="disabled:opacity-30"
-                        aria-label={`get ${r}`}
+                        aria-label={t(`get ${r}`)}
                       >
                         <ResourceChip r={r} size={20} />
                       </button>
@@ -562,7 +548,7 @@ export default function Catan({ item, state: raw }: { item: Item<"game">; state:
                         disabled={hand[r] < tradeRate(state, turn, r)}
                         onClick={() => setGiving(r)}
                         className="flex flex-col items-center disabled:opacity-30"
-                        aria-label={`give ${r}`}
+                        aria-label={t(`give ${r}`)}
                       >
                         <ResourceChip r={r} size={20} />
                         <span className="text-[8px] tabular-nums">{tradeRate(state, turn, r)}:1</span>
@@ -570,17 +556,15 @@ export default function Catan({ item, state: raw }: { item: Item<"game">; state:
                     ),
                   )}
                   {giving && (
-                    <button type="button" onClick={() => setGiving(null)} className="px-1 text-muted hover:text-chalk">
-                      cancel
-                    </button>
+                    <button type="button" onClick={() => setGiving(null)} className="px-1 text-muted hover:text-chalk">{t("cancel")}</button>
                   )}
                 </span>
                 {!state.offer &&
                   (offerDraft ? (
                     <div className="flex flex-col gap-1 border-t border-white/8 pt-1">
-                      <span className="text-muted">you give</span>
+                      <span className="text-muted">{t("you give")}</span>
                       <Counter value={offerDraft.give} max={hand} onChange={(g) => setOfferDraft({ ...offerDraft, give: g })} />
-                      <span className="text-muted">you want</span>
+                      <span className="text-muted">{t("you want")}</span>
                       <Counter value={offerDraft.want} onChange={(w) => setOfferDraft({ ...offerDraft, want: w })} />
                       <span className="flex gap-1">
                         <button
@@ -592,18 +576,12 @@ export default function Catan({ item, state: raw }: { item: Item<"game">; state:
                             void move((s) => offerTrade(s, d.give, d.want));
                           }}
                           className="min-h-8 flex-1 rounded-lg bg-chalk font-semibold text-ink-950 disabled:opacity-35"
-                        >
-                          offer it
-                        </button>
-                        <button type="button" onClick={() => setOfferDraft(null)} className="min-h-8 rounded-lg px-2 text-muted hover:text-chalk">
-                          never mind
-                        </button>
+                        >{t("offer it")}</button>
+                        <button type="button" onClick={() => setOfferDraft(null)} className="min-h-8 rounded-lg px-2 text-muted hover:text-chalk">{t("never mind")}</button>
                       </span>
                     </div>
                   ) : (
-                    <button type="button" onClick={() => setOfferDraft({ give: emptyHand(), want: emptyHand() })} className="min-h-8 self-start rounded-lg bg-white/6 px-2 text-chalk">
-                      offer the table a trade
-                    </button>
+                    <button type="button" onClick={() => setOfferDraft({ give: emptyHand(), want: emptyHand() })} className="min-h-8 self-start rounded-lg bg-white/6 px-2 text-chalk">{t("offer the table a trade")}</button>
                   ))}
               </div>
             )}
@@ -611,10 +589,10 @@ export default function Catan({ item, state: raw }: { item: Item<"game">; state:
             {/* An offer on the table, for everyone to see */}
             {playing && state.offer && (
               <div className="flex flex-col gap-1 rounded-xl bg-glow/10 p-1.5">
-                <span className="text-chalk">{label(state.offer.from)} offers</span>
+                <span className="text-chalk">{label(state.offer.from)}{" "}{t("offers")}</span>
                 <span className="flex items-center gap-1">
                   <Cost hand={state.offer.give} />
-                  <span className="text-muted">for</span>
+                  <span className="text-muted">{t("for")}</span>
                   <Cost hand={state.offer.want} />
                 </span>
                 <span className="flex flex-wrap gap-1">
@@ -628,28 +606,23 @@ export default function Catan({ item, state: raw }: { item: Item<"game">; state:
                         onClick={() => void move((s) => acceptTrade(s, c, label))}
                         className="min-h-8 rounded-lg bg-chalk px-2 font-semibold text-ink-950 disabled:opacity-35"
                       >
-                        {label(c)} takes it
-                      </button>
+                        {label(c)}{" "}{t("takes it")}</button>
                     ))}
                   {plays(state.offer.from) && (
-                    <button type="button" disabled={busy} onClick={() => void move(cancelOffer)} className="min-h-8 rounded-lg px-2 text-muted hover:text-chalk">
-                      withdraw
-                    </button>
+                    <button type="button" disabled={busy} onClick={() => void move(cancelOffer)} className="min-h-8 rounded-lg px-2 text-muted hover:text-chalk">{t("withdraw")}</button>
                   )}
                 </span>
               </div>
             )}
 
             {myTurn && (state.step === "main" || state.step === "roads") && (
-              <button type="button" disabled={busy} onClick={() => void finishTurn()} className="min-h-9 rounded-xl bg-white/10 text-[12px] text-chalk">
-                end turn
-              </button>
+              <button type="button" disabled={busy} onClick={() => void finishTurn()} className="min-h-9 rounded-xl bg-white/10 text-[12px] text-chalk">{t("end turn")}</button>
             )}
 
             {/* Your hand and your cards */}
             {hand && playing && (
               <div className="mt-auto flex flex-col gap-1 rounded-xl bg-white/4 p-1.5">
-                <span className="text-muted">{viewer === myChair ? "your hand" : `${label(viewer as string)}'s hand`}</span>
+                <span className="text-muted">{viewer === myChair ? t("your hand") : t(`${label(viewer as string)}'s hand`)}</span>
                 <span className="flex flex-wrap gap-1.5">
                   {RESOURCES.map((r) => (
                     <ResourceChip key={r} r={r} n={hand[r]} size={22} dim={!hand[r]} />
@@ -665,17 +638,13 @@ export default function Catan({ item, state: raw }: { item: Item<"game">; state:
                           {kind === "knight" ? <Swords className="size-3 text-glow" /> : <Star className="size-3 text-warm" />}
                           <span className={clsx("min-w-0 flex-1 truncate", fresh ? "text-muted" : "text-chalk")}>
                             {DEV_NAME[kind]}
-                            {fresh && " (new)"}
+                            {fresh && t(" (new)")}
                           </span>
                           {playable &&
                             (kind === "plenty" || kind === "monopoly" ? (
-                              <button type="button" onClick={() => setChoosing(choosing?.card === c ? null : { card: c, picks: [] })} className="min-h-7 rounded-md bg-white/10 px-2 text-chalk">
-                                play
-                              </button>
+                              <button type="button" onClick={() => setChoosing(choosing?.card === c ? null : { card: c, picks: [] })} className="min-h-7 rounded-md bg-white/10 px-2 text-chalk">{t("play")}</button>
                             ) : (
-                              <button type="button" disabled={busy} onClick={() => void playCard(c)} className="min-h-7 rounded-md bg-white/10 px-2 text-chalk">
-                                play
-                              </button>
+                              <button type="button" disabled={busy} onClick={() => void playCard(c)} className="min-h-7 rounded-md bg-white/10 px-2 text-chalk">{t("play")}</button>
                             ))}
                         </span>
                       );
@@ -683,7 +652,7 @@ export default function Catan({ item, state: raw }: { item: Item<"game">; state:
                     {choosing && (
                       <span className="flex flex-col gap-1 rounded-lg bg-white/5 p-1">
                         <span className="text-muted">
-                          {devKind(choosing.card) === "plenty" ? `take two (${choosing.picks.map((p) => RESOURCE_NAME[p]).join(", ") || "none yet"})` : "everyone gives you all their..."}
+                          {devKind(choosing.card) === "plenty" ? t(`take two (${choosing.picks.map((p) => RESOURCE_NAME[p]).join(", ") || "none yet"})`) : t("everyone gives you all their...")}
                         </span>
                         <span className="flex gap-1">
                           {RESOURCES.map((r) => (
@@ -718,40 +687,27 @@ export default function Catan({ item, state: raw }: { item: Item<"game">; state:
       )}
 
       {manual && (
-        <RulesSheet title="Catan" onClose={() => setManual(false)}>
+        <RulesSheet title={t("Catan")} onClose={() => setManual(false)}>
           <p>
-            <b>Setup</b>: everyone puts down a settlement and a road, round the table and then back again. Your second settlement
-            gives you one of each resource around it.
-          </p>
+            <b>{t("Setup")}</b>{t(": everyone puts down a settlement and a road, round the table and then back again. Your second settlement gives you one of each resource around it.")}</p>
           <p>
-            <b>Your turn</b>: roll. Every hex with that number pays each settlement on its corners one card, each city two. Then
-            build, trade and play a development card, in any order.
-          </p>
+            <b>{t("Your turn")}</b>{t(": roll. Every hex with that number pays each settlement on its corners one card, each city two. Then build, trade and play a development card, in any order.")}</p>
           <p>
-            <b>Building</b>: a road (wood, brick) joins your road or town. A settlement (wood, brick, sheep, wheat) goes on your
-            road, never right next to another town. A city (two wheat, three ore) replaces your settlement. A development card
-            costs sheep, wheat and ore.
-          </p>
+            <b>{t("Building")}</b>{t(": a road (wood, brick) joins your road or town. A settlement (wood, brick, sheep, wheat) goes on your road, never right next to another town. A city (two wheat, three ore) replaces your settlement. A development card costs sheep, wheat and ore.")}</p>
           <p>
-            <b>A 7</b>: anyone holding more than seven cards throws away half. Then the robber moves to another hex -- it stops
-            that hex paying -- and you steal a card from someone with a town on it.
-          </p>
+            <b>A 7</b>{t(": anyone holding more than seven cards throws away half. Then the robber moves to another hex -- it stops that hex paying -- and you steal a card from someone with a town on it.")}</p>
           <p>
-            <b>Trading</b>: four of one kind to the bank for any one card; three at any harbour you have a town on; two at a
-            harbour of that kind. Or offer the table a trade -- whoever takes it first gets it.
-          </p>
+            <b>{t("Trading")}</b>{t(": four of one kind to the bank for any one card; three at any harbour you have a town on; two at a harbour of that kind. Or offer the table a trade -- whoever takes it first gets it.")}</p>
           <p>
-            <b>Points</b>: settlement 1, city 2, the Longest Road (five or more) 2, the Largest Army (three knights or more) 2, and
-            victory point cards 1 each, kept hidden. First to {WIN} on their own turn wins.
-          </p>
+            <b>{t("Points")}</b>{t(": settlement 1, city 2, the Longest Road (five or more) 2, the Largest Army (three knights or more) 2, and victory point cards 1 each, kept hidden. First to")}{" "}{WIN}{" "}{t("on their own turn wins.")}</p>
           <div className="space-y-1 border-t border-white/8 pt-2">
-            <h4>development cards</h4>
+            <h4>{t("development cards")}</h4>
             {(["knight", "roads", "plenty", "monopoly", "vp"] as const).map((k) => (
               <p key={k}>
                 <b>{DEV_NAME[k]}</b> -- {DEV_TEXT[k]}
               </p>
             ))}
-            <p>One a turn, and never one you bought this turn. A knight can be played before you roll.</p>
+            <p>{t("One a turn, and never one you bought this turn. A knight can be played before you roll.")}</p>
           </div>
         </RulesSheet>
       )}

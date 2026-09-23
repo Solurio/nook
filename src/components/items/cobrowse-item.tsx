@@ -6,6 +6,7 @@ import { ExternalLink, Loader2, Monitor, Repeat, X } from "lucide-react";
 import { useRoom } from "@/realtime/room-provider";
 import { useRoomStore } from "@/state/room-store";
 import type { Item } from "@/lib/types";
+import { t } from "@/lib/i18n";
 
 /**
  * A live shared browser. Everyone in the room loads the same Hyperbeam embed and
@@ -91,7 +92,7 @@ export default function CobrowseItem({
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
                 onKeyDown={(event) => event.stopPropagation()}
-                placeholder="new link"
+                placeholder={t("new link")}
                 spellCheck={false}
                 autoFocus
                 className="min-w-0 flex-1 rounded-lg bg-white/8 px-2 py-1 text-[11px] ring-1 ring-white/12 outline-none focus:ring-glow/50"
@@ -100,9 +101,7 @@ export default function CobrowseItem({
                 type="submit"
                 disabled={busy}
                 className="shrink-0 rounded-lg bg-glow/25 px-2 py-1 text-[11px] font-medium text-glow"
-              >
-                go
-              </button>
+              >{t("go")}</button>
             </form>
           ) : (
             <span className="min-w-0 flex-1 truncate text-[11px] text-muted">{data.url}</span>
@@ -115,7 +114,7 @@ export default function CobrowseItem({
                 setDraft(data.url);
                 setChanging(true);
               }}
-              title="change link"
+              title={t("change link")}
               className="shrink-0 text-muted transition hover:text-chalk"
             >
               <Repeat className="size-3.5" strokeWidth={2.2} />
@@ -125,7 +124,7 @@ export default function CobrowseItem({
             <button
               type="button"
               onClick={() => void close()}
-              title="close session"
+              title={t("close session")}
               className="shrink-0 text-muted transition hover:text-red-300"
             >
               <X className="size-3.5" strokeWidth={2.4} />
@@ -152,9 +151,7 @@ export default function CobrowseItem({
       {error === "not-configured" ? (
         <div className="max-w-[300px] space-y-2 text-muted">
           <Monitor className="mx-auto size-5" strokeWidth={1.8} />
-          <p className="text-xs leading-relaxed">
-            The shared browser needs a Hyperbeam key set in your hosting
-            environment. See <span className="text-chalk">COBROWSE.md</span>.
+          <p className="text-xs leading-relaxed">{t("The shared browser needs a Hyperbeam key set in your hosting environment. See")}{" "}<span className="text-chalk">{t("COBROWSE.md")}</span>.
           </p>
         </div>
       ) : selected && canEdit ? (
@@ -167,13 +164,13 @@ export default function CobrowseItem({
         >
           <div className="flex items-center justify-center gap-1.5 text-muted">
             <Monitor className="size-4" strokeWidth={2} />
-            <span className="text-xs font-medium">shared browser</span>
+            <span className="text-xs font-medium">{t("shared browser")}</span>
           </div>
           <input
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={(event) => event.stopPropagation()}
-            placeholder="cola um link e todos usam juntos"
+            placeholder={t("paste a link and everyone browses it together")}
             spellCheck={false}
             className="w-full rounded-xl bg-white/8 px-3 py-2 text-xs ring-1 ring-white/12 outline-none placeholder:text-muted/60 focus:ring-glow/50"
           />
@@ -185,7 +182,7 @@ export default function CobrowseItem({
             )}
           >
             {busy ? <Loader2 className="size-3.5 animate-spin" strokeWidth={2.4} /> : null}
-            {busy ? "abrindo" : data.status === "ended" ? "abrir de novo" : "abrir juntos"}
+            {busy ? t("opening") : data.status === "ended" ? t("open it again") : t("open it together")}
           </button>
           {error && error !== "not-configured" && (
             <p className="text-[11px] text-red-300">{error}</p>
@@ -195,7 +192,7 @@ export default function CobrowseItem({
         <div className="text-muted">
           <Monitor className="mx-auto mb-2 size-5" strokeWidth={1.8} />
           <p className="text-xs">
-            {data.status === "ended" ? "session ended" : "shared browser"}
+            {data.status === "ended" ? t("session ended") : t("shared browser")}
           </p>
           {data.url && (
             <a
@@ -204,9 +201,7 @@ export default function CobrowseItem({
               rel="noopener noreferrer"
               className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-glow hover:underline"
             >
-              <ExternalLink className="size-3" strokeWidth={2.2} />
-              open in a tab
-            </a>
+              <ExternalLink className="size-3" strokeWidth={2.2} />{t("open in a tab")}</a>
           )}
         </div>
       )}

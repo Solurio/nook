@@ -36,6 +36,7 @@ import {
   type Ship,
 } from "@/lib/battleship";
 import type { Item } from "@/lib/types";
+import { t } from "@/lib/i18n";
 
 const TINT: Record<Chair, string> = { a: "#6aa9e0", b: "#e0655c" };
 const SIDE_NAME: Record<Chair, string> = { a: "blue fleet", b: "red fleet" };
@@ -389,7 +390,7 @@ export default function Battleship({ item, state: raw }: { item: Item<"game">; s
     }
     const last = [...state.shots.a.map((s) => ({ ...s, by: "a" as Chair })), ...state.shots.b.map((s) => ({ ...s, by: "b" as Chair }))].at(-1);
     const turn = state.turn === firingFor ? "your shot" : `${label(state.turn)} is aiming`;
-    return last ? `${last.cell}: ${last.hit ? "hit" : "miss"} · ${turn}` : turn;
+    return last ? `${last.cell}: ${t(last.hit ? "hit" : "miss")} · ${t(turn)}` : turn;
   })();
 
   // The preview of the ship in hand, under the pointer.
@@ -422,15 +423,15 @@ export default function Battleship({ item, state: raw }: { item: Item<"game">; s
             )}
           >
             <span className="size-2.5 shrink-0 rounded-full" style={{ background: TINT[c] }} />
-            <span className={clsx("truncate", state.seats[c] ? "text-chalk" : "text-muted/60")}>{state.seats[c] ?? `${SIDE_NAME[c]} · sit here`}</span>
+            <span className={clsx("truncate", state.seats[c] ? "text-chalk" : "text-muted/60")}>{state.seats[c] ?? t(`${SIDE_NAME[c]} · sit here`)}</span>
             <span className="ml-auto shrink-0 text-[10px] text-muted tabular-nums">
-              {ready(piles, c) ? `${hitsBy(state, c)}/${FLEET_SQUARES}` : "in port"}
+              {ready(piles, c) ? `${hitsBy(state, c)}/${FLEET_SQUARES}` : t("in port")}
             </span>
           </button>
         ))}
       </div>
 
-      <p className={clsx("text-center text-[12px]", state.winner ? "text-glow" : "text-chalk")}>{status}</p>
+      <p className={clsx("text-center text-[12px]", state.winner ? "text-glow" : "text-chalk")}>{t(status)}</p>
 
       <div className="relative min-h-0 flex-1 overflow-y-auto">
         {covered ? (
@@ -440,15 +441,14 @@ export default function Battleship({ item, state: raw }: { item: Item<"game">; s
               onClick={() => setShownFor(showing)}
               className="flex min-h-12 flex-col items-center justify-center gap-1 rounded-2xl bg-white/8 px-5 py-3 text-[12px] text-chalk ring-1 ring-white/12"
             >
-              <Anchor className="size-5 text-glow" />
-              pass it to {label((phase === "firing" ? firingFor : placingFor) ?? "a")}
-              <span className="text-[10px] text-muted">tap when it is in their hands</span>
+              <Anchor className="size-5 text-glow" />{t("pass it to")}{" "}{label((phase === "firing" ? firingFor : placingFor) ?? "a")}
+              <span className="text-[10px] text-muted">{t("tap when it is in their hands")}</span>
             </button>
           </div>
         ) : phase === "placing" && placingFor && !ready(piles, placingFor) ? (
           <div className={clsx("flex gap-3", sideBySide ? "flex-row items-start justify-center" : "flex-col items-center")}>
             <Waters
-              title={`${label(placingFor)}: your waters`}
+              title={t(`${label(placingFor)}: your waters`)}
               tint={TINT[placingFor]}
               marks={placingMarks}
               ships={placingShips}
@@ -475,19 +475,18 @@ export default function Battleship({ item, state: raw }: { item: Item<"game">; s
                         <span key={i} className="h-2.5 w-3 rounded-[2px] bg-[#9aa7b4]" />
                       ))}
                     </span>
-                    {kind.name}
+                    {t(kind.name)}
                     {placed && <Check className="ml-auto size-3.5 text-emerald-300" />}
                   </button>
                 );
               })}
               <div className="flex flex-wrap gap-1">
                 <button type="button" onClick={() => setAcross((v) => !v)} className="flex min-h-9 flex-1 items-center justify-center gap-1 rounded-lg bg-white/7 text-[11px] text-chalk">
-                  <RotateCw className="size-3.5" /> {across ? "across" : "down"}
+                  <RotateCw className="size-3.5" /> {across ? t("across") : t("down")}
                 </button>
                 <button type="button" onClick={() => setPlacements(randomFleet())} className="flex min-h-9 flex-1 items-center justify-center gap-1 rounded-lg bg-white/7 text-[11px] text-chalk">
-                  <Shuffle className="size-3.5" /> at random
-                </button>
-                <button type="button" onClick={() => setPlacements([])} aria-label="clear the board" className="grid min-h-9 w-9 place-items-center rounded-lg bg-white/7 text-muted hover:text-red-300">
+                  <Shuffle className="size-3.5" />{" "}{t("at random")}</button>
+                <button type="button" onClick={() => setPlacements([])} aria-label={t("clear the board")} className="grid min-h-9 w-9 place-items-center rounded-lg bg-white/7 text-muted hover:text-red-300">
                   <Trash2 className="size-3.5" />
                 </button>
               </div>
@@ -497,14 +496,13 @@ export default function Battleship({ item, state: raw }: { item: Item<"game">; s
                 onClick={() => void sendFleet()}
                 className="flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-glow/30 text-[12px] font-semibold text-glow disabled:opacity-40"
               >
-                <Anchor className="size-4" /> put to sea
-              </button>
-              <p className="text-[10px] text-muted/70">tap a square to put the ship there; tap one already out to pick it up again.</p>
+                <Anchor className="size-4" />{" "}{t("put to sea")}</button>
+              <p className="text-[10px] text-muted/70">{t("tap a square to put the ship there; tap one already out to pick it up again.")}</p>
             </div>
           </div>
         ) : phase === "placing" ? (
           <div className="grid h-full place-items-center text-center text-[12px] text-muted">
-            {placingFor ? "your fleet is out. waiting for the other side." : "sit on a side to play."}
+            {placingFor ? t("your fleet is out. waiting for the other side.") : t("sit on a side to play.")}
           </div>
         ) : (
           (() => {
@@ -515,7 +513,7 @@ export default function Battleship({ item, state: raw }: { item: Item<"game">; s
             return (
               <div className={clsx("flex gap-3", sideBySide ? "flex-row items-start justify-center" : "flex-col items-center")}>
                 <Waters
-                  title={`${label(other(side))}'s waters`}
+                  title={t(`${label(other(side))}'s waters`)}
                   tint={TINT[other(side)]}
                   marks={theirs.marks}
                   ships={theirs.ships}
@@ -523,7 +521,7 @@ export default function Battleship({ item, state: raw }: { item: Item<"game">; s
                   cell={cell}
                 />
                 {firingFor && (
-                  <Waters title="your waters" tint={TINT[side]} marks={ours.marks} ships={ours.ships} cell={small} dim />
+                  <Waters title={t("your waters")} tint={TINT[side]} marks={ours.marks} ships={ours.ships} cell={small} dim />
                 )}
               </div>
             );
@@ -536,7 +534,7 @@ export default function Battleship({ item, state: raw }: { item: Item<"game">; s
         {CHAIRS.map((c) =>
           state.sunk[c].length > 0 ? (
             <span key={c} className="rounded-md bg-white/5 px-1.5 py-0.5 text-[10px] text-muted">
-              <span style={{ color: TINT[c] }}>{label(c)}</span> lost: {state.sunk[c].map((s) => shipName(s.ship)).join(", ")}
+              <span style={{ color: TINT[c] }}>{label(c)}</span>{" "}{t("lost:")}{" "}{state.sunk[c].map((s) => shipName(s.ship)).join(", ")}
             </span>
           ) : null,
         )}
@@ -546,13 +544,12 @@ export default function Battleship({ item, state: raw }: { item: Item<"game">; s
               type="button"
               onClick={() => void save((fresh) => ({ ...fresh, again: !fresh.again }))}
               className={clsx("ml-auto min-h-8 rounded-lg px-2 text-[10px]", state.again ? "bg-glow/22 text-glow" : "bg-white/6 text-muted hover:text-chalk")}
-              title="whether a hit earns another shot"
+              title={t("whether a hit earns another shot")}
             >
-              {state.again ? "a hit shoots again" : "shots take turns"}
+              {state.again ? t("a hit shoots again") : t("shots take turns")}
             </button>
             <button type="button" onClick={() => void newGame()} className="flex min-h-8 items-center gap-1 rounded-lg bg-white/6 px-2 text-[10px] text-muted hover:text-chalk">
-              <RotateCcw className="size-3" /> new game
-            </button>
+              <RotateCcw className="size-3" />{" "}{t("new game")}</button>
           </>
         )}
       </div>

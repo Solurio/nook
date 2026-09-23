@@ -5,6 +5,7 @@ import { Copy, Link2, Pin, PinOff, Trash2, Unlink2, X } from "lucide-react";
 import { useRoom } from "@/realtime/room-provider";
 import { useRoomStore } from "@/state/room-store";
 import { newId } from "@/lib/slug";
+import { t } from "@/lib/i18n";
 
 /**
  * What can be done to several things at once: stuck down or freed, tied
@@ -30,9 +31,9 @@ export default function MultiBar() {
   return (
     <div className="pointer-events-none fixed inset-x-0 top-14 z-40 flex justify-center px-2">
       <div className="pointer-events-auto flex flex-wrap items-center gap-0.5 rounded-2xl bg-ink-900/92 p-1 shadow-xl ring-1 ring-white/10 backdrop-blur-md">
-        <span className="px-2 text-[11px] font-semibold text-glow">{list.length} picked</span>
+        <span className="px-2 text-[11px] font-semibold text-glow">{list.length}{" "}{t("picked")}</span>
         <button type="button" disabled={!canEdit} className={button} onClick={() => each((d) => ({ ...d, pinned: !allPinned }))}>
-          {allPinned ? <PinOff /> : <Pin />} {allPinned ? "unpin" : "pin"}
+          {allPinned ? <PinOff /> : <Pin />} {allPinned ? t("unpin") : t("pin")}
         </button>
         <button
           type="button"
@@ -43,11 +44,10 @@ export default function MultiBar() {
             each((d) => ({ ...d, group: tied ? null : group }));
           }}
         >
-          {tied ? <Unlink2 /> : <Link2 />} {tied ? "untie" : "tie together"}
+          {tied ? <Unlink2 /> : <Link2 />} {tied ? t("untie") : t("tie together")}
         </button>
         <button type="button" disabled={!canEdit} className={button} onClick={() => list.forEach((it) => void duplicateItem(it.id))}>
-          <Copy /> copy
-        </button>
+          <Copy />{" "}{t("copy")}</button>
         <button
           type="button"
           disabled={!canEdit}
@@ -61,11 +61,11 @@ export default function MultiBar() {
             list.filter((it) => !it.data?.pinned).forEach((it) => void deleteItem(it.id));
           }}
         >
-          <Trash2 /> {confirm ? "sure? tap again" : "delete"}
+          <Trash2 /> {confirm ? t("sure? tap again") : t("delete")}
         </button>
         <button
           type="button"
-          aria-label="let go of them"
+          aria-label={t("let go of them")}
           className={button}
           onClick={() => {
             setConfirm(false);

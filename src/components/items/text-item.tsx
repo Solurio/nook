@@ -7,6 +7,7 @@ import { useRoom } from "@/realtime/room-provider";
 import { useRoomStore } from "@/state/room-store";
 import { useDebouncedSave } from "@/lib/use-debounced-save";
 import type { Item, TextEffect } from "@/lib/types";
+import { t } from "@/lib/i18n";
 
 function typeStyle(data: Item<"text">["data"]): React.CSSProperties {
   return {
@@ -53,7 +54,7 @@ export default function TextItem({ item, editing }: { item: Item<"text">; editin
           body
         )
       ) : (
-        <span className="opacity-40">{canEdit ? "double-click to edit" : ""}</span>
+        <span className="opacity-40">{canEdit ? t("double-click to edit") : ""}</span>
       )}
     </p>
   );

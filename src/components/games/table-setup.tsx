@@ -20,6 +20,7 @@ import {
   type TableState,
 } from "@/lib/table";
 import PlayingCard from "@/components/cards/playing-card";
+import { t } from "@/lib/i18n";
 
 const SUIT_MARK: Record<Suit, string> = { S: "spades", H: "hearts", D: "diamonds", C: "clubs" };
 const PATTERNS: BackPattern[] = ["lattice", "stripes", "dots", "plain"];
@@ -74,12 +75,12 @@ export default function TableSetup({
   return (
     <div className="absolute inset-0 z-30 flex flex-col rounded-2xl bg-ink-950/96 backdrop-blur-sm">
       <div className="flex shrink-0 items-center gap-2 border-b border-white/8 px-3 py-2">
-        <h3 className="text-[13px] font-semibold">decks and chairs</h3>
-        <span className="text-[10px] text-muted/60">{total} cards in all</span>
+        <h3 className="text-[13px] font-semibold">{t("decks and chairs")}</h3>
+        <span className="text-[10px] text-muted/60">{total}{" "}{t("cards in all")}</span>
         <button
           type="button"
           onClick={onClose}
-          aria-label="close"
+          aria-label={t("close")}
           className="ml-auto grid size-9 place-items-center rounded-lg text-muted transition hover:bg-white/8 hover:text-chalk"
         >
           <X className="size-4" strokeWidth={2.4} />
@@ -88,7 +89,7 @@ export default function TableSetup({
 
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">
         <section className="flex flex-wrap items-center gap-2 rounded-xl bg-white/4 p-2.5">
-          <span className="text-[11px] text-muted">chairs</span>
+          <span className="text-[11px] text-muted">{t("chairs")}</span>
           <Stepper value={seatCount} min={1} max={MAX_CHAIRS} onChange={setSeatCount} />
           {seatCount % 2 === 0 && seatCount >= 4 && (
             <button
@@ -99,7 +100,7 @@ export default function TableSetup({
                 teams >= 2 ? "bg-glow/22 text-glow" : "bg-white/6 text-muted",
               )}
             >
-              {teams >= 2 ? "partners across the table" : "everyone for themselves"}
+              {teams >= 2 ? t("partners across the table") : t("everyone for themselves")}
             </button>
           )}
         </section>
@@ -132,8 +133,7 @@ export default function TableSetup({
             onClick={() => setAdding(true)}
             className="flex min-h-10 w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-white/15 text-[12px] text-muted transition hover:text-chalk"
           >
-            <Plus className="size-4" /> another deck
-          </button>
+            <Plus className="size-4" />{" "}{t("another deck")}</button>
         )}
       </div>
 
@@ -142,16 +142,12 @@ export default function TableSetup({
           type="button"
           onClick={() => onSave(next())}
           className="min-h-10 flex-1 rounded-xl bg-white/8 text-[12px] font-medium text-chalk transition hover:bg-white/12"
-        >
-          keep the table as it is
-        </button>
+        >{t("keep the table as it is")}</button>
         <button
           type="button"
           onClick={() => onSetTable(next())}
           className="min-h-10 flex-1 rounded-xl bg-[#f3ead7] text-[12px] font-semibold text-[#2a2118] transition active:scale-[0.98]"
-        >
-          clear and set the table
-        </button>
+        >{t("clear and set the table")}</button>
       </div>
     </div>
   );
@@ -175,7 +171,7 @@ function Stepper({
         disabled={value <= min}
         onClick={() => onChange(Math.max(min, value - 1))}
         className="grid size-8 place-items-center text-muted disabled:opacity-30"
-        aria-label="fewer"
+        aria-label={t("fewer")}
       >
         <Minus className="size-3.5" />
       </button>
@@ -185,7 +181,7 @@ function Stepper({
         disabled={value >= max}
         onClick={() => onChange(Math.min(max, value + 1))}
         className="grid size-8 place-items-center text-muted disabled:opacity-30"
-        aria-label="more"
+        aria-label={t("more")}
       >
         <Plus className="size-3.5" />
       </button>
@@ -243,14 +239,13 @@ function DeckEditor({
             className="h-8 w-full rounded-lg bg-white/7 px-2 text-[12px] ring-1 ring-white/10 outline-none focus:ring-glow/45"
           />
           <p className="text-[10px] text-muted/60">
-            {deck.kind} · {cards.length} cards
-          </p>
+            {deck.kind} · {cards.length}{" "}{t("cards")}</p>
         </div>
         {onRemove && (
           <button
             type="button"
             onClick={onRemove}
-            aria-label="take this deck away"
+            aria-label={t("take this deck away")}
             className="grid size-8 shrink-0 place-items-center rounded-lg text-muted transition hover:bg-red-500/15 hover:text-red-300"
           >
             <Trash2 className="size-4" />
@@ -299,14 +294,14 @@ function DeckEditor({
             })}
           </div>
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted">
-            <span>jokers</span>
+            <span>{t("jokers")}</span>
             <Stepper
               value={deck.config.jokers}
               min={0}
               max={2}
               onChange={(jokers) => deck.config && onChange({ config: { ...deck.config, jokers } })}
             />
-            <span>copies</span>
+            <span>{t("copies")}</span>
             <Stepper
               value={deck.config.copies}
               min={1}
@@ -324,9 +319,7 @@ function DeckEditor({
               {theme}
             </Chip>
           ))}
-          <Chip on={Boolean(deck.reversals)} onClick={() => onChange({ reversals: !deck.reversals })}>
-            reversals
-          </Chip>
+          <Chip on={Boolean(deck.reversals)} onClick={() => onChange({ reversals: !deck.reversals })}>{t("reversals")}</Chip>
         </div>
       )}
 
@@ -358,7 +351,7 @@ function CustomCards({
               value={card.title}
               onChange={(event) => patch(card.id, { title: event.target.value.slice(0, 18) })}
               onKeyDown={(event) => event.stopPropagation()}
-              placeholder="title"
+              placeholder={t("title")}
               className="h-8 min-w-0 flex-1 rounded-md bg-white/7 px-2 text-[11px] outline-none"
             />
             <Stepper value={card.copies} min={1} max={20} onChange={(copies) => patch(card.id, { copies })} />
@@ -376,7 +369,7 @@ function CustomCards({
             value={card.text ?? ""}
             onChange={(event) => patch(card.id, { text: event.target.value.slice(0, 90) })}
             onKeyDown={(event) => event.stopPropagation()}
-            placeholder="what it says (optional)"
+            placeholder={t("what it says (optional)")}
             className="h-8 w-full rounded-md bg-white/7 px-2 text-[11px] outline-none"
           />
           <div className="flex flex-wrap items-center gap-1">
@@ -385,7 +378,7 @@ function CustomCards({
                 key={color}
                 type="button"
                 onClick={() => patch(card.id, { color })}
-                aria-label={`colour ${color}`}
+                aria-label={t(`colour ${color}`)}
                 className={clsx("size-6 rounded-full", card.color === color && "ring-2 ring-chalk")}
                 style={{ background: color }}
               />
@@ -409,8 +402,7 @@ function CustomCards({
         }
         className="flex min-h-8 w-full items-center justify-center gap-1 rounded-lg bg-white/6 text-[11px] text-muted"
       >
-        <Plus className="size-3.5" /> a card
-      </button>
+        <Plus className="size-3.5" />{" "}{t("a card")}</button>
     </div>
   );
 }
@@ -418,13 +410,13 @@ function CustomCards({
 function BackEditor({ deck, onChange }: { deck: DeckDef; onChange: (patch: Partial<DeckDef>) => void }) {
   return (
     <div className="flex flex-wrap items-center gap-1">
-      <span className="pr-1 text-[10px] text-muted/60">back</span>
+      <span className="pr-1 text-[10px] text-muted/60">{t("back")}</span>
       {BACK_COLORS.map((color) => (
         <button
           key={color}
           type="button"
           onClick={() => onChange({ back: { ...deck.back, color, image: undefined } })}
-          aria-label={`back colour ${color}`}
+          aria-label={t(`back colour ${color}`)}
           className={clsx("size-6 rounded-md", deck.back.color === color && !deck.back.image && "ring-2 ring-chalk")}
           style={{ background: color }}
         />
@@ -467,13 +459,13 @@ function ImagePicker({
         )}
       >
         <ImagePlus className="size-3.5" />
-        {busy ? "uploading" : value ? "picture set" : "picture"}
+        {busy ? t("uploading") : value ? t("picture set") : t("picture")}
       </button>
       {value && (
         <button
           type="button"
           onClick={() => onChange(undefined)}
-          aria-label="no picture"
+          aria-label={t("no picture")}
           className="grid size-8 place-items-center text-muted"
         >
           <X className="size-3.5" />

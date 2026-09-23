@@ -8,6 +8,7 @@ import { draftItem, topZ } from "@/lib/items";
 import type { Gif, SourceReport } from "@/lib/gifs";
 import { anyGifSource, enabledSources, explain, searchGifs } from "@/lib/gif-search";
 import clsx from "clsx";
+import { t } from "@/lib/i18n";
 
 /**
  * Where to hang the panel so it sits above the button that opened it, without
@@ -137,13 +138,11 @@ export default function StickersPanel({
     >
       <header className="flex items-center justify-between border-b border-white/8 px-4 py-3">
         <h2 className="flex items-center gap-1.5 text-sm font-semibold">
-          <Sticker className="size-4 text-glow" strokeWidth={2.2} />
-          gifs &amp; stickers
-        </h2>
+          <Sticker className="size-4 text-glow" strokeWidth={2.2} />{t("gifs & stickers")}</h2>
         <button
           type="button"
           onClick={() => setPanel(null)}
-          aria-label="close"
+          aria-label={t("close")}
           className="grid size-6 place-items-center rounded-lg text-muted transition hover:bg-white/8 hover:text-chalk"
         >
           <X className="size-3.5" strokeWidth={2.4} />
@@ -152,20 +151,14 @@ export default function StickersPanel({
 
       {!enabled ? (
         <div className="flex-1 space-y-2 px-5 py-6 text-sm leading-relaxed text-muted">
-          <p>Searching gifs and stickers needs at least one free key.</p>
+          <p>{t("Searching gifs and stickers needs at least one free key.")}</p>
           <ol className="list-decimal space-y-1 pl-4 text-xs">
-            <li>
-              Grab one from <span className="text-chalk">tenor.com</span> (the most generous
-              free allowance), <span className="text-chalk">developers.giphy.com</span> or{" "}
-              <span className="text-chalk">partner.klipy.com</span>.
+            <li>{t("Grab one from")}{" "}<span className="text-chalk">{t("tenor.com")}</span>{" "}{t("(the most generous free allowance),")}{" "}<span className="text-chalk">{t("developers.giphy.com")}</span>{" "}{t("or")}{" "}
+              <span className="text-chalk">{t("partner.klipy.com")}</span>.
             </li>
-            <li>
-              Add <code className="rounded bg-white/8 px-1">NEXT_PUBLIC_TENOR_KEY</code>,{" "}
-              <code className="rounded bg-white/8 px-1">NEXT_PUBLIC_GIPHY_KEY</code> or{" "}
-              <code className="rounded bg-white/8 px-1">NEXT_PUBLIC_KLIPY_KEY</code> to your
-              environment variables, then deploy again. More than one means a source running
-              dry still leaves you with gifs.
-            </li>
+            <li>{t("Add")}{" "}<code className="rounded bg-white/8 px-1">NEXT_PUBLIC_TENOR_KEY</code>,{" "}
+              <code className="rounded bg-white/8 px-1">NEXT_PUBLIC_GIPHY_KEY</code>{" "}{t("or")}{" "}
+              <code className="rounded bg-white/8 px-1">NEXT_PUBLIC_KLIPY_KEY</code>{" "}{t("to your environment variables, then deploy again. More than one means a source running dry still leaves you with gifs.")}</li>
           </ol>
         </div>
       ) : (
@@ -177,7 +170,7 @@ export default function StickersPanel({
                 value={term}
                 onChange={(event) => setTerm(event.target.value)}
                 onKeyDown={(event) => event.stopPropagation()}
-                placeholder="search gifs and stickers"
+                placeholder={t("search gifs and stickers")}
                 spellCheck={false}
                 autoFocus
                 className="min-w-0 flex-1 bg-transparent py-2.5 text-sm outline-none placeholder:text-muted/55"
@@ -190,7 +183,7 @@ export default function StickersPanel({
             {gifs.length === 0 && !loading ? (
               <div className="px-3 pt-6 text-center">
                 <p className="text-xs text-muted/70">
-                  {note ?? (term.trim() ? "nothing turned up for that." : "nothing here yet.")}
+                  {note ?? (term.trim() ? t("nothing turned up for that.") : t("nothing here yet."))}
                 </p>
               </div>
             ) : (
@@ -206,7 +199,7 @@ export default function StickersPanel({
                       // A soft checker helps transparent stickers read on dark.
                       (gif.sticker ? "bg-[repeating-conic-gradient(#2a2338_0_25%,#211b2e_0_50%)] bg-[length:16px_16px]" : "")
                     }
-                    title={gif.sticker ? "add sticker" : "add gif"}
+                    title={gif.sticker ? t("add sticker") : t("add gif")}
                   >
                     <img
                       src={gif.preview}

@@ -5,6 +5,7 @@ import clsx from "clsx";
 import { ArrowDown, ArrowUp, Copy, Eraser, Eye, EyeOff, Lock, LockOpen, Merge, Plus, Sparkles, Trash2 } from "lucide-react";
 import { BLENDS, type Blend, type LayerEffects, type Studio, type StudioLayer } from "@/lib/studio/render";
 import { Panel, Range } from "./widgets";
+import { t } from "@/lib/i18n";
 
 /** A layer's picture, small, drawn again each time the studio catches up. */
 function Thumb({ studio, bus, id, paper }: { studio: Studio; bus: EventTarget; id: string; paper: string | null }) {
@@ -104,7 +105,7 @@ export default function LayersPanel({
   const effectsOn = EFFECTS.some((e) => (effects[e.key] ?? e.start) !== e.start) || Boolean(current.hue);
 
   return (
-    <Panel title={`layers (${layers.length})`} onClose={onClose} className="top-2 right-2 w-72">
+    <Panel title={t(`layers (${layers.length})`)} onClose={onClose} className="top-2 right-2 w-72">
       <div className="mb-2 flex flex-wrap items-center gap-1">
         <button
           type="button"
@@ -112,21 +113,20 @@ export default function LayersPanel({
           disabled={!canEdit || layers.length >= MAX_LAYERS}
           className="flex min-h-7 items-center gap-1 rounded-md bg-white/8 px-2 text-[10px] text-chalk hover:bg-white/12 disabled:opacity-30"
         >
-          <Plus className="size-3" /> new layer
-        </button>
-        <button type="button" onClick={() => onDuplicate(current.id)} disabled={!canEdit || layers.length >= MAX_LAYERS} title="duplicate" aria-label="duplicate" className="grid size-7 place-items-center rounded-md text-muted hover:bg-white/8 hover:text-chalk disabled:opacity-30">
+          <Plus className="size-3" />{" "}{t("new layer")}</button>
+        <button type="button" onClick={() => onDuplicate(current.id)} disabled={!canEdit || layers.length >= MAX_LAYERS} title={t("duplicate")} aria-label={t("duplicate")} className="grid size-7 place-items-center rounded-md text-muted hover:bg-white/8 hover:text-chalk disabled:opacity-30">
           <Copy className="size-3.5" />
         </button>
-        <button type="button" onClick={() => onMergeDown(current.id)} disabled={!canEdit || index <= 0} title="merge into the layer below" aria-label="merge down" className="grid size-7 place-items-center rounded-md text-muted hover:bg-white/8 hover:text-chalk disabled:opacity-30">
+        <button type="button" onClick={() => onMergeDown(current.id)} disabled={!canEdit || index <= 0} title={t("merge into the layer below")} aria-label={t("merge down")} className="grid size-7 place-items-center rounded-md text-muted hover:bg-white/8 hover:text-chalk disabled:opacity-30">
           <Merge className="size-3.5" />
         </button>
-        <button type="button" onClick={() => move(current.id, 1)} disabled={!canEdit || index >= layers.length - 1} title="move up" aria-label="move up" className="grid size-7 place-items-center rounded-md text-muted hover:bg-white/8 hover:text-chalk disabled:opacity-30">
+        <button type="button" onClick={() => move(current.id, 1)} disabled={!canEdit || index >= layers.length - 1} title={t("move up")} aria-label={t("move up")} className="grid size-7 place-items-center rounded-md text-muted hover:bg-white/8 hover:text-chalk disabled:opacity-30">
           <ArrowUp className="size-3.5" />
         </button>
-        <button type="button" onClick={() => move(current.id, -1)} disabled={!canEdit || index <= 0} title="move down" aria-label="move down" className="grid size-7 place-items-center rounded-md text-muted hover:bg-white/8 hover:text-chalk disabled:opacity-30">
+        <button type="button" onClick={() => move(current.id, -1)} disabled={!canEdit || index <= 0} title={t("move down")} aria-label={t("move down")} className="grid size-7 place-items-center rounded-md text-muted hover:bg-white/8 hover:text-chalk disabled:opacity-30">
           <ArrowDown className="size-3.5" />
         </button>
-        <button type="button" onClick={() => onClear(current.id)} disabled={!canEdit || current.locked} title="clear the layer (or what is selected on it)" aria-label="clear layer" className="grid size-7 place-items-center rounded-md text-muted hover:bg-white/8 hover:text-chalk disabled:opacity-30">
+        <button type="button" onClick={() => onClear(current.id)} disabled={!canEdit || current.locked} title={t("clear the layer (or what is selected on it)")} aria-label={t("clear layer")} className="grid size-7 place-items-center rounded-md text-muted hover:bg-white/8 hover:text-chalk disabled:opacity-30">
           <Eraser className="size-3.5" />
         </button>
         <button
@@ -140,15 +140,15 @@ export default function LayersPanel({
             onDelete(current.id);
           }}
           disabled={!canEdit || layers.length <= 1}
-          title="delete the layer"
-          aria-label="delete layer"
+          title={t("delete the layer")}
+          aria-label={t("delete layer")}
           className={clsx(
             "flex h-7 items-center gap-1 rounded-md px-1.5 text-[10px] disabled:opacity-30",
             confirming === current.id ? "bg-red-500/25 text-red-200" : "text-muted hover:bg-red-500/15 hover:text-red-300",
           )}
         >
           <Trash2 className="size-3.5" />
-          {confirming === current.id && "sure?"}
+          {confirming === current.id && t("sure?")}
         </button>
       </div>
 
@@ -176,15 +176,14 @@ export default function LayersPanel({
                     className="h-6 w-full rounded bg-white/8 px-1 text-[11px] text-chalk outline-none"
                   />
                 ) : (
-                  <p onDoubleClick={() => canEdit && setRenaming(layer.id)} className="truncate text-[11px] text-chalk" title="double-click to rename">
+                  <p onDoubleClick={() => canEdit && setRenaming(layer.id)} className="truncate text-[11px] text-chalk" title={t("double-click to rename")}>
                     {layer.name}
                   </p>
                 )}
                 <p className="truncate text-[9px] text-muted">
                   {BLENDS.find((b) => b.id === (layer.blend ?? "source-over"))?.name} · {Math.round(layer.opacity * 100)}%
-                  {layer.clip ? " · clipped" : ""}
-                  {layer.alphaLock ? " · alpha lock" : ""} · {opCounts[layer.id] ?? 0} ops
-                </p>
+                  {layer.clip ? t(" · clipped") : ""}
+                  {layer.alphaLock ? t(" · alpha lock") : ""} · {opCounts[layer.id] ?? 0}{" "}{t("ops")}</p>
               </div>
               <button
                 type="button"
@@ -193,8 +192,8 @@ export default function LayersPanel({
                   patch(layer.id, { locked: !layer.locked });
                 }}
                 disabled={!canEdit}
-                aria-label={layer.locked ? "unlock" : "lock"}
-                title={layer.locked ? "locked: tap to unlock" : "lock"}
+                aria-label={layer.locked ? t("unlock") : t("lock")}
+                title={layer.locked ? t("locked: tap to unlock") : t("lock")}
                 className={clsx("grid size-6 shrink-0 place-items-center rounded", layer.locked ? "text-amber-300" : "text-muted/50 hover:text-chalk")}
               >
                 {layer.locked ? <Lock className="size-3" /> : <LockOpen className="size-3" />}
@@ -206,7 +205,7 @@ export default function LayersPanel({
                   patch(layer.id, { visible: !layer.visible });
                 }}
                 disabled={!canEdit}
-                aria-label={layer.visible ? "hide" : "show"}
+                aria-label={layer.visible ? t("hide") : t("show")}
                 className="grid size-6 shrink-0 place-items-center rounded text-muted hover:text-chalk"
               >
                 {layer.visible ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
@@ -219,7 +218,7 @@ export default function LayersPanel({
       {canEdit && (
         <div className="mt-2 space-y-1.5 border-t border-white/8 pt-2">
           <label className="flex items-center gap-2 text-[10px] text-muted">
-            <span className="w-20 shrink-0">blend</span>
+            <span className="w-20 shrink-0">{t("blend")}</span>
             <select
               value={current.blend ?? "source-over"}
               onChange={(event) => patch(current.id, { blend: event.target.value as Blend })}
@@ -227,29 +226,24 @@ export default function LayersPanel({
             >
               {BLENDS.map((b) => (
                 <option key={b.id} value={b.id}>
-                  {b.name}
+                  {t(b.name)}
                 </option>
               ))}
             </select>
           </label>
-          <Range label="opacity" value={Math.round(current.opacity * 100)} min={0} max={100} onChange={(v) => patch(current.id, { opacity: v / 100 })} format={(v) => `${v}%`} />
+          <Range label={t("opacity")} value={Math.round(current.opacity * 100)} min={0} max={100} onChange={(v) => patch(current.id, { opacity: v / 100 })} format={(v) => `${v}%`} />
           <div className="flex flex-wrap gap-1">
-            <Toggle on={Boolean(current.clip)} disabled={index === 0} onClick={() => patch(current.id, { clip: !current.clip })} title="paint only shows where the layer below has paint">
-              clipping
-            </Toggle>
-            <Toggle on={Boolean(current.alphaLock)} onClick={() => patch(current.id, { alphaLock: !current.alphaLock })} title="new paint only goes where this layer already has paint">
-              alpha lock
-            </Toggle>
-            <Toggle on={showEffects || effectsOn} onClick={() => setShowEffects((v) => !v)} title="effects that change how the layer looks, not its pixels">
-              <Sparkles className="size-3" /> effects
-            </Toggle>
+            <Toggle on={Boolean(current.clip)} disabled={index === 0} onClick={() => patch(current.id, { clip: !current.clip })} title={t("paint only shows where the layer below has paint")}>{t("clipping")}</Toggle>
+            <Toggle on={Boolean(current.alphaLock)} onClick={() => patch(current.id, { alphaLock: !current.alphaLock })} title={t("new paint only goes where this layer already has paint")}>{t("alpha lock")}</Toggle>
+            <Toggle on={showEffects || effectsOn} onClick={() => setShowEffects((v) => !v)} title={t("effects that change how the layer looks, not its pixels")}>
+              <Sparkles className="size-3" />{" "}{t("effects")}</Toggle>
           </div>
           {showEffects && (
             <div className="space-y-1 rounded-lg bg-white/4 p-1.5">
               {EFFECTS.map((e) => (
                 <Range
                   key={e.key}
-                  label={e.name}
+                  label={t(e.name)}
                   value={e.key === "hue" ? (effects.hue ?? 0) + (current.hue ?? 0) : (effects[e.key] ?? e.start)}
                   min={e.min}
                   max={e.max}
@@ -257,9 +251,7 @@ export default function LayersPanel({
                   format={(v) => `${v}${e.unit === "deg" ? "°" : e.unit}`}
                 />
               ))}
-              <button type="button" onClick={() => patch(current.id, { hue: 0, effects: {} })} className="min-h-6 rounded-md px-2 text-[10px] text-muted hover:bg-white/8 hover:text-chalk">
-                reset effects
-              </button>
+              <button type="button" onClick={() => patch(current.id, { hue: 0, effects: {} })} className="min-h-6 rounded-md px-2 text-[10px] text-muted hover:bg-white/8 hover:text-chalk">{t("reset effects")}</button>
             </div>
           )}
         </div>

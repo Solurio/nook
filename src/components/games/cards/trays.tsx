@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 import type { Stack } from "@/lib/table";
+import { t } from "@/lib/i18n";
 
 export function TrayButton({
   children,
@@ -61,11 +62,11 @@ export function TrayButton({
 export function Counter({ value, onChange, max = 26 }: { value: number; onChange: (n: number) => void; max?: number }) {
   return (
     <span className="flex shrink-0 items-center rounded-lg bg-white/6">
-      <button type="button" onClick={() => onChange(Math.max(1, value - 1))} aria-label="one fewer" className="grid size-7 place-items-center text-muted hover:text-chalk">
+      <button type="button" onClick={() => onChange(Math.max(1, value - 1))} aria-label={t("one fewer")} className="grid size-7 place-items-center text-muted hover:text-chalk">
         -
       </button>
       <span className="min-w-4 text-center text-[11px] text-chalk tabular-nums">{value}</span>
-      <button type="button" onClick={() => onChange(Math.min(max, value + 1))} aria-label="one more" className="grid size-7 place-items-center text-muted hover:text-chalk">
+      <button type="button" onClick={() => onChange(Math.min(max, value + 1))} aria-label={t("one more")} className="grid size-7 place-items-center text-muted hover:text-chalk">
         +
       </button>
     </span>
@@ -108,7 +109,7 @@ export function HandActions({
   if (giving) {
     return (
       <>
-        <span className="shrink-0 px-1 text-[10px] text-muted/70">give the {many} to</span>
+        <span className="shrink-0 px-1 text-[10px] text-muted/70">{t("give the")}{" "}{many}{" "}{t("to")}</span>
         {chairs.map((chair) => (
           <button
             key={chair}
@@ -122,7 +123,7 @@ export function HandActions({
             {label(chair)}
           </button>
         ))}
-        <button type="button" onClick={() => setGiving(false)} aria-label="never mind" className="grid size-9 shrink-0 place-items-center text-muted">
+        <button type="button" onClick={() => setGiving(false)} aria-label={t("never mind")} className="grid size-9 shrink-0 place-items-center text-muted">
           <X className="size-4" />
         </button>
       </>
@@ -131,32 +132,32 @@ export function HandActions({
 
   return (
     <>
-      <span className="shrink-0 px-1 text-[10px] text-glow">{count} in hand picked</span>
-      <TrayButton label="play face up" onClick={onFaceUp}>
+      <span className="shrink-0 px-1 text-[10px] text-glow">{count}{" "}{t("in hand picked")}</span>
+      <TrayButton label={t("play face up")} onClick={onFaceUp}>
         <Eye className="size-4" />
       </TrayButton>
-      <TrayButton label="play face down" onClick={onFaceDown}>
+      <TrayButton label={t("play face down")} onClick={onFaceDown}>
         <EyeOff className="size-4" />
       </TrayButton>
-      <TrayButton label="down, mine" onClick={onKeep}>
+      <TrayButton label={t("down, mine")} onClick={onKeep}>
         <HandIcon className="size-4" />
       </TrayButton>
       {target && swapCount === 0 && (
-        <TrayButton label={`onto ${targetName}`} onClick={() => onOnto(target.id)}>
+        <TrayButton label={t(`onto ${targetName}`)} onClick={() => onOnto(target.id)}>
           <Layers className="size-4" />
         </TrayButton>
       )}
       {target && swapCount > 0 && (
-        <TrayButton label={`swap for ${swapCount}`} onClick={onSwap}>
+        <TrayButton label={t(`swap for ${swapCount}`)} onClick={onSwap}>
           <ArrowLeftRight className="size-4" />
         </TrayButton>
       )}
       {chairs.length > 0 && (
-        <TrayButton label="give" onClick={() => setGiving(true)}>
+        <TrayButton label={t("give")} onClick={() => setGiving(true)}>
           <Send className="size-4" />
         </TrayButton>
       )}
-      <TrayButton label="put down" onClick={onClear}>
+      <TrayButton label={t("put down")} onClick={onClear}>
         <X className="size-4" />
       </TrayButton>
     </>
@@ -230,12 +231,10 @@ export function StackActions({
           onKeyDown={(event) => event.stopPropagation()}
           autoFocus
           maxLength={24}
-          placeholder="draw, discard, meld..."
+          placeholder={t("draw, discard, meld...")}
           className="h-9 min-w-0 flex-1 rounded-lg bg-white/8 px-2 text-[12px] ring-1 ring-white/12 outline-none focus:ring-glow/50"
         />
-        <button type="submit" className="h-9 shrink-0 rounded-lg bg-glow/22 px-3 text-[11px] text-glow">
-          name it
-        </button>
+        <button type="submit" className="h-9 shrink-0 rounded-lg bg-glow/22 px-3 text-[11px] text-glow">{t("name it")}</button>
       </form>
     );
   }
@@ -243,58 +242,58 @@ export function StackActions({
   return (
     <>
       {chosen > 0 && canDraw && (
-        <TrayButton label={`take ${chosen}`} onClick={onTake}>
+        <TrayButton label={t(`take ${chosen}`)} onClick={onTake}>
           <ArrowDownToLine className="size-4" />
         </TrayButton>
       )}
       {canDraw && size > 0 && chosen === 0 && (
         <>
-          <TrayButton label={dealEach > 1 ? `draw ${dealEach}` : "to my hand"} onClick={onDraw}>
+          <TrayButton label={dealEach > 1 ? t(`draw ${dealEach}`) : t("to my hand")} onClick={onDraw}>
             <ArrowDownToLine className="size-4" />
           </TrayButton>
           <Counter value={dealEach} onChange={setDealEach} />
         </>
       )}
       {size > 0 && (
-        <TrayButton label={down ? "turn over" : "turn down"} onClick={onFlip}>
+        <TrayButton label={down ? t("turn over") : t("turn down")} onClick={onFlip}>
           <FlipVertical2 className="size-4" />
         </TrayButton>
       )}
       {down && size > 1 && (
-        <TrayButton label="top card up" onClick={onTurnTop}>
+        <TrayButton label={t("top card up")} onClick={onTurnTop}>
           <Undo2 className="size-4" />
         </TrayButton>
       )}
       {owned && (
-        <TrayButton label={peeking ? "stop looking" : "look"} active={peeking} onClick={onPeek}>
+        <TrayButton label={peeking ? t("stop looking") : t("look")} active={peeking} onClick={onPeek}>
           <Eye className="size-4" />
         </TrayButton>
       )}
       {size > 1 && (
         <>
-          <TrayButton label="shuffle" onClick={onShuffle}>
+          <TrayButton label={t("shuffle")} onClick={onShuffle}>
             <Shuffle className="size-4" />
           </TrayButton>
-          <TrayButton label="cut" onClick={onCut}>
+          <TrayButton label={t("cut")} onClick={onCut}>
             <Scissors className="size-4" />
           </TrayButton>
-          <TrayButton label="split" onClick={onSplit}>
+          <TrayButton label={t("split")} onClick={onSplit}>
             <SplitSquareHorizontal className="size-4" />
           </TrayButton>
-          <TrayButton label={`spread: ${stack.layout}`} onClick={onLayout}>
+          <TrayButton label={t(`spread: ${stack.layout}`)} onClick={onLayout}>
             <Layers className="size-4" />
           </TrayButton>
         </>
       )}
       {down && size > 0 && (
-        <TrayButton label={`deal ${dealEach} each`} onClick={onDeal}>
+        <TrayButton label={t(`deal ${dealEach} each`)} onClick={onDeal}>
           <Send className="size-4" />
         </TrayButton>
       )}
-      <TrayButton label="turn round" onClick={onTurn}>
+      <TrayButton label={t("turn round")} onClick={onTurn}>
         <RotateCcw className="size-4" />
       </TrayButton>
-      <TrayButton label="name" onClick={() => setNaming(true)}>
+      <TrayButton label={t("name")} onClick={() => setNaming(true)}>
         <Settings2 className="size-4" />
       </TrayButton>
       {size === 0 && (

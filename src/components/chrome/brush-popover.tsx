@@ -2,6 +2,7 @@
 
 import { BRUSH_COLORS, useRoomStore } from "@/state/room-store";
 import Slider from "./slider";
+import { t } from "@/lib/i18n";
 
 /**
  * Colour, thickness and opacity for the room brush, shown while the draw tool
@@ -26,7 +27,7 @@ export default function BrushPopover() {
               key={color}
               type="button"
               onClick={() => setBrush({ color })}
-              aria-label={`brush ${color}`}
+              aria-label={t(`brush ${color}`)}
               className={
                 "size-7 rounded-full transition hover:scale-110 " +
                 (brush.color === color ? "ring-2 ring-chalk ring-offset-2 ring-offset-ink-700" : "")
@@ -37,7 +38,7 @@ export default function BrushPopover() {
 
           <label
             className="relative size-7 cursor-pointer overflow-hidden rounded-full ring-1 ring-white/20"
-            title="custom colour"
+            title={t("custom colour")}
             style={{
               background: "conic-gradient(#f2a4b8,#f6c177,#a6d189,#8bc7e8,#c4a7f0,#f2a4b8)",
             }}
@@ -56,7 +57,7 @@ export default function BrushPopover() {
         <span
           aria-hidden
           className="grid size-9 shrink-0 place-items-center rounded-lg bg-white/6"
-          title="preview"
+          title={t("preview")}
         >
           <span
             className="rounded-full"
@@ -71,11 +72,11 @@ export default function BrushPopover() {
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between text-[10px] text-muted/70">
-            <span>size</span>
+            <span>{t("size")}</span>
             <span className="tabular-nums">{brush.size}</span>
           </div>
           <Slider
-            label="brush size"
+            label={t("brush size")}
             min={1}
             max={64}
             value={brush.size}
@@ -87,11 +88,11 @@ export default function BrushPopover() {
       {!erasing && (
         <div>
           <div className="flex items-center justify-between text-[10px] text-muted/70">
-            <span>opacity</span>
+            <span>{t("opacity")}</span>
             <span className="tabular-nums">{Math.round(brush.opacity * 100)}%</span>
           </div>
           <Slider
-            label="brush opacity"
+            label={t("brush opacity")}
             min={10}
             max={100}
             value={Math.round(brush.opacity * 100)}

@@ -56,6 +56,7 @@ import {
   type WarWorld,
 } from "@/lib/war-world";
 import { deleteSavedMap, loadSavedMap, saveMapTo, useSavedMaps } from "./war-library";
+import { t as tx } from "@/lib/i18n";
 
 const SEA_COLORS = ["#0c1826", "#101620", "#1b3a55", "#123a55", "#14202c", "#241d2e", "#2b241c", "#f4efe6"];
 const FITS = ["cover", "contain", "stretch"] as const;
@@ -73,11 +74,11 @@ const TOOLS: Array<{ tool: Tool; label: string; icon: React.ReactNode; structura
 function Stepper({ value, min, max, onChange, disabled }: { value: number; min: number; max: number; onChange: (n: number) => void; disabled?: boolean }) {
   return (
     <span className="flex items-center gap-0.5 rounded-lg bg-white/6 px-0.5">
-      <button type="button" disabled={disabled || value <= min} onClick={() => onChange(value - 1)} aria-label="less" className="grid size-7 place-items-center text-muted hover:text-chalk disabled:opacity-30">
+      <button type="button" disabled={disabled || value <= min} onClick={() => onChange(value - 1)} aria-label={tx("less")} className="grid size-7 place-items-center text-muted hover:text-chalk disabled:opacity-30">
         <Minus className="size-3" />
       </button>
       <span className="min-w-6 text-center text-[11px] text-chalk tabular-nums">{value}</span>
-      <button type="button" disabled={disabled || value >= max} onClick={() => onChange(value + 1)} aria-label="more" className="grid size-7 place-items-center text-muted hover:text-chalk disabled:opacity-30">
+      <button type="button" disabled={disabled || value >= max} onClick={() => onChange(value + 1)} aria-label={tx("more")} className="grid size-7 place-items-center text-muted hover:text-chalk disabled:opacity-30">
         <Plus className="size-3" />
       </button>
     </span>
@@ -142,7 +143,7 @@ export default function WarMapEditor({
         <input
           key={world.name}
           defaultValue={world.name}
-          placeholder="name this map"
+          placeholder={tx("name this map")}
           maxLength={60}
           disabled={!canEdit}
           onBlur={(event) => event.target.value.trim() !== world.name && change({ ...world, name: event.target.value.trim() })}
@@ -152,21 +153,18 @@ export default function WarMapEditor({
         <span className="flex rounded-lg bg-white/5 p-0.5 text-[11px]">
           {(["map", "rules", "saved"] as const).map((t) => (
             <button key={t} type="button" onClick={() => setTab(t)} className={clsx("min-h-8 rounded-md px-2.5", tab === t ? "bg-white/12 text-chalk" : "text-muted hover:text-chalk")}>
-              {t === "saved" ? "saved maps" : t}
+              {t === "saved" ? tx("saved maps") : t}
             </button>
           ))}
         </span>
-        <button type="button" disabled={!history.length} onClick={undo} aria-label="undo" title="undo" className="grid size-9 place-items-center rounded-lg text-muted hover:bg-white/8 hover:text-chalk disabled:opacity-30">
+        <button type="button" disabled={!history.length} onClick={undo} aria-label={tx("undo")} title={tx("undo")} className="grid size-9 place-items-center rounded-lg text-muted hover:bg-white/8 hover:text-chalk disabled:opacity-30">
           <Undo2 className="size-4" />
         </button>
         <button type="button" onClick={onClose} className="flex min-h-9 items-center gap-1 rounded-lg bg-chalk px-3 text-[12px] font-semibold text-ink-950">
-          <Check className="size-3.5" /> done
-        </button>
+          <Check className="size-3.5" />{" "}{tx("done")}</button>
       </div>
       {locked && (
-        <p className="rounded-lg bg-warm/10 px-2 py-1 text-[10px] text-warm">
-          A game is on: positions, outlines, names and the picture can change now; territories, continents, borders and rules wait for the next deal.
-        </p>
+        <p className="rounded-lg bg-warm/10 px-2 py-1 text-[10px] text-warm">{tx("A game is on: positions, outlines, names and the picture can change now; territories, continents, borders and rules wait for the next deal.")}</p>
       )}
 
       {tab === "map" && <MapTab world={world} locked={locked} canEdit={canEdit} change={change} />}
@@ -318,14 +316,12 @@ function MapTab({ world, locked, canEdit, change }: { world: WarWorld; locked: b
           type="button"
           disabled={!canEdit || locked || world.territories.length < 2}
           onClick={() => change(suggestBorders(world))}
-          title="join each territory to its nearest ones"
+          title={tx("join each territory to its nearest ones")}
           className="flex min-h-8 items-center gap-1 rounded-lg bg-white/6 px-2 text-muted hover:text-chalk disabled:opacity-30"
         >
-          <Sparkles className="size-3.5" /> suggest borders
-        </button>
+          <Sparkles className="size-3.5" />{" "}{tx("suggest borders")}</button>
         <span className="ml-auto text-[10px] text-muted">
-          {world.territories.length} territories · {borders.length} borders
-          {!connected(world) && world.territories.length > 1 && <span className="text-[#f2a4b8]"> · some cannot be reached</span>}
+          {world.territories.length}{" "}{tx("territories ·")}{" "}{borders.length}{" "}{tx("borders")}{!connected(world) && world.territories.length > 1 && <span className="text-[#f2a4b8]">{" "}{tx("· some cannot be reached")}</span>}
         </span>
       </div>
 
@@ -425,21 +421,21 @@ function MapTab({ world, locked, canEdit, change }: { world: WarWorld; locked: b
         <div className="pointer-events-none absolute inset-x-0 bottom-1 flex justify-center">
           <span className="rounded-lg bg-ink-950/80 px-2 py-1 text-[10px] text-muted">
             {tool === "add"
-              ? `tap the map to put a territory in ${index.continents.get(target ?? "")?.name ?? "a continent"}`
+              ? tx(`tap the map to put a territory in ${index.continents.get(target ?? "")?.name ?? "a continent"}`)
               : tool === "border"
                 ? chosen
-                  ? `tap another to join it to ${index.byId.get(chosen)?.name ?? "it"}, or take the border away`
-                  : "tap a territory, then its neighbours"
+                  ? tx(`tap another to join it to ${index.byId.get(chosen)?.name ?? "it"}, or take the border away`)
+                  : tx("tap a territory, then its neighbours")
                 : tool === "trace"
                   ? chosen
-                    ? "tap round its edge, then close the outline"
-                    : "tap a territory to outline it"
+                    ? tx("tap round its edge, then close the outline")
+                    : tx("tap a territory to outline it")
                   : tool === "erase"
-                    ? "tap a territory to delete it"
-                    : "tap a territory to pick it, drag to move it; tap the map to send the picked one there"}
+                    ? tx("tap a territory to delete it")
+                    : tx("tap a territory to pick it, drag to move it; tap the map to send the picked one there")}
           </span>
         </div>
-        {busy && <div className="absolute inset-0 grid place-items-center bg-ink-950/60 text-[12px] text-muted">sending the picture...</div>}
+        {busy && <div className="absolute inset-0 grid place-items-center bg-ink-950/60 text-[12px] text-muted">{tx("sending the picture...")}</div>}
       </div>
 
       <div className="max-h-[44%] shrink-0 space-y-2 overflow-y-auto text-[11px]">
@@ -460,7 +456,7 @@ function MapTab({ world, locked, canEdit, change }: { world: WarWorld; locked: b
               disabled={!canEdit || locked}
               onChange={(event) => change(editTerritory(world, selected.id, { continent: event.target.value }))}
               className="h-8 rounded-lg bg-white/6 px-1.5 text-[11px] text-chalk outline-none disabled:opacity-40"
-              aria-label="continent"
+              aria-label={tx("continent")}
             >
               {world.continents.map((c) => (
                 <option key={c.id} value={c.id} className="bg-ink-950">
@@ -468,7 +464,7 @@ function MapTab({ world, locked, canEdit, change }: { world: WarWorld; locked: b
                 </option>
               ))}
             </select>
-            <span className="flex rounded-lg bg-white/6 p-0.5" title="the figure on its card">
+            <span className="flex rounded-lg bg-white/6 p-0.5" title={tx("the figure on its card")}>
               {SHAPES.map((f) => (
                 <button
                   key={f}
@@ -483,20 +479,14 @@ function MapTab({ world, locked, canEdit, change }: { world: WarWorld; locked: b
             </span>
             {tool === "trace" && (
               <>
-                <button type="button" disabled={!tracing.length} onClick={() => setTracing(tracing.slice(0, -1))} className="min-h-8 rounded-lg px-2 text-muted disabled:opacity-30">
-                  a point back
-                </button>
-                <button type="button" disabled={tracing.length < 3} onClick={finishTrace} className="min-h-8 rounded-lg bg-glow/20 px-2 text-glow disabled:opacity-30">
-                  close the outline
-                </button>
+                <button type="button" disabled={!tracing.length} onClick={() => setTracing(tracing.slice(0, -1))} className="min-h-8 rounded-lg px-2 text-muted disabled:opacity-30">{tx("a point back")}</button>
+                <button type="button" disabled={tracing.length < 3} onClick={finishTrace} className="min-h-8 rounded-lg bg-glow/20 px-2 text-glow disabled:opacity-30">{tx("close the outline")}</button>
               </>
             )}
             {selected.shape && (
-              <button type="button" disabled={!canEdit} onClick={() => change(outline(world, selected.id, undefined))} className="min-h-8 rounded-lg px-2 text-muted hover:text-chalk">
-                no outline
-              </button>
+              <button type="button" disabled={!canEdit} onClick={() => change(outline(world, selected.id, undefined))} className="min-h-8 rounded-lg px-2 text-muted hover:text-chalk">{tx("no outline")}</button>
             )}
-            <span className="text-[10px] text-muted">{index.neighbors.get(selected.id)?.length ?? 0} borders</span>
+            <span className="text-[10px] text-muted">{index.neighbors.get(selected.id)?.length ?? 0}{" "}{tx("borders")}</span>
             <button
               type="button"
               disabled={!canEdit || locked}
@@ -506,15 +496,14 @@ function MapTab({ world, locked, canEdit, change }: { world: WarWorld; locked: b
               }}
               className="ml-auto flex min-h-8 items-center gap-1 rounded-lg px-2 text-[#f2a4b8] hover:bg-[#e0655c]/15 disabled:opacity-30"
             >
-              <Trash2 className="size-3" /> delete
-            </button>
+              <Trash2 className="size-3" />{" "}{tx("delete")}</button>
           </div>
         )}
 
         {/* Continents */}
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <p className="text-[10px] font-semibold tracking-wide text-muted/70 uppercase">continents</p>
+            <p className="text-[10px] font-semibold tracking-wide text-muted/70 uppercase">{tx("continents")}</p>
             <button
               type="button"
               disabled={!canEdit || locked}
@@ -525,14 +514,13 @@ function MapTab({ world, locked, canEdit, change }: { world: WarWorld; locked: b
               }}
               className="flex min-h-7 items-center gap-1 rounded-lg bg-warm/20 px-2 text-warm disabled:opacity-30"
             >
-              <Plus className="size-3" /> continent
-            </button>
+              <Plus className="size-3" />{" "}{tx("continent")}</button>
           </div>
           {world.continents.map((c) => {
             const count = index.members.get(c.id)?.length ?? 0;
             return (
               <div key={c.id} className={clsx("flex flex-wrap items-center gap-1.5 rounded-lg p-1", target === c.id ? "bg-white/8 ring-1 ring-white/15" : "bg-white/3")}>
-                <button type="button" onClick={() => setContinent(c.id)} aria-label={`put new territories in ${c.name}`} className="size-5 rounded-full ring-2 ring-white/20" style={{ background: c.tint }} />
+                <button type="button" onClick={() => setContinent(c.id)} aria-label={tx(`put new territories in ${c.name}`)} className="size-5 rounded-full ring-2 ring-white/20" style={{ background: c.tint }} />
                 <input
                   key={`${c.id}:${c.name}`}
                   defaultValue={c.name}
@@ -543,7 +531,7 @@ function MapTab({ world, locked, canEdit, change }: { world: WarWorld; locked: b
                   onKeyDown={(event) => event.key === "Enter" && (event.target as HTMLInputElement).blur()}
                   className="h-8 min-w-24 flex-1 rounded-lg bg-white/6 px-2 text-[11px] text-chalk outline-none"
                 />
-                <span className="text-[10px] text-muted">bonus</span>
+                <span className="text-[10px] text-muted">{tx("bonus")}</span>
                 <Stepper value={c.bonus} min={0} max={50} disabled={!canEdit || locked} onChange={(bonus) => change(editContinent(world, c.id, { bonus }))} />
                 <span className="flex gap-0.5">
                   {TINTS.slice(0, 8).map((tint) => (
@@ -552,7 +540,7 @@ function MapTab({ world, locked, canEdit, change }: { world: WarWorld; locked: b
                       type="button"
                       disabled={!canEdit}
                       onClick={() => change(editContinent(world, c.id, { tint }))}
-                      aria-label={`colour ${tint}`}
+                      aria-label={tx(`colour ${tint}`)}
                       className={clsx("size-3.5 rounded-full", c.tint === tint && "ring-2 ring-chalk")}
                       style={{ background: tint }}
                     />
@@ -570,8 +558,7 @@ function MapTab({ world, locked, canEdit, change }: { world: WarWorld; locked: b
                           setConfirmDrop(null);
                         }}
                         className="min-h-7 rounded-md bg-white/8 px-1.5 text-[10px] text-chalk"
-                      >
-                        keep its land (move to {world.continents.find((o) => o.id !== c.id)?.name})
+                      >{tx("keep its land (move to")}{" "}{world.continents.find((o) => o.id !== c.id)?.name})
                       </button>
                     )}
                     <button
@@ -581,15 +568,14 @@ function MapTab({ world, locked, canEdit, change }: { world: WarWorld; locked: b
                         setConfirmDrop(null);
                       }}
                       className="min-h-7 rounded-md bg-[#e0655c]/25 px-1.5 text-[10px] text-[#f2a4b8]"
-                    >
-                      delete{count ? ` with its ${count}` : ""}
+                    >{tx("delete")}{count ? tx(` with its ${count}`) : ""}
                     </button>
-                    <button type="button" onClick={() => setConfirmDrop(null)} aria-label="never mind" className="grid size-7 place-items-center text-muted">
+                    <button type="button" onClick={() => setConfirmDrop(null)} aria-label={tx("never mind")} className="grid size-7 place-items-center text-muted">
                       <X className="size-3" />
                     </button>
                   </span>
                 ) : (
-                  <button type="button" disabled={!canEdit || locked} onClick={() => setConfirmDrop(c.id)} aria-label={`delete ${c.name}`} className="grid size-7 place-items-center rounded-md text-muted hover:text-[#f2a4b8] disabled:opacity-30">
+                  <button type="button" disabled={!canEdit || locked} onClick={() => setConfirmDrop(c.id)} aria-label={tx(`delete ${c.name}`)} className="grid size-7 place-items-center rounded-md text-muted hover:text-[#f2a4b8] disabled:opacity-30">
                     <Trash2 className="size-3" />
                   </button>
                 )}
@@ -601,7 +587,7 @@ function MapTab({ world, locked, canEdit, change }: { world: WarWorld; locked: b
         {/* How it looks */}
         <div className="flex flex-wrap items-center gap-1">
           <button type="button" disabled={!canEdit || busy} onClick={() => file.current?.click()} className="flex min-h-8 items-center gap-1 rounded-lg bg-white/8 px-2 text-chalk disabled:opacity-40">
-            <ImagePlus className="size-3.5" /> {world.image ? "another picture" : "a picture underneath"}
+            <ImagePlus className="size-3.5" /> {world.image ? tx("another picture") : tx("a picture underneath")}
           </button>
           <input
             ref={file}
@@ -622,9 +608,7 @@ function MapTab({ world, locked, canEdit, change }: { world: WarWorld; locked: b
               if (url?.startsWith("http")) change({ ...world, image: { url, fit: "contain", opacity: 1 } });
             }}
             className="min-h-8 rounded-lg bg-white/8 px-2 text-muted hover:text-chalk disabled:opacity-40"
-          >
-            from a link
-          </button>
+          >{tx("from a link")}</button>
           {world.image && (
             <>
               <span className="flex rounded-lg bg-white/6 p-0.5">
@@ -635,13 +619,11 @@ function MapTab({ world, locked, canEdit, change }: { world: WarWorld; locked: b
                     onClick={() => world.image && change({ ...world, image: { ...world.image, fit } })}
                     className={clsx("min-h-7 rounded-md px-2", world.image?.fit === fit ? "bg-chalk text-ink-950" : "text-muted")}
                   >
-                    {fit === "cover" ? "fill" : fit === "contain" ? "fit" : "stretch"}
+                    {fit === "cover" ? tx("fill") : fit === "contain" ? tx("fit") : tx("stretch")}
                   </button>
                 ))}
               </span>
-              <label className="flex min-h-8 items-center gap-1.5 rounded-lg bg-white/6 px-2 text-muted">
-                fade
-                <input
+              <label className="flex min-h-8 items-center gap-1.5 rounded-lg bg-white/6 px-2 text-muted">{tx("fade")}<input
                   type="range"
                   min={0.1}
                   max={1}
@@ -651,20 +633,14 @@ function MapTab({ world, locked, canEdit, change }: { world: WarWorld; locked: b
                   className="w-20 accent-[#f6c177]"
                 />
               </label>
-              <button type="button" onClick={() => change({ ...world, image: null })} aria-label="take the picture away" className="grid size-8 place-items-center rounded-lg text-muted hover:text-[#f2a4b8]">
+              <button type="button" onClick={() => change({ ...world, image: null })} aria-label={tx("take the picture away")} className="grid size-8 place-items-center rounded-lg text-muted hover:text-[#f2a4b8]">
                 <Trash2 className="size-3.5" />
               </button>
             </>
           )}
-          <Toggle on={world.shapes} onChange={(v) => change({ ...world, shapes: v })} disabled={!canEdit}>
-            outlines
-          </Toggle>
-          <Toggle on={world.labels} onChange={(v) => change({ ...world, labels: v })} disabled={!canEdit}>
-            names
-          </Toggle>
-          <Toggle on={world.links} onChange={(v) => change({ ...world, links: v })} disabled={!canEdit}>
-            border lines
-          </Toggle>
+          <Toggle on={world.shapes} onChange={(v) => change({ ...world, shapes: v })} disabled={!canEdit}>{tx("outlines")}</Toggle>
+          <Toggle on={world.labels} onChange={(v) => change({ ...world, labels: v })} disabled={!canEdit}>{tx("names")}</Toggle>
+          <Toggle on={world.links} onChange={(v) => change({ ...world, links: v })} disabled={!canEdit}>{tx("border lines")}</Toggle>
           <span className="flex items-center gap-1">
             {SEA_COLORS.map((color) => (
               <button
@@ -672,7 +648,7 @@ function MapTab({ world, locked, canEdit, change }: { world: WarWorld; locked: b
                 type="button"
                 disabled={!canEdit}
                 onClick={() => change({ ...world, sea: color })}
-                aria-label={`sea ${color}`}
+                aria-label={tx(`sea ${color}`)}
                 className={clsx("size-5 rounded-full ring-1 ring-white/20", world.sea === color && "ring-2 ring-chalk")}
                 style={{ background: color }}
               />
@@ -715,77 +691,57 @@ function RulesTab({
   return (
     <div className="min-h-0 flex-1 space-y-3 overflow-y-auto text-[11px] text-muted">
       <div className={row}>
-        <span className="w-28">how to win</span>
+        <span className="w-28">{tx("how to win")}</span>
         <span className="flex rounded-lg bg-white/5 p-0.5">
           {(["objectives", "conquest"] as const).map((g) => (
             <button key={g} type="button" disabled={locked} onClick={() => set({ goal: g })} className={clsx("min-h-8 rounded-md px-2.5 disabled:opacity-40", rules.goal === g ? "bg-chalk text-ink-950" : "text-muted")}>
-              {g === "objectives" ? "secret objectives" : "last one standing"}
+              {g === "objectives" ? tx("secret objectives") : tx("last one standing")}
             </button>
           ))}
         </span>
       </div>
       <div className={row}>
-        <span className="w-28">reinforcements</span>
-        territories ÷ <Stepper value={rules.divisor} min={1} max={10} disabled={locked} onChange={(divisor) => set({ divisor })} />
-        at least <Stepper value={rules.minimum} min={0} max={50} disabled={locked} onChange={(minimum) => set({ minimum })} />
+        <span className="w-28">{tx("reinforcements")}</span>{tx("territories ÷")}{" "}<Stepper value={rules.divisor} min={1} max={10} disabled={locked} onChange={(divisor) => set({ divisor })} />{tx("at least")}{" "}<Stepper value={rules.minimum} min={0} max={50} disabled={locked} onChange={(minimum) => set({ minimum })} />
       </div>
       <div className={row}>
-        <span className="w-28">dice</span>
-        attack <Stepper value={rules.attackDice} min={1} max={6} disabled={locked} onChange={(attackDice) => set({ attackDice })} />
-        defence <Stepper value={rules.defendDice} min={1} max={6} disabled={locked} onChange={(defendDice) => set({ defendDice })} />
-        <Toggle on={rules.tiesToDefence} onChange={(tiesToDefence) => set({ tiesToDefence })} disabled={locked}>
-          ties go to the defence
-        </Toggle>
+        <span className="w-28">{tx("dice")}</span>{tx("attack")}{" "}<Stepper value={rules.attackDice} min={1} max={6} disabled={locked} onChange={(attackDice) => set({ attackDice })} />{tx("defence")}{" "}<Stepper value={rules.defendDice} min={1} max={6} disabled={locked} onChange={(defendDice) => set({ defendDice })} />
+        <Toggle on={rules.tiesToDefence} onChange={(tiesToDefence) => set({ tiesToDefence })} disabled={locked}>{tx("ties go to the defence")}</Toggle>
       </div>
       <div className={row}>
-        <span className="w-28">the start</span>
-        <Toggle on={rules.placeFirstRound} onChange={(placeFirstRound) => set({ placeFirstRound })} disabled={locked}>
-          first round only places armies
-        </Toggle>
+        <span className="w-28">{tx("the start")}</span>
+        <Toggle on={rules.placeFirstRound} onChange={(placeFirstRound) => set({ placeFirstRound })} disabled={locked}>{tx("first round only places armies")}</Toggle>
       </div>
       <div className={row}>
-        <span className="w-28">cards</span>
-        <Toggle on={rules.cards} onChange={(cards) => set({ cards })} disabled={locked}>
-          a card for every turn with a conquest
-        </Toggle>
+        <span className="w-28">{tx("cards")}</span>
+        <Toggle on={rules.cards} onChange={(cards) => set({ cards })} disabled={locked}>{tx("a card for every turn with a conquest")}</Toggle>
       </div>
       {rules.cards && (
         <>
           <div className={row}>
-            <span className="w-28">trades are worth</span>
+            <span className="w-28">{tx("trades are worth")}</span>
             <input
               key={rules.trades.join(",")}
               defaultValue={rules.trades.join(", ")}
               disabled={locked}
               onBlur={(event) => set({ trades: event.target.value.split(/[^0-9]+/).map(Number).filter((n) => n > 0) })}
               className="h-8 w-40 rounded-lg bg-white/6 px-2 text-chalk outline-none disabled:opacity-40"
-            />
-            then +<Stepper value={rules.tradeStep} min={0} max={100} disabled={locked} onChange={(tradeStep) => set({ tradeStep })} /> each
-          </div>
+            />{tx("then +")}<Stepper value={rules.tradeStep} min={0} max={100} disabled={locked} onChange={(tradeStep) => set({ tradeStep })} />{" "}{tx("each")}</div>
           <div className={row}>
-            <span className="w-28" />
-            extra on a pictured territory <Stepper value={rules.ownedCardBonus} min={0} max={20} disabled={locked} onChange={(ownedCardBonus) => set({ ownedCardBonus })} />
-            must trade at <Stepper value={rules.mustTradeAt} min={3} max={20} disabled={locked} onChange={(mustTradeAt) => set({ mustTradeAt })} />
-            jokers <Stepper value={rules.jokers} min={0} max={10} disabled={locked} onChange={(jokers) => set({ jokers })} />
+            <span className="w-28" />{tx("extra on a pictured territory")}{" "}<Stepper value={rules.ownedCardBonus} min={0} max={20} disabled={locked} onChange={(ownedCardBonus) => set({ ownedCardBonus })} />{tx("must trade at")}{" "}<Stepper value={rules.mustTradeAt} min={3} max={20} disabled={locked} onChange={(mustTradeAt) => set({ mustTradeAt })} />{tx("jokers")}{" "}<Stepper value={rules.jokers} min={0} max={10} disabled={locked} onChange={(jokers) => set({ jokers })} />
           </div>
         </>
       )}
-      <button type="button" disabled={locked} onClick={() => onRules(DEFAULT_RULES)} className="min-h-8 rounded-lg bg-white/6 px-2 text-muted hover:text-chalk disabled:opacity-40">
-        back to the classic rules
-      </button>
+      <button type="button" disabled={locked} onClick={() => onRules(DEFAULT_RULES)} className="min-h-8 rounded-lg bg-white/6 px-2 text-muted hover:text-chalk disabled:opacity-40">{tx("back to the classic rules")}</button>
 
       {rules.goal === "objectives" && (
         <div className="space-y-1.5 border-t border-white/8 pt-2">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-[10px] font-semibold tracking-wide text-muted/70 uppercase">objectives on this map</p>
-            <Toggle on={rules.destroyObjectives} onChange={(destroyObjectives) => set({ destroyObjectives })} disabled={locked}>
-              destroy-a-colour cards
-            </Toggle>
+            <p className="text-[10px] font-semibold tracking-wide text-muted/70 uppercase">{tx("objectives on this map")}</p>
+            <Toggle on={rules.destroyObjectives} onChange={(destroyObjectives) => set({ destroyObjectives })} disabled={locked}>{tx("destroy-a-colour cards")}</Toggle>
             <button type="button" disabled={locked} onClick={() => setSpecs(suggestObjectives(world))} className="flex min-h-8 items-center gap-1 rounded-lg bg-white/6 px-2 text-muted hover:text-chalk disabled:opacity-40">
-              <Sparkles className="size-3" /> work them out from the continents
-            </button>
+              <Sparkles className="size-3" />{" "}{tx("work them out from the continents")}</button>
           </div>
-          {specs.filter((s) => s.kind !== "destroy").length === 0 && <p className="text-muted/60">none yet -- add some, or work them out</p>}
+          {specs.filter((s) => s.kind !== "destroy").length === 0 && <p className="text-muted/60">{tx("none yet -- add some, or work them out")}</p>}
           {specs.map((spec, i) =>
             spec.kind === "destroy" ? null : (
               <div key={i} className="flex items-center gap-2 rounded-lg bg-white/4 px-2 py-1">
@@ -796,9 +752,7 @@ function RulesTab({
               </div>
             ),
           )}
-          <div className="flex flex-wrap items-center gap-1.5">
-            conquer
-            {[
+          <div className="flex flex-wrap items-center gap-1.5">{tx("conquer")}{[
               [a, setA],
               [b, setB],
             ].map(([value, setValue], k) => (
@@ -810,7 +764,7 @@ function RulesTab({
                 className="h-8 rounded-lg bg-white/6 px-1.5 text-chalk outline-none disabled:opacity-40"
               >
                 <option value="" className="bg-ink-950">
-                  {k ? "(just the one)" : "a continent"}
+                  {k ? tx("(just the one)") : tx("a continent")}
                 </option>
                 {index.continentIds.map((c) => (
                   <option key={c} value={c} className="bg-ink-950">
@@ -819,9 +773,7 @@ function RulesTab({
                 ))}
               </select>
             ))}
-            <Toggle on={plus} onChange={setPlus} disabled={locked}>
-              plus one more
-            </Toggle>
+            <Toggle on={plus} onChange={setPlus} disabled={locked}>{tx("plus one more")}</Toggle>
             <button
               type="button"
               disabled={locked || !a}
@@ -832,21 +784,14 @@ function RulesTab({
                 setB("");
               }}
               className="min-h-8 rounded-lg bg-chalk px-2.5 font-semibold text-ink-950 disabled:opacity-30"
-            >
-              add
-            </button>
+            >{tx("add")}</button>
           </div>
-          <div className="flex flex-wrap items-center gap-1.5">
-            hold <Stepper value={count} min={1} max={Math.max(1, index.ids.length)} disabled={locked} onChange={setCount} /> territories with at least
-            <Stepper value={armies} min={1} max={10} disabled={locked} onChange={setArmies} /> armies each
-            <button
+          <div className="flex flex-wrap items-center gap-1.5">{tx("hold")}{" "}<Stepper value={count} min={1} max={Math.max(1, index.ids.length)} disabled={locked} onChange={setCount} />{" "}{tx("territories with at least")}<Stepper value={armies} min={1} max={10} disabled={locked} onChange={setArmies} />{" "}{tx("armies each")}<button
               type="button"
               disabled={locked}
               onClick={() => setSpecs([...specs, { kind: "territories", count, armies }])}
               className="min-h-8 rounded-lg bg-chalk px-2.5 font-semibold text-ink-950 disabled:opacity-30"
-            >
-              add
-            </button>
+            >{tx("add")}</button>
           </div>
         </div>
       )}
@@ -907,16 +852,13 @@ function SavedTab({
     <div className="min-h-0 flex-1 space-y-3 overflow-y-auto text-[11px]">
       <div className="flex flex-wrap items-center gap-1.5">
         <button type="button" disabled={!canEdit || busy || status !== "ready"} onClick={() => void save(false)} className="min-h-9 rounded-lg bg-chalk px-3 font-semibold text-ink-950 disabled:opacity-35">
-          {mineSaved ? `save changes to "${mineSaved.name}"` : "save this map for everyone"}
+          {mineSaved ? tx(`save changes to "${mineSaved.name}"`) : tx("save this map for everyone")}
         </button>
         {mineSaved && (
-          <button type="button" disabled={!canEdit || busy} onClick={() => void save(true)} className="min-h-9 rounded-lg bg-white/8 px-3 text-chalk disabled:opacity-35">
-            save as a new one
-          </button>
+          <button type="button" disabled={!canEdit || busy} onClick={() => void save(true)} className="min-h-9 rounded-lg bg-white/8 px-3 text-chalk disabled:opacity-35">{tx("save as a new one")}</button>
         )}
         <button type="button" onClick={() => void navigator.clipboard?.writeText(exportWorld(world, rules))} className="flex min-h-9 items-center gap-1 rounded-lg px-2 text-muted hover:bg-white/8 hover:text-chalk">
-          <Copy className="size-3" /> copy as text
-        </button>
+          <Copy className="size-3" />{" "}{tx("copy as text")}</button>
         <button
           type="button"
           disabled={!canEdit || locked}
@@ -928,14 +870,13 @@ function SavedTab({
           }}
           className="flex min-h-9 items-center gap-1 rounded-lg px-2 text-muted hover:bg-white/8 hover:text-chalk disabled:opacity-30"
         >
-          <ClipboardPaste className="size-3" /> paste one
-        </button>
+          <ClipboardPaste className="size-3" />{" "}{tx("paste one")}</button>
       </div>
-      {status === "missing" && <p className="text-[#f2a4b8]">Saved maps need the newest database update: run supabase/migrations/0008_war_maps.sql in the Supabase SQL editor.</p>}
-      {status === "error" && <p className="text-[#f2a4b8]">The saved maps would not load. Try again in a moment.</p>}
+      {status === "missing" && <p className="text-[#f2a4b8]">{tx("Saved maps need the newest database update: run supabase/migrations/0008_war_maps.sql in the Supabase SQL editor.")}</p>}
+      {status === "error" && <p className="text-[#f2a4b8]">{tx("The saved maps would not load. Try again in a moment.")}</p>}
 
       <div className="space-y-1">
-        <p className="text-[10px] font-semibold tracking-wide text-muted/70 uppercase">to start from</p>
+        <p className="text-[10px] font-semibold tracking-wide text-muted/70 uppercase">{tx("to start from")}</p>
         {[...BUILT_IN, emptyWorld()].map((w) => (
           <button
             key={w.name}
@@ -944,16 +885,16 @@ function SavedTab({
             onClick={() => onLoad(w, w === BUILT_IN[0] ? DEFAULT_RULES : undefined)}
             className="flex w-full items-center gap-2 rounded-lg bg-white/4 px-2 py-1.5 text-left text-chalk hover:bg-white/8 disabled:opacity-40"
           >
-            <span className="min-w-0 flex-1 truncate">{w.territories.length ? w.name : "a blank page"}</span>
-            <span className="text-muted">{w.territories.length ? `${w.territories.length} territories, ${w.continents.length} continents` : "make your own"}</span>
+            <span className="min-w-0 flex-1 truncate">{w.territories.length ? w.name : tx("a blank page")}</span>
+            <span className="text-muted">{w.territories.length ? tx(`${w.territories.length} territories, ${w.continents.length} continents`) : tx("make your own")}</span>
           </button>
         ))}
       </div>
 
       <div className="space-y-1">
-        <p className="text-[10px] font-semibold tracking-wide text-muted/70 uppercase">everyone&apos;s maps</p>
-        {status === "loading" && <p className="text-muted/60">looking...</p>}
-        {status === "ready" && !maps.length && <p className="text-muted/60">nobody has saved one yet</p>}
+        <p className="text-[10px] font-semibold tracking-wide text-muted/70 uppercase">{tx("everyone's maps")}</p>
+        {status === "loading" && <p className="text-muted/60">{tx("looking...")}</p>}
+        {status === "ready" && !maps.length && <p className="text-muted/60">{tx("nobody has saved one yet")}</p>}
         {maps.map((m) => {
           const mine = m.owner_id === me?.userId;
           return (
@@ -961,8 +902,8 @@ function SavedTab({
               <button type="button" disabled={!canEdit || locked || busy} onClick={() => void open(m.id)} className="min-w-0 flex-1 truncate text-left text-chalk hover:underline disabled:opacity-40">
                 {m.name}
               </button>
-              <span className="shrink-0 text-muted">{m.territory_count} territories</span>
-              {m.author && <span className="max-w-24 shrink-0 truncate text-muted/60">by {m.author}</span>}
+              <span className="shrink-0 text-muted">{m.territory_count}{" "}{tx("territories")}</span>
+              {m.author && <span className="max-w-24 shrink-0 truncate text-muted/60">{tx("by")}{" "}{m.author}</span>}
               {mine &&
                 (confirm === m.id ? (
                   <button
@@ -974,11 +915,9 @@ function SavedTab({
                       else reload();
                     }}
                     className="min-h-7 rounded-md bg-[#e0655c]/25 px-1.5 text-[10px] text-[#f2a4b8]"
-                  >
-                    delete it?
-                  </button>
+                  >{tx("delete it?")}</button>
                 ) : (
-                  <button type="button" onClick={() => setConfirm(m.id)} aria-label={`delete ${m.name}`} className="grid size-7 place-items-center text-muted hover:text-[#f2a4b8]">
+                  <button type="button" onClick={() => setConfirm(m.id)} aria-label={tx(`delete ${m.name}`)} className="grid size-7 place-items-center text-muted hover:text-[#f2a4b8]">
                     <Trash2 className="size-3" />
                   </button>
                 ))}

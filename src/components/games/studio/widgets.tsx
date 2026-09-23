@@ -2,6 +2,7 @@
 
 import clsx from "clsx";
 import { X } from "lucide-react";
+import { t } from "@/lib/i18n";
 
 export function IconButton({
   children,
@@ -103,7 +104,7 @@ export function Panel({ title, onClose, children, className }: { title: string; 
     >
       <div className="flex shrink-0 items-center justify-between border-b border-white/8 px-2.5 py-1.5">
         <span className="text-[11px] font-semibold text-chalk">{title}</span>
-        <button type="button" onClick={onClose} aria-label="close" className="grid size-6 place-items-center rounded text-muted hover:bg-white/8 hover:text-chalk">
+        <button type="button" onClick={onClose} aria-label={t("close")} className="grid size-6 place-items-center rounded text-muted hover:bg-white/8 hover:text-chalk">
           <X className="size-3.5" />
         </button>
       </div>
@@ -122,7 +123,7 @@ export function Segmented<T extends string>({ value, options, onChange }: { valu
           onClick={() => onChange(o.id)}
           className={clsx("min-h-7 rounded-md px-2 text-[10px]", value === o.id ? "bg-chalk text-ink-950" : "text-muted hover:text-chalk")}
         >
-          {o.name}
+          {t(o.name)}
         </button>
       ))}
     </span>

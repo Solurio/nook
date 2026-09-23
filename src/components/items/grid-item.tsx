@@ -25,6 +25,7 @@ import {
   type AreaKind,
   type GridData,
 } from "@/lib/grid";
+import { t as tx } from "@/lib/i18n";
 
 /** Past this many cells the grid is only drawn as far as this. */
 const MAX_CELLS = 3000;
@@ -221,7 +222,7 @@ export default function GridItem({ item }: { item: Item<"grid"> }) {
           className="absolute top-11 left-1.5 z-10 flex w-52 flex-col gap-1.5 rounded-lg bg-ink-950/85 p-2 text-[10px] text-muted backdrop-blur-sm"
           onPointerDown={(event) => event.stopPropagation()}
         >
-          <span>areas start at</span>
+          <span>{tx("areas start at")}</span>
           <span className="flex rounded-md bg-white/6 p-0.5">
             {AREA_ANCHORS.map((a) => (
               <button
@@ -230,7 +231,7 @@ export default function GridItem({ item }: { item: Item<"grid"> }) {
                 onClick={() => save({ anchor: a })}
                 className={clsx("min-h-7 flex-1 rounded px-1", (data.anchor ?? "corner") === a ? "bg-chalk text-ink-950" : "text-muted hover:text-chalk")}
               >
-                {a === "corner" ? "a corner" : a === "center" ? "a middle" : "anywhere"}
+                {a === "corner" ? tx("a corner") : a === "center" ? tx("a middle") : tx("anywhere")}
               </button>
             ))}
           </span>
@@ -287,7 +288,7 @@ export default function GridItem({ item }: { item: Item<"grid"> }) {
               <button
                 key={c}
                 type="button"
-                aria-label={`colour ${c}`}
+                aria-label={tx(`colour ${c}`)}
                 onClick={() => setColor(c)}
                 className={clsx("size-4 rounded-full", color === c && "ring-2 ring-chalk")}
                 style={{ background: c }}
@@ -298,7 +299,7 @@ export default function GridItem({ item }: { item: Item<"grid"> }) {
         <button
           type="button"
           disabled={!canEdit}
-          title="how much ground one square stands for"
+          title={tx("how much ground one square stands for")}
           onClick={() => save({ unit: nextUnit(data.unit) })}
           className="min-h-7 rounded-md px-1.5 text-[10px] text-chalk tabular-nums hover:bg-white/10 disabled:cursor-default"
         >
@@ -307,8 +308,8 @@ export default function GridItem({ item }: { item: Item<"grid"> }) {
         {canEdit && (
           <button
             type="button"
-            title="see-through and where areas start"
-            aria-label="grid settings"
+            title={tx("see-through and where areas start")}
+            aria-label={tx("grid settings")}
             onClick={() => setTuning(!tuning)}
             className={clsx(
               "grid size-7 place-items-center rounded-md transition [&_svg]:size-3.5",
@@ -321,8 +322,8 @@ export default function GridItem({ item }: { item: Item<"grid"> }) {
         {canEdit && areas.length > 0 && (
           <button
             type="button"
-            title="clear every area"
-            aria-label="clear every area"
+            title={tx("clear every area")}
+            aria-label={tx("clear every area")}
             onClick={() => save({ areas: [] })}
             className="grid size-7 place-items-center rounded-md text-muted hover:bg-white/10 hover:text-chalk [&_svg]:size-3.5"
           >

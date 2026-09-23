@@ -41,6 +41,7 @@ import {
   type Tile,
 } from "@/lib/dominoes";
 import type { DominoesState, Item } from "@/lib/types";
+import { t } from "@/lib/i18n";
 
 const TEAM_TINT = ["#6aa9e0", "#e0655c", "#a6d189", "#f6c177"];
 
@@ -243,18 +244,18 @@ export default function Dominoes({
             type="button"
             disabled={!canEdit || state.seatCount <= 2}
             onClick={() => resize(-1)}
-            aria-label="one chair fewer"
+            aria-label={t("one chair fewer")}
             className="grid size-6 place-items-center rounded transition hover:bg-white/10 hover:text-chalk disabled:opacity-30"
           >
             <Minus className="size-3" strokeWidth={2.6} />
           </button>
           <span className="tabular-nums text-chalk">{state.seatCount}</span>
-          <span>chairs</span>
+          <span>{t("chairs")}</span>
           <button
             type="button"
             disabled={!canEdit || state.seatCount >= 4}
             onClick={() => resize(1)}
-            aria-label="one chair more"
+            aria-label={t("one chair more")}
             className="grid size-6 place-items-center rounded transition hover:bg-white/10 hover:text-chalk disabled:opacity-30"
           >
             <Plus className="size-3" strokeWidth={2.6} />
@@ -268,13 +269,12 @@ export default function Dominoes({
             className="flex items-center gap-1 rounded-lg px-1.5 py-1 transition hover:bg-white/8 hover:text-chalk disabled:opacity-40"
           >
             <Users className="size-3" strokeWidth={2.2} />
-            {state.teams >= 2 ? "in pairs" : "each for themselves"}
+            {state.teams >= 2 ? t("in pairs") : t("each for themselves")}
           </button>
         )}
-        <span className="ml-auto flex items-center gap-1" title="tiles left in the boneyard">
+        <span className="ml-auto flex items-center gap-1" title={t("tiles left in the boneyard")}>
           <Layers className="size-3" strokeWidth={2.2} />
-          <span className="tabular-nums text-chalk">{boneyardLeft}</span> in the boneyard
-        </span>
+          <span className="tabular-nums text-chalk">{boneyardLeft}</span>{" "}{t("in the boneyard")}</span>
       </div>
 
       {/* Chairs, and the backs of everyone's tiles */}
@@ -293,7 +293,7 @@ export default function Dominoes({
               onClick={() =>
                 me && write({ ...base(), ...claimChair(state.seats, holders, chair, me) })
               }
-              title={who ? (isMine ? "stand up" : who) : "sit here"}
+              title={who ? (isMine ? t("stand up") : who) : t("sit here")}
               className={clsx(
                 "flex min-h-11 min-w-0 flex-col gap-1 rounded-xl px-2 py-1.5 text-left transition disabled:opacity-60",
                 state.turn === chair && playing
@@ -312,7 +312,7 @@ export default function Dominoes({
                   {who ? (
                     <span className={isMine ? "text-chalk" : "text-muted"}>{who}</span>
                   ) : (
-                    <span className="text-muted/55">seat {index + 1}</span>
+                    <span className="text-muted/55">{t("seat")}{" "}{index + 1}</span>
                   )}
                 </span>
                 {(wins[chair] ?? 0) > 0 && (
@@ -338,7 +338,7 @@ export default function Dominoes({
       {/* The line, on a baize of its own */}
       <div className="flex min-h-0 flex-1 items-center gap-0.5 overflow-x-auto rounded-xl bg-[#1d3b2c]/70 p-2 inset-ring inset-ring-black/30">
         {line.length === 0 ? (
-          <p className="w-full text-center text-[11px] text-chalk/45">the line is empty</p>
+          <p className="w-full text-center text-[11px] text-chalk/45">{t("the line is empty")}</p>
         ) : (
           line.map((tile, i) => (
             <Domino key={i} tile={tile as Tile} upright={isDouble(tile as Tile)} />
@@ -350,16 +350,15 @@ export default function Dominoes({
       <div>
         <div className="mb-1 flex items-center gap-1.5">
           <span className="text-[10px] tracking-wide text-muted/70 uppercase">
-            {myChair ? "your hand" : passedRound ? `${label(state.turn)}'s hand` : "take a seat"}
+            {myChair ? t("your hand") : passedRound ? t(`${label(state.turn)}'s hand`) : t("take a seat")}
           </span>
           {ends && (
-            <span className="text-[10px] text-muted/50">
-              ends {ends.left} and {ends.right}
+            <span className="text-[10px] text-muted/50">{t("ends")}{" "}{ends.left}{" "}{t("and")}{" "}{ends.right}
             </span>
           )}
           <div className="flex-1" />
           {shownHand.length > 0 && !gated && (
-            <span className="text-[10px] text-muted/50">{handPips(shownHand)} pips</span>
+            <span className="text-[10px] text-muted/50">{handPips(shownHand)}{" "}{t("pips")}</span>
           )}
         </div>
 
@@ -370,9 +369,7 @@ export default function Dominoes({
               onClick={() => setLookingAt(state.turn)}
               className="flex min-h-11 items-center gap-2 rounded-xl bg-white/8 px-3 text-[12px] text-chalk transition active:bg-white/14"
             >
-              <Eye className="size-4" strokeWidth={2.2} />
-              pass the phone to {label(state.turn)}, then tap to look
-            </button>
+              <Eye className="size-4" strokeWidth={2.2} />{t("pass the phone to")}{" "}{label(state.turn)}{t(", then tap to look")}</button>
           ) : shownHand.length > 0 ? (
             shownHand.map((tile, i) => {
               const sides = playableSides(line, tile);
@@ -399,10 +396,10 @@ export default function Dominoes({
           ) : (
             <p className="text-[11px] text-muted/50">
               {status.kind === "idle"
-                ? "everyone sits down before the deal -- a chair taken later is dealt nothing"
+                ? t("everyone sits down before the deal -- a chair taken later is dealt nothing")
                 : myChair
-                  ? "no tiles left"
-                  : "you are watching"}
+                  ? t("no tiles left")
+                  : t("you are watching")}
             </p>
           )}
         </div>
@@ -411,7 +408,7 @@ export default function Dominoes({
             round. Rather than name the ends, show it lying as it would land. */}
         {picked !== null && shownHand[picked] && (
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
-            <span className="text-[10px] text-muted/70">lay it down</span>
+            <span className="text-[10px] text-muted/70">{t("lay it down")}</span>
             {(["left", "right"] as const).map((side) => {
               const laid = orientFor(line, shownHand[picked], side);
               if (!laid) return null;
@@ -424,7 +421,7 @@ export default function Dominoes({
                     tile={laid}
                     upright={isDouble(laid)}
                     big
-                    label={`${side} end, ${laid[0]} against ${laid[1]}`}
+                    label={t(`${side} end, ${laid[0]} against ${laid[1]}`)}
                     onClick={() => void playTile(shownHand[picked], side)}
                   />
                   {side === "right" && (
@@ -437,16 +434,14 @@ export default function Dominoes({
               type="button"
               onClick={() => setPicked(null)}
               className="min-h-9 rounded-lg px-2 text-[11px] text-muted"
-            >
-              cancel
-            </button>
+            >{t("cancel")}</button>
           </div>
         )}
       </div>
 
       {/* State of play */}
       <div className="flex items-center gap-2">
-        <p className="min-w-0 flex-1 truncate text-xs font-medium text-muted">{headline}</p>
+        <p className="min-w-0 flex-1 truncate text-xs font-medium text-muted">{t(headline)}</p>
 
         {myTurn && stuck && boneyardLeft > 0 && !gated && (
           <button
@@ -455,9 +450,7 @@ export default function Dominoes({
             onClick={() => void draw()}
             className="flex min-h-9 shrink-0 items-center gap-1 rounded-lg bg-white/8 px-2.5 text-[11px] text-chalk transition hover:bg-white/12 disabled:opacity-40"
           >
-            <Layers className="size-3.5" strokeWidth={2.2} />
-            draw
-          </button>
+            <Layers className="size-3.5" strokeWidth={2.2} />{t("draw")}</button>
         )}
 
         {myTurn && stuck && boneyardLeft === 0 && !gated && (
@@ -467,17 +460,15 @@ export default function Dominoes({
             onClick={pass}
             className="flex min-h-9 shrink-0 items-center gap-1 rounded-lg bg-white/8 px-2.5 text-[11px] text-chalk transition hover:bg-white/12 disabled:opacity-40"
           >
-            <Hand className="size-3.5" strokeWidth={2.2} />
-            pass
-          </button>
+            <Hand className="size-3.5" strokeWidth={2.2} />{t("pass")}</button>
         )}
 
         <button
           type="button"
           disabled={!canEdit || busy}
           onClick={() => void deal()}
-          aria-label="shuffle and deal"
-          title="shuffle and deal"
+          aria-label={t("shuffle and deal")}
+          title={t("shuffle and deal")}
           className="grid size-9 shrink-0 place-items-center rounded-lg text-muted transition hover:bg-white/8 hover:text-chalk disabled:opacity-40 sm:size-8"
         >
           <RotateCcw className="size-3.5" strokeWidth={2.2} />
@@ -490,7 +481,7 @@ export default function Dominoes({
 /** How many tiles someone holds, shown the way you would see it across a table. */
 function TileBacks({ count }: { count: number }) {
   return (
-    <span className="flex items-center gap-[2px]" aria-label={`${count} tiles`}>
+    <span className="flex items-center gap-[2px]" aria-label={t(`${count} tiles`)}>
       {Array.from({ length: Math.min(count, 12) }, (_, i) => (
         <span
           key={i}
@@ -589,7 +580,7 @@ function Domino({
 
   if (!onClick) {
     return (
-      <span className={className} aria-label={label ?? `${tile[0]} and ${tile[1]}`}>
+      <span className={className} aria-label={label ?? t(`${tile[0]} and ${tile[1]}`)}>
         {face}
       </span>
     );
@@ -598,7 +589,7 @@ function Domino({
     <button
       type="button"
       onClick={onClick}
-      aria-label={label ?? `${tile[0]} and ${tile[1]}`}
+      aria-label={label ?? t(`${tile[0]} and ${tile[1]}`)}
       title={label ?? `${tile[0]} | ${tile[1]}`}
       className={className}
     >

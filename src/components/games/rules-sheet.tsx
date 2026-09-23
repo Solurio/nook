@@ -1,6 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
+import { t } from "@/lib/i18n";
 
 /**
  * The rules, on the table itself. Opens over the game rather than taking you
@@ -22,7 +23,7 @@ export default function RulesSheet({
         <button
           type="button"
           onClick={onClose}
-          aria-label="close"
+          aria-label={t("close")}
           className="grid size-9 place-items-center rounded-lg text-muted transition hover:bg-white/8 hover:text-chalk"
         >
           <X className="size-4" strokeWidth={2.4} />

@@ -5,6 +5,7 @@ import { Bold, Check, FlipHorizontal2, FlipVertical2, Italic, RotateCw, X } from
 import { SYMMETRIES, type BrushSpec, type Symmetry } from "@/lib/studio/brush";
 import type { Combine } from "@/lib/studio/mask";
 import { BUNDLED_FONTS } from "@/lib/fonts";
+import { t as tx } from "@/lib/i18n";
 
 export type BrushTool = "brush" | "eraser" | "smudge" | "blur" | "liquify";
 export type Tool = BrushTool | "fill" | "gradient" | "shape" | "text" | "select" | "wand" | "move" | "picker" | "hand";
@@ -85,7 +86,7 @@ function Pick<T extends string>({ value, options, onChange }: { value: T; option
           onClick={() => onChange(o.id)}
           className={clsx("min-h-6 rounded-md px-1.5 text-[10px] whitespace-nowrap", value === o.id ? "bg-chalk text-ink-950" : "text-muted hover:text-chalk")}
         >
-          {o.name}
+          {tx(o.name)}
         </button>
       ))}
     </span>
@@ -132,20 +133,18 @@ export default function ToolOptions({
   if (isBrushTool(tool)) {
     return (
       <>
-        <button type="button" onClick={onBrushes} className="flex min-h-6 shrink-0 items-center rounded-md bg-white/8 px-2 text-[10px] text-chalk hover:bg-white/12" title="brushes">
+        <button type="button" onClick={onBrushes} className="flex min-h-6 shrink-0 items-center rounded-md bg-white/8 px-2 text-[10px] text-chalk hover:bg-white/12" title={tx("brushes")}>
           {spec.name}
         </button>
-        <Mini label="steady" value={options.stabilizer} min={0} max={10} onChange={(v) => set({ stabilizer: v })} />
-        <label className="flex shrink-0 items-center gap-1 text-[10px] text-muted">
-          symmetry
-          <select
+        <Mini label={tx("steady")} value={options.stabilizer} min={0} max={10} onChange={(v) => set({ stabilizer: v })} />
+        <label className="flex shrink-0 items-center gap-1 text-[10px] text-muted">{tx("symmetry")}<select
             value={options.symmetry}
             onChange={(event) => set({ symmetry: event.target.value as Symmetry })}
             className="h-6 rounded-md bg-white/7 px-1 text-[10px] text-chalk outline-none"
           >
             {SYMMETRIES.map((s) => (
               <option key={s.id} value={s.id}>
-                {s.name}
+                {tx(s.name)}
               </option>
             ))}
           </select>
@@ -157,7 +156,7 @@ export default function ToolOptions({
     case "fill":
       return (
         <>
-          <Mini label="tolerance" value={options.fillTolerance} min={0} max={255} onChange={(v) => set({ fillTolerance: v })} />
+          <Mini label={tx("tolerance")} value={options.fillTolerance} min={0} max={255} onChange={(v) => set({ fillTolerance: v })} />
           <Pick
             value={options.fillSample}
             options={[
@@ -166,7 +165,7 @@ export default function ToolOptions({
             ]}
             onChange={(v) => set({ fillSample: v })}
           />
-          <Mini label="grow" value={options.fillGrow} min={0} max={8} onChange={(v) => set({ fillGrow: v })} suffix="px" />
+          <Mini label={tx("grow")} value={options.fillGrow} min={0} max={8} onChange={(v) => set({ fillGrow: v })} suffix="px" />
         </>
       );
     case "gradient":
@@ -180,9 +179,7 @@ export default function ToolOptions({
             ]}
             onChange={(v) => set({ gradientShape: v })}
           />
-          <Flag on={options.gradientFade} onClick={() => set({ gradientFade: !options.gradientFade })} title="fade to nothing instead of to the second colour">
-            fade out
-          </Flag>
+          <Flag on={options.gradientFade} onClick={() => set({ gradientFade: !options.gradientFade })} title={tx("fade to nothing instead of to the second colour")}>{tx("fade out")}</Flag>
         </>
       );
     case "shape":
@@ -198,11 +195,9 @@ export default function ToolOptions({
             onChange={(v) => set({ shape: v })}
           />
           {options.shape !== "line" && (
-            <Flag on={options.shapeFill} onClick={() => set({ shapeFill: !options.shapeFill })}>
-              filled
-            </Flag>
+            <Flag on={options.shapeFill} onClick={() => set({ shapeFill: !options.shapeFill })}>{tx("filled")}</Flag>
           )}
-          <span className="shrink-0 text-[10px] text-muted/70">shift keeps it even</span>
+          <span className="shrink-0 text-[10px] text-muted/70">{tx("shift keeps it even")}</span>
         </>
       );
     case "text":
@@ -212,7 +207,7 @@ export default function ToolOptions({
             value={options.font}
             onChange={(event) => set({ font: event.target.value })}
             className="h-6 max-w-36 shrink-0 rounded-md bg-white/7 px-1 text-[10px] text-chalk outline-none"
-            aria-label="font"
+            aria-label={tx("font")}
           >
             {TEXT_FONTS.map((f) => (
               <option key={f} value={f}>
@@ -226,7 +221,7 @@ export default function ToolOptions({
           <Flag on={options.italic} onClick={() => set({ italic: !options.italic })}>
             <Italic />
           </Flag>
-          <span className="shrink-0 text-[10px] text-muted/70">tap where the text goes</span>
+          <span className="shrink-0 text-[10px] text-muted/70">{tx("tap where the text goes")}</span>
         </>
       );
     case "select":
@@ -247,10 +242,8 @@ export default function ToolOptions({
     case "wand":
       return (
         <>
-          <Mini label="tolerance" value={options.wandTolerance} min={0} max={255} onChange={(v) => set({ wandTolerance: v })} />
-          <Flag on={options.wandContiguous} onClick={() => set({ wandContiguous: !options.wandContiguous })} title="only what touches where you tap">
-            touching only
-          </Flag>
+          <Mini label={tx("tolerance")} value={options.wandTolerance} min={0} max={255} onChange={(v) => set({ wandTolerance: v })} />
+          <Flag on={options.wandContiguous} onClick={() => set({ wandContiguous: !options.wandContiguous })} title={tx("only what touches where you tap")}>{tx("touching only")}</Flag>
           <Pick
             value={options.wandSample}
             options={[
@@ -265,30 +258,28 @@ export default function ToolOptions({
     case "move":
       return warping ? (
         <>
-          <Flag on={false} onClick={() => onWarp("flipX")} title="flip left-right">
+          <Flag on={false} onClick={() => onWarp("flipX")} title={tx("flip left-right")}>
             <FlipHorizontal2 />
           </Flag>
-          <Flag on={false} onClick={() => onWarp("flipY")} title="flip top-bottom">
+          <Flag on={false} onClick={() => onWarp("flipY")} title={tx("flip top-bottom")}>
             <FlipVertical2 />
           </Flag>
-          <Flag on={false} onClick={() => onWarp("turn")} title="turn a quarter">
+          <Flag on={false} onClick={() => onWarp("turn")} title={tx("turn a quarter")}>
             <RotateCw />
           </Flag>
           <Flag on onClick={() => onWarp("apply")}>
-            <Check /> done
-          </Flag>
+            <Check />{" "}{tx("done")}</Flag>
           <Flag on={false} onClick={() => onWarp("cancel")}>
-            <X /> cancel
-          </Flag>
-          <span className="shrink-0 text-[10px] text-muted/70">drag inside to move, corners to scale, the knob to turn</span>
+            <X />{" "}{tx("cancel")}</Flag>
+          <span className="shrink-0 text-[10px] text-muted/70">{tx("drag inside to move, corners to scale, the knob to turn")}</span>
         </>
       ) : (
-        <span className="shrink-0 text-[10px] text-muted/70">tap the picture to move what is on this layer, or what is selected</span>
+        <span className="shrink-0 text-[10px] text-muted/70">{tx("tap the picture to move what is on this layer, or what is selected")}</span>
       );
     case "picker":
-      return <span className="shrink-0 text-[10px] text-muted/70">tap to take a colour from the picture (alt with the brush does it too)</span>;
+      return <span className="shrink-0 text-[10px] text-muted/70">{tx("tap to take a colour from the picture (alt with the brush does it too)")}</span>;
     case "hand":
-      return <span className="shrink-0 text-[10px] text-muted/70">drag to look around; the wheel zooms, space held works as the hand anywhere</span>;
+      return <span className="shrink-0 text-[10px] text-muted/70">{tx("drag to look around; the wheel zooms, space held works as the hand anywhere")}</span>;
     default:
       return null;
   }

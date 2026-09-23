@@ -3,6 +3,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { loadSoundCloudApi, type SCWidget } from "@/lib/soundcloud-api";
 import type { PlayerControl, PlayerState, ProviderPlayerProps } from "./types";
+import { t } from "@/lib/i18n";
 
 const IFRAME_SRC =
   "https://w.soundcloud.com/player/?url=&visual=true&show_comments=false&hide_related=true&buying=false&sharing=false&download=false";
@@ -136,7 +137,7 @@ const SoundCloudPlayer = forwardRef<PlayerControl, ProviderPlayerProps>(function
     <iframe
       ref={iframe}
       src={IFRAME_SRC}
-      title="soundcloud"
+      title={t("soundcloud")}
       allow="autoplay"
       className="size-full"
       scrolling="no"
