@@ -28,6 +28,7 @@ import Catan from "@/components/games/catan";
 import Reversi from "@/components/games/reversi";
 import Pool from "@/components/games/pool";
 import Battleship from "@/components/games/battleship";
+import Monopoly from "@/components/games/monopoly";
 
 export default function GameItem({ item }: { item: Item<"game"> }) {
   switch (item.data.game) {
@@ -83,6 +84,8 @@ export default function GameItem({ item }: { item: Item<"game"> }) {
       return <Pool item={item} state={item.data.state} />;
     case "battleship":
       return <Battleship item={item} state={item.data.state} />;
+    case "monopoly":
+      return <Monopoly item={item} state={item.data.state} />;
     case "reversi":
       return <Reversi item={item} state={item.data.state} />;
     default:

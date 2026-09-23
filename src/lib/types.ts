@@ -169,7 +169,8 @@ export type GameKind =
   | "catan"
   | "reversi"
   | "pool"
-  | "battleship";
+  | "battleship"
+  | "monopoly";
 
 export type GameData =
   | { game: "tictactoe"; state: TicTacToeState }
@@ -198,7 +199,8 @@ export type GameData =
   | { game: "catan"; state: import("./catan").CatanState }
   | { game: "reversi"; state: import("./reversi").ReversiState }
   | { game: "pool"; state: import("./pool").PoolState }
-  | { game: "battleship"; state: import("./battleship").BattleshipState };
+  | { game: "battleship"; state: import("./battleship").BattleshipState }
+  | { game: "monopoly"; state: import("./monopoly").MonopolyState };
 
 export interface ChessState {
   /** 64 cells, index = row*8+col, row 0 is black's back rank. */

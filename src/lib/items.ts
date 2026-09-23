@@ -18,6 +18,7 @@ import { emptyQuoridor } from "./quoridor";
 import { emptyCatan } from "./catan";
 import { emptyPool } from "./pool";
 import { emptyBattleship } from "./battleship";
+import { emptyMonopoly } from "./monopoly";
 import { emptyReversi } from "./reversi";
 import { emptyPdf } from "./pdf";
 import { emptyGrid, emptyToken } from "./grid";
@@ -104,6 +105,7 @@ const GAME_SIZE: Record<GameKind, { width: number; height: number }> = {
   reversi: { width: 380, height: 450 },
   pool: { width: 640, height: 440 },
   battleship: { width: 640, height: 520 },
+  monopoly: { width: 720, height: 780 },
 };
 
 function emptyGameData(game: GameKind): ItemDataMap["game"] {
@@ -187,6 +189,8 @@ function emptyGameData(game: GameKind): ItemDataMap["game"] {
       return { game: "pool", state: emptyPool() };
     case "battleship":
       return { game: "battleship", state: emptyBattleship() };
+    case "monopoly":
+      return { game: "monopoly", state: emptyMonopoly() };
     case "resistance":
       return {
         game: "resistance",
