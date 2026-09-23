@@ -140,7 +140,7 @@ function SliceText({ arc }: { arc: PlacedArc }) {
           fill="#100d16"
           fillOpacity={0.88}
         >
-          {t(line)}
+          {line}
         </text>
       ))}
     </g>
@@ -260,8 +260,10 @@ export default function Wheel({ item, state: raw }: { item: Item<"game">; state:
       </div>
 
       <div className={clsx("flex min-h-0 w-full flex-1 gap-3", wide ? "flex-row" : "flex-col")}>
-        <div className="relative grid min-h-0 min-w-0 flex-1 place-items-center">
-          <div className="relative aspect-square h-full max-h-full max-w-full">
+        {/* Sized off both sides of the room it has, so a tall phone gets the
+            widest wheel that fits rather than one that runs off the edge. */}
+        <div className="relative grid min-h-0 min-w-0 flex-1 place-items-center [container-type:size]">
+          <div className="relative size-[min(100cqw,100cqh)]">
             {/* The pointer */}
             <svg
               viewBox="0 0 20 22"

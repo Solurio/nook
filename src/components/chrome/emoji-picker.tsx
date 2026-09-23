@@ -5,6 +5,7 @@ import clsx from "clsx";
 import { Search, X } from "lucide-react";
 import { EMOJI_GROUPS, emojiIn, searchEmoji, type EmojiGroup } from "@/lib/emoji";
 import { REACTIONS, REACTION_GLYPHS } from "@/lib/reactions";
+import { t } from "@/lib/i18n";
 
 /** A face for each shelf, so the tabs read at a glance. */
 const GROUP_FACE: Record<EmojiGroup, string> = {
@@ -105,7 +106,7 @@ export default function EmojiPicker({
               // Enter takes the best match, which is the whole point of typing.
               if (event.key === "Enter" && results.length > 0) pick(results[0].char);
             }}
-            placeholder="search, in english or portugues"
+            placeholder={t("search, in english or portuguese")}
             spellCheck={false}
             autoFocus
             className="min-w-0 flex-1 bg-transparent py-2 text-[13px] outline-none placeholder:text-muted/55"
@@ -117,7 +118,7 @@ export default function EmojiPicker({
                 setTerm("");
                 searchRef.current?.focus();
               }}
-              aria-label="clear the search"
+              aria-label={t("clear the search")}
               className="grid size-6 shrink-0 place-items-center rounded text-muted transition hover:text-chalk"
             >
               <X className="size-3.5" strokeWidth={2.6} />
@@ -130,7 +131,7 @@ export default function EmojiPicker({
         <button
           type="button"
           onClick={onClose}
-          aria-label="close"
+          aria-label={t("close")}
           className="grid size-9 shrink-0 place-items-center rounded-xl text-muted transition active:bg-white/10 sm:hidden"
         >
           <X className="size-4" strokeWidth={2.4} />
@@ -140,7 +141,7 @@ export default function EmojiPicker({
       {!searching && (
         <>
           <p className="px-3 pt-2.5 text-[10px] tracking-wide text-muted/60 uppercase">
-            {recent.length > 0 ? "you use these" : "to hand"}
+            {recent.length > 0 ? t("you use these") : t("to hand")}
           </p>
           <div className="grid grid-cols-8 gap-0.5 px-2 pt-1">
             {quick.map((glyph) => (
@@ -154,8 +155,8 @@ export default function EmojiPicker({
                 key={id}
                 type="button"
                 onClick={() => setGroup(id)}
-                title={GROUP_NAME[id]}
-                aria-label={GROUP_NAME[id]}
+                title={t(GROUP_NAME[id])}
+                aria-label={t(GROUP_NAME[id])}
                 className={clsx(
                   "grid aspect-square min-w-0 flex-1 place-items-center rounded-lg text-base transition",
                   group === id ? "bg-glow/22" : "opacity-55 hover:bg-white/8 hover:opacity-100",

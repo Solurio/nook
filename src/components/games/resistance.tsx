@@ -76,7 +76,7 @@ export default function Resistance({
   const leader = chairs[state.leader % chairs.length];
   const size = teamSize(state.seatCount, state.mission);
   const voteNo = state.voteNo ?? 0;
-  const label = (chair: string) => state.seats[chair] ?? `seat ${chairs.indexOf(chair) + 1}`;
+  const label = (chair: string) => state.seats[chair] ?? t(`seat ${chairs.indexOf(chair) + 1}`);
 
   /** Chairs this device answers for: your own, or empty chairs whose card it holds. */
   const mineToPlay = (chair: string) =>

@@ -567,7 +567,7 @@ export default function CardTable({ item, state }: { item: Item<"game">; state: 
   // Picture
   // ---------------------------------------------------------------------------
 
-  const label = (chair: string) => table.seats[chair] ?? `seat ${chairs.indexOf(chair) + 1}`;
+  const label = (chair: string) => table.seats[chair] ?? t(`seat ${chairs.indexOf(chair) + 1}`);
   const empty = view.stacks.length === 0;
   const count = tally(view, piles);
   const astray = !empty && count.held !== count.expected;

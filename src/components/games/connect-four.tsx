@@ -83,7 +83,7 @@ export default function ConnectFour({
       over={over}
     >
       <div
-        className="grid h-full w-full gap-1 rounded-xl bg-ink-950/45 p-1.5"
+        className="grid aspect-[7/6] w-[min(100cqw,calc(100cqh*7/6))] gap-1 rounded-xl bg-ink-950/45 p-1.5"
         style={{ gridTemplateColumns: `repeat(${C4_COLUMNS}, minmax(0, 1fr))` }}
         onPointerLeave={() => setHover(null)}
       >

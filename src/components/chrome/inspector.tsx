@@ -33,6 +33,7 @@ import { useRoomStore } from "@/state/room-store";
 import { NOTE_TINTS } from "@/lib/items";
 import type { AnyItem, FrameStyle, Item, TextEffect } from "@/lib/types";
 import { t } from "@/lib/i18n";
+import { gameTitle } from "./dock";
 
 const TEXT_COLORS = ["#f4efe6", "#f6c177", "#f2a4b8", "#a6d189", "#8bc7e8", "#c4a7f0"];
 
@@ -232,7 +233,7 @@ function ThumbBar({ item, readOnly }: { item: AnyItem; readOnly: boolean }) {
       <div className="surface pointer-events-auto rounded-2xl px-2 py-2">
         <div className="mb-1.5 flex items-center gap-2 px-1">
           <span className="min-w-0 truncate text-[11px] font-medium text-muted">
-            {KIND_NAME[item.kind]}
+            {item.kind === "game" ? t(gameTitle((item.data as { game: string }).game)) : t(KIND_NAME[item.kind])}
             {readOnly && <span className="text-warm">{" "}{t("· the room is locked")}</span>}
             {!readOnly && pinned && <span className="text-warm">{" "}{t("· stuck to the wall")}</span>}
           </span>

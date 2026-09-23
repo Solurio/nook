@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import clsx from "clsx";
 import { Type, X } from "lucide-react";
 import { BUNDLED_FONTS, INSTALLED_FONTS, fontStack } from "@/lib/fonts";
+import { t } from "@/lib/i18n";
 
 /**
  * A button that opens the list of fonts, each written in itself. The first
@@ -59,7 +60,7 @@ export default function FontPicker({
     const q = query.trim().toLowerCase();
     const match = (f: string) => !q || f.toLowerCase().includes(q);
     const out: Row[] = [];
-    if (!q) out.push({ family: undefined, label: "the room's own", group: "own" });
+    if (!q) out.push({ family: undefined, label: t("the room's own"), group: "own" });
     for (const f of BUNDLED_FONTS) {
       if (match(f.family)) out.push({ family: f.family, label: f.family, group: "bundled" });
     }
@@ -188,7 +189,7 @@ export default function FontPicker({
           <div
             ref={panel}
             role="dialog"
-            aria-label="font"
+            aria-label={t("font")}
             style={{
               position: "fixed",
               top: anchor.top,
@@ -216,13 +217,13 @@ export default function FontPicker({
                 }}
                 spellCheck={false}
                 autoComplete="off"
-                placeholder={`find one of ${total}`}
+                placeholder={t(`find one of ${total}`)}
                 className="h-8 min-w-0 flex-1 rounded-lg bg-white/7 px-2 text-[12px] text-chalk outline-none ring-1 ring-white/10 focus:ring-glow/45"
               />
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                aria-label="close"
+                aria-label={t("close")}
                 className="grid size-8 shrink-0 place-items-center rounded-lg text-muted hover:text-chalk"
               >
                 <X className="size-3.5" />
@@ -242,7 +243,7 @@ export default function FontPicker({
                           index === 0 ? "pt-1" : "pt-2",
                         )}
                       >
-                        {GROUP_HEADING[row.group]}
+                        {t(GROUP_HEADING[row.group] ?? "")}
                       </p>
                     )}
                     <button
@@ -276,10 +277,10 @@ export default function FontPicker({
         type="button"
         onPointerDown={(event) => event.stopPropagation()}
         onClick={() => (open ? setOpen(false) : show())}
-        aria-label="font"
+        aria-label={t("font")}
         aria-haspopup="dialog"
         aria-expanded={open}
-        title="font"
+        title={t("font")}
         className={clsx(
           "flex h-8 max-w-28 items-center gap-1 rounded-xl px-2 text-[11px] ring-1 ring-white/10",
           open ? "bg-glow/20 text-chalk" : "bg-white/7 text-muted hover:text-chalk",
@@ -287,7 +288,7 @@ export default function FontPicker({
       >
         <Type className="size-3.5 shrink-0" strokeWidth={2.2} />
         <span className="truncate" style={{ fontFamily: fontStack(value) }}>
-          {value ?? "font"}
+          {value ?? t("font")}
         </span>
       </button>
       {list}

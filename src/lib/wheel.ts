@@ -8,6 +8,7 @@
 // screen watching runs the same animation to the same place.
 
 import { randomBelow, type Random } from "./dice";
+import { t } from "./i18n";
 
 export interface Slice {
   id: string;
@@ -121,9 +122,11 @@ export const SPIN_MS = 4200;
 export function emptyWheel(): WheelState {
   return {
     title: "",
+    // Written in the language of whoever puts the wheel down: from then on
+    // the slices are the room's own words, like anything typed in.
     slices: ["yes", "no", "maybe", "ask again"].map((label, i) => ({
       id: `w${i}`,
-      label,
+      label: t(label),
       weight: 1,
       color: PALETTE[i],
     })),

@@ -42,7 +42,7 @@ export default function Coin({ item, state: raw }: { item: Item<"game">; state: 
   const end = latest ? latest.spins * 360 + (latest.side === "tails" ? 180 : 0) : 0;
   const rest = latest?.side === "tails" ? 180 : 0;
   const run = streak(state.flips);
-  const name = (side: Side) => faceLabel(side === "heads" ? state.heads : state.tails, side);
+  const name = (side: Side) => t(faceLabel(side === "heads" ? state.heads : state.tails, side));
 
   // Half the coin's thickness: the faces sit this far either side of the
   // middle, with the rim filled in between, so it has an edge when it turns.
@@ -87,8 +87,9 @@ export default function Coin({ item, state: raw }: { item: Item<"game">; state: 
         <Settings2 className="size-4" />
       </button>
 
-      {/* The air above the table */}
-      <div className="flex min-h-0 w-full flex-1 items-end justify-center pb-3">
+      {/* The air above the table -- enough for the toss, and no more, so on a
+          tall phone the coin sits in the middle rather than at the bottom. */}
+      <div className="my-auto flex max-h-80 min-h-0 w-full flex-1 items-end justify-center pb-3">
         {/* The perspective has to sit on the coin's own parent, or the turn
             flattens into a squash. */}
         <button

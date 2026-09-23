@@ -70,7 +70,7 @@ export default function TicTacToe({
       canEdit={canEdit}
       over={over}
     >
-      <div className="grid aspect-square h-full max-h-full w-full max-w-full grid-cols-3 grid-rows-3 gap-1.5">
+      <div className="grid size-[min(100cqw,100cqh)] grid-cols-3 grid-rows-3 gap-1.5">
         {state.board.map((cell, index) => {
           const winning = outcome.line?.includes(index) ?? false;
           return (

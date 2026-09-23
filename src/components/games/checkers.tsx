@@ -113,7 +113,7 @@ export default function Checkers({ item, state }: { item: Item<"game">; state: C
       canEdit={canEdit}
       over={over}
     >
-      <div className="grid aspect-square h-full max-h-full w-full max-w-full grid-cols-8 overflow-hidden rounded-lg">
+      <div className="grid size-[min(100cqw,100cqh)] grid-cols-8 overflow-hidden rounded-lg">
         {squares.map((i) => {
           const cell = state.board[i];
           const dark = (Math.floor(i / 8) + (i % 8)) % 2 === 1;
@@ -140,7 +140,7 @@ export default function Checkers({ item, state }: { item: Item<"game">; state: C
                   )}
                 >
                   {cell.king && (
-                    <span className="text-[clamp(8px,2.4vw,16px)] text-warm">♛</span>
+                    <span className="text-[min(4cqw,4cqh)] text-warm">♛</span>
                   )}
                 </span>
               )}

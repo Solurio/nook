@@ -124,6 +124,9 @@ const GAMES: Array<{
   { kind: "tictactoe", group: "boards", title: "tic tac toe", hint: "quick and petty", icon: <Grid3x3 /> },
 ];
 
+/** What a game is called where it is offered, for naming it elsewhere. */
+export const gameTitle = (kind: string) => GAMES.find((game) => game.kind === kind)?.title ?? "game";
+
 const GROUPS = (Object.keys(GROUP_TITLE) as GameGroup[]).map((group) => ({
   group,
   title: GROUP_TITLE[group],
@@ -361,7 +364,7 @@ export default function Dock() {
             <div className="surface-raised animate-drift-in absolute right-1.5 bottom-full mb-2 max-h-[min(34rem,calc(100dvh-7rem))] w-[26rem] max-w-[90vw] overflow-y-auto overscroll-contain rounded-2xl p-2 shadow-2xl">
               {GROUPS.map(({ group, title, games }) => (
                 <div key={group} className="mb-1 last:mb-0">
-                  <p className="px-2.5 pt-1 pb-0.5 text-[10px] tracking-wide text-muted/60 uppercase">{title}</p>
+                  <p className="px-2.5 pt-1 pb-0.5 text-[10px] tracking-wide text-muted/60 uppercase">{t(title)}</p>
                   <div className="grid grid-cols-2 gap-1">
                     {games.map((game) => (
                       <GameOption
@@ -499,7 +502,7 @@ function AddSheet({
 
         {GROUPS.map(({ group, title, games }) => (
           <div key={group}>
-            <h2 className="mt-5 mb-3 text-sm font-semibold">{title}</h2>
+            <h2 className="mt-5 mb-3 text-sm font-semibold">{t(title)}</h2>
             <div className="grid grid-cols-2 gap-2">
               {games.map((game) => (
                 <SheetTile

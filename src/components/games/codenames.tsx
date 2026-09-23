@@ -196,7 +196,7 @@ export default function Codenames({
             >
               <span className="size-3 shrink-0 rounded-full ring-1 ring-white/25" style={{ background: TEAM_TINT[team] }} />
               <span className="min-w-0 flex-1 truncate text-[11px]">
-                {who ? <span className={isMine ? "text-chalk" : "text-muted"}>{who}</span> : <span className="text-muted/55">{team}{" "}{t("spymaster")}</span>}
+                {who ? <span className={isMine ? "text-chalk" : "text-muted"}>{who}</span> : <span className="text-muted/55">{t(`${team} spymaster`)}</span>}
               </span>
               {dealt && (
                 <span className="shrink-0 text-[11px] font-semibold tabular-nums text-muted">
@@ -212,7 +212,7 @@ export default function Codenames({
       </div>
 
       {/* The table */}
-      <div className="grid min-h-0 flex-1 grid-cols-5 gap-1">
+      <div className="grid min-h-0 flex-1 grid-cols-5 gap-1 [container-type:size]">
         {state.words.map((word, i) => {
           const face = turned[i];
           const hint = keyVisible && !face ? myKey?.[i] : undefined;
@@ -224,7 +224,7 @@ export default function Codenames({
               disabled={!canEdit || over || face !== undefined || isMaster || busy}
               aria-label={face ? `${word}, ${face}` : word}
               className={clsx(
-                "grid touch-manipulation place-items-center overflow-hidden rounded-md px-0.5 text-center text-[clamp(7px,1.7vw,11px)] leading-tight font-semibold transition",
+                "grid touch-manipulation place-items-center overflow-hidden rounded-md px-0.5 text-center text-[clamp(7px,min(3cqw,5cqh),15px)] leading-tight font-semibold [overflow-wrap:anywhere] transition",
                 face ? SLOT_FACE[face] : "bg-[#f6f2e8] text-[#1a1420] hover:ring-2 hover:ring-glow/70",
               )}
               style={

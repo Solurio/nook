@@ -109,7 +109,7 @@ export default function Quoridor({ item, state: raw }: { item: Item<"game">; sta
   const myChair = chairOf(state.seats, holders, me);
   const plays = (chair: string) => canEdit && (holders[chair] ? holders[chair] === me?.userId : true);
   const myTurn = state.phase === "play" && plays(state.turn);
-  const label = (chair: string) => state.seats[chair] ?? COLOR_NAME[chair];
+  const label = (chair: string) => state.seats[chair] ?? tx(COLOR_NAME[chair]);
   const viewer = myChair && chairs.includes(myChair) ? myChair : "s0";
   const angle = SIDE_TURN[sideOf(state.players, viewer)];
 
@@ -218,7 +218,7 @@ export default function Quoridor({ item, state: raw }: { item: Item<"game">; sta
             >
               <span className="size-2.5 rounded-full" style={{ background: TINT[chair] }} />
               <span className={clsx("max-w-20 truncate", chair === myChair ? "text-chalk" : "text-muted")}>
-                {state.seats[chair] ?? <span className="text-muted/50">{COLOR_NAME[chair]}</span>}
+                {state.seats[chair] ?? <span className="text-muted/50">{tx(COLOR_NAME[chair])}</span>}
               </span>
               <span className="flex gap-px" aria-label={tx(`${state.left[chair] ?? 0} walls left`)}>
                 {Array.from({ length: state.left[chair] ?? 0 }, (_, i) => (
@@ -309,7 +309,7 @@ export default function Quoridor({ item, state: raw }: { item: Item<"game">; sta
       <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
         <span className={clsx("min-w-0 flex-1 truncate", problem && preview ? "text-[#f2a4b8]" : "text-muted")}>
           <span className="mr-1 inline-block size-2 rounded-full" style={{ background: TINT[state.winner ?? state.turn] }} />
-          {status()}
+          {tx(status())}
         </span>
         {myTurn && (
           <span className="flex rounded-lg bg-white/5 p-0.5">

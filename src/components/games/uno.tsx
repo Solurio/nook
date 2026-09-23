@@ -86,7 +86,7 @@ export default function Uno({ item, state: raw }: { item: Item<"game">; state: u
     return new Set(options);
   }, [myTurn, shownChair, state.turn, state.color, state.drew, hand, top, drawn]);
 
-  const label = (chair: string) => state.seats[chair] ?? `seat ${chairs.indexOf(chair) + 1}`;
+  const label = (chair: string) => state.seats[chair] ?? t(`seat ${chairs.indexOf(chair) + 1}`);
   const wins = tally(state.results);
   const drawLeft = sizeOf(piles, DRAW_PILE);
 
@@ -472,7 +472,7 @@ export default function Uno({ item, state: raw }: { item: Item<"game">; state: u
       <div className="flex items-center gap-2">
         <p className="min-w-0 flex-1 truncate text-[11px] text-muted">
           {t(headline)}
-          <span className="text-muted/50"> · {state.log.at(-1) ?? ""}</span>
+          <span className="text-muted/50"> · {t(state.log.at(-1) ?? "")}</span>
         </p>
         {myTurn && shownChair === state.turn && hand.length === 2 && !state.called[state.turn] && (
           <button type="button" onClick={() => void callUno(state.turn)} className="flex min-h-9 items-center gap-1 rounded-lg bg-[#d63a3a] px-2.5 text-[11px] font-bold text-white">

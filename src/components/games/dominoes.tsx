@@ -201,7 +201,7 @@ export default function Dominoes({
   // What to say
   // ---------------------------------------------------------------------------
 
-  const label = (chair: string) => state.seats[chair] ?? `seat ${chairs.indexOf(chair) + 1}`;
+  const label = (chair: string) => state.seats[chair] ?? t(`seat ${chairs.indexOf(chair) + 1}`);
 
   const headline = (() => {
     if (status.kind === "idle") return "sit down, then deal";

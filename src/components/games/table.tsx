@@ -59,7 +59,7 @@ export default function GameTable<K extends string>({
         ))}
       </div>
 
-      <div className="grid min-h-0 flex-1 place-items-center overflow-hidden">{children}</div>
+      <div className="grid min-h-0 flex-1 place-items-center overflow-hidden [container-type:size]">{children}</div>
 
       <div className="mt-2 flex items-center justify-between gap-2">
         <p className="flex min-w-0 items-center gap-1.5 truncate text-xs font-medium text-muted">
@@ -129,7 +129,7 @@ function Chair({
         {who ? (
           <span className={mine ? "text-chalk" : "text-muted"}>{who}</span>
         ) : (
-          <span className="text-muted/60">{label}{" "}{t("· open")}</span>
+          <span className="text-muted/60">{t(label)}{" "}{t("· open")}</span>
         )}
       </span>
       {mine && <span className="shrink-0 text-[10px] font-medium text-glow">{t("you")}</span>}

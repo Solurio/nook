@@ -49,7 +49,7 @@ export default function Reversi({ item, state: raw }: { item: Item<"game">; stat
       over={state.over}
     >
       <div
-        className="grid aspect-square h-full max-h-full max-w-full gap-[2px] rounded-lg bg-[#1d4d2f] p-1.5 shadow-inner"
+        className="grid size-[min(100cqw,100cqh)] gap-[2px] rounded-lg bg-[#1d4d2f] p-1.5 shadow-inner"
         style={{ gridTemplateColumns: `repeat(${SIZE}, minmax(0, 1fr))` }}
       >
         {state.board.map((cell, i) => {

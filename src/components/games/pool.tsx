@@ -65,6 +65,14 @@ interface View {
   scale: number;
   ox: number;
   oy: number;
+  /**
+   * Drawn a quarter turn round, head string at the top, because the box is
+   * taller than it is wide -- a phone held upright. Then the table's long
+   * side runs down the screen instead of being squeezed across it.
+   */
+  turned?: boolean;
+  /** How wide the box is, which the quarter turn needs to undo itself. */
+  across?: number;
 }
 
 /** A ball, drawn the way it is painted: solid, striped, numbered. */
@@ -103,7 +111,11 @@ function paintBall(ctx: CanvasRenderingContext2D, n: number, x: number, y: numbe
     ctx.font = `${Math.round(r * 0.62)}px ui-sans-serif, system-ui, sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(String(n), x, y + r * 0.03);
+    // Upright on screen whichever way the table is turned.
+    const m = ctx.getTransform();
+    ctx.translate(x, y);
+    ctx.rotate(-Math.atan2(m.b, m.a));
+    ctx.fillText(String(n), 0, r * 0.03);
   }
   ctx.restore();
 }
@@ -327,11 +339,17 @@ export default function Pool({ item, state }: { item: Item<"game">; state: PoolS
         canvas.width = w;
         canvas.height = h;
       }
-      const scale = Math.min(box.clientWidth / (TABLE.w + RAIL * 2), box.clientHeight / (TABLE.h + RAIL * 2));
+      const turned = box.clientHeight > box.clientWidth * 1.1;
+      // The table's own width and height, as the drawing sees them.
+      const long = turned ? box.clientHeight : box.clientWidth;
+      const short = turned ? box.clientWidth : box.clientHeight;
+      const scale = Math.min(long / (TABLE.w + RAIL * 2), short / (TABLE.h + RAIL * 2));
       const view: View = {
         scale,
-        ox: (box.clientWidth - TABLE.w * scale) / 2,
-        oy: (box.clientHeight - TABLE.h * scale) / 2,
+        ox: (long - TABLE.w * scale) / 2,
+        oy: (short - TABLE.h * scale) / 2,
+        turned,
+        across: box.clientWidth,
       };
       viewRef.current = view;
       const k = view.scale;
@@ -339,6 +357,10 @@ export default function Pool({ item, state }: { item: Item<"game">; state: PoolS
 
       ctx.setTransform(density, 0, 0, density, 0, 0);
       ctx.clearRect(0, 0, box.clientWidth, box.clientHeight);
+      if (turned) {
+        ctx.translate(box.clientWidth, 0);
+        ctx.rotate(Math.PI / 2);
+      }
       paintTable(ctx, view);
 
       const anim = animRef.current;
@@ -433,7 +455,9 @@ export default function Pool({ item, state }: { item: Item<"game">; state: PoolS
     const canvas = canvasRef.current;
     const view = viewRef.current;
     if (!canvas) return { x: 0, y: 0 };
-    const at = pointIn(canvas, event.nativeEvent, item.rotation);
+    const on = pointIn(canvas, event.nativeEvent, item.rotation);
+    // Undo the quarter turn the drawing took, if it took one.
+    const at = view.turned ? { x: on.y, y: (view.across ?? 0) - on.x } : on;
     return { x: (at.x - view.ox) / view.scale, y: (at.y - view.oy) / view.scale };
   };
 

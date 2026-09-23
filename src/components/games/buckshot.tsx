@@ -95,7 +95,7 @@ export default function Buckshot({ item, state: raw }: { item: Item<"game">; sta
   const chairs = chairsFor(state.seatCount);
   const holders = useMemo(() => state.holders ?? {}, [state.holders]);
   const myChair = chairOf(state.seats, holders, me);
-  const label = (chair: string) => state.seats[chair] ?? `seat ${chairs.indexOf(chair) + 1}`;
+  const label = (chair: string) => state.seats[chair] ?? tx(`seat ${chairs.indexOf(chair) + 1}`);
   /** Whether this device plays for a chair: its own, or one nobody is sitting in. */
   const mine = (chair: string) => canEdit && (holders[chair] ? holders[chair] === me?.userId : true);
 

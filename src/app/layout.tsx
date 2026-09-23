@@ -35,6 +35,10 @@ export const viewport: Viewport = {
   minimumScale: 1,
   maximumScale: 1,
   userScalable: false,
+  // When the keyboard comes up, shrink the page above it rather than sliding
+  // the keyboard over the bottom of it: the chat box, the note being typed
+  // and the dock all stay where the thumb can see them.
+  interactiveWidget: "resizes-content",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

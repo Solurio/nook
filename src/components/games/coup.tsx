@@ -129,7 +129,7 @@ export default function Coup({ item, state: raw }: { item: Item<"game">; state: 
   const tableSize = Object.keys(state.players).length || chairs.length;
   const alive = dealt ? aliveFrom(chairs, piles) : [];
   const phase = state.phase;
-  const label = (chair: string) => state.seats[chair] ?? `seat ${chairs.indexOf(chair) + 1}`;
+  const label = (chair: string) => state.seats[chair] ?? t(`seat ${chairs.indexOf(chair) + 1}`);
   const handOf = (chair: string) => (mine[handSlot(chair)] as Card[] | undefined) ?? null;
   const owns = (chair: string) => handOf(chair) !== null;
   const ownedChairs = chairs.filter(owns);

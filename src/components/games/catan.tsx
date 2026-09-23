@@ -138,7 +138,7 @@ export default function Catan({ item, state: raw }: { item: Item<"game">; state:
   const mine = usePiles(item.id, state.piles);
   useHandOver(item.id, state.piles, holders);
 
-  const label = (chair: string) => state.seats[chair] ?? COLOR_NAME[chair] ?? chair;
+  const label = (chair: string) => state.seats[chair] ?? t(COLOR_NAME[chair] ?? chair);
   const plays = (chair: string) => canEdit && (holders[chair] ? holders[chair] === me?.userId : true);
   const playing = state.phase === "play";
   const turn = state.turn;
@@ -386,7 +386,7 @@ export default function Catan({ item, state: raw }: { item: Item<"game">; state:
             >
               <span className="size-2.5 rounded-full ring-1 ring-black/30" style={{ background: PLAYER_COLOR[chair].fill }} />
               <span className={clsx("max-w-20 truncate", chair === myChair ? "text-chalk" : "text-muted")}>
-                {state.seats[chair] ?? <span className="text-muted/50">{COLOR_NAME[chair]}</span>}
+                {state.seats[chair] ?? <span className="text-muted/50">{t(COLOR_NAME[chair])}</span>}
               </span>
               {inGame && (
                 <>

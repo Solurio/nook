@@ -143,7 +143,7 @@ export default function Spyfall({ item, state }: { item: Item<"game">; state: Sp
     void pile("pile_reveal", { p_item: item.id, p_slots: slots, p_keep: true });
   }, [turnKey, item.id, pile]);
 
-  const label = (chair: string) => state.seats[chair] ?? `seat ${chairs.indexOf(chair) + 1}`;
+  const label = (chair: string) => state.seats[chair] ?? t(`seat ${chairs.indexOf(chair) + 1}`);
   const end = unmasked(state.revealed, chairs, state.pack);
 
   /** What this chair was told. Only ever shown to whoever asked to see it. */

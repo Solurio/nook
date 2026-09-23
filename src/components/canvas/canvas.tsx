@@ -564,7 +564,7 @@ export default function Canvas() {
   return (
     <div
       ref={rootRef}
-      className="absolute inset-0 touch-none select-none"
+      className="absolute inset-0 touch-none overflow-clip select-none"
       style={{ cursor, ...backgroundStyle(room?.background, viewport) }}
       onPointerDownCapture={stamp}
       onPointerDown={onPointerDown}

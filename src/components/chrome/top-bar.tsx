@@ -6,6 +6,7 @@ import clsx from "clsx";
 import {
   Check,
   DoorOpen,
+  EyeOff,
   Link2,
   Lock,
   MessageCircle,
@@ -18,6 +19,7 @@ import { useRoom } from "@/realtime/room-provider";
 import { useRoomStore } from "@/state/room-store";
 import { t } from "@/lib/i18n";
 import { LanguagePicker } from "@/components/localized";
+import { hideChrome } from "./chrome-toggle";
 
 export default function TopBar() {
   const { renameRoom, canEdit, isOwner, setLocked } = useRoom();
@@ -302,6 +304,18 @@ function MoreSheet({
             </span>
           </button>
         )}
+
+        <button
+          type="button"
+          onClick={() => {
+            onClose();
+            hideChrome(true);
+          }}
+          className="flex min-h-12 w-full items-center gap-3 rounded-xl px-2 text-left text-sm transition active:bg-white/8"
+        >
+          <EyeOff className="size-5 shrink-0 text-glow" strokeWidth={2} />
+          <span className="min-w-0">{t("hide the buttons")}</span>
+        </button>
 
         <LanguagePicker className="my-2 w-fit" />
 

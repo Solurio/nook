@@ -138,7 +138,7 @@ export default function Chess({ item, state }: { item: Item<"game">; state: Ches
       canEdit={canEdit}
       over={over}
     >
-      <div className="grid aspect-square h-full max-h-full w-full max-w-full grid-cols-8 overflow-hidden rounded-lg">
+      <div className="grid size-[min(100cqw,100cqh)] grid-cols-8 overflow-hidden rounded-lg">
         {squares.map((i) => {
           const cell = board[i];
           const light = (Math.floor(i / 8) + (i % 8)) % 2 === 0;
@@ -153,7 +153,7 @@ export default function Chess({ item, state }: { item: Item<"game">; state: Ches
               disabled={!canEdit || over}
               aria-label={`${FILES[i % 8]}${8 - Math.floor(i / 8)}`}
               className={clsx(
-                "relative grid touch-manipulation place-items-center text-[clamp(14px,4.2vw,30px)] leading-none transition",
+                "relative grid touch-manipulation place-items-center text-[min(8.5cqw,8.5cqh)] leading-none transition",
                 light ? "bg-[#e9dcc4]" : "bg-[#9a7b57]",
                 selected && "ring-2 ring-glow ring-inset",
                 inDanger && "bg-red-500/70",

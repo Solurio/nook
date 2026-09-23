@@ -73,7 +73,7 @@ export default function Cah({ item, state: raw }: { item: Item<"game">; state: u
   const mine = usePiles(item.id, state.piles);
   useHandOver(item.id, state.piles, holders);
 
-  const label = (chair: string) => state.seats[chair] ?? `seat ${chairs.indexOf(chair) + 1}`;
+  const label = (chair: string) => state.seats[chair] ?? tx(`seat ${chairs.indexOf(chair) + 1}`);
   const plays = (chair: string) => canEdit && (holders[chair] ? holders[chair] === me?.userId : true);
   const playing = state.phase === "play";
   const prompt = promptOf(state);

@@ -42,7 +42,7 @@ export default function Rps({ item, state: raw }: { item: Item<"game">; state: u
   const chairs = chairsFor(state.seatCount);
   const holders = useMemo(() => state.holders ?? {}, [state.holders]);
   const myChair = chairOf(state.seats, holders, me);
-  const label = (chair: string) => state.seats[chair] ?? `seat ${chairs.indexOf(chair) + 1}`;
+  const label = (chair: string) => state.seats[chair] ?? tx(`seat ${chairs.indexOf(chair) + 1}`);
   const seated = chairs.filter((c) => holders[c]);
 
   const inMatch = state.playing.length >= 2 && !state.winner && state.round > 0;

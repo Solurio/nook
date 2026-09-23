@@ -117,7 +117,7 @@ export default function Bang({ item, state: raw }: { item: Item<"game">; state: 
   const mine = usePiles(item.id, piles);
   useHandOver(item.id, piles, holders);
 
-  const label = (chair: string) => state.seats[chair] ?? `seat ${chairs.indexOf(chair) + 1}`;
+  const label = (chair: string) => state.seats[chair] ?? tx(`seat ${chairs.indexOf(chair) + 1}`);
   /** This device plays for its own chair, and for any chair nobody is sitting in. */
   const plays = (chair: string) => canEdit && (holders[chair] ? holders[chair] === me?.userId : true);
   const playing = state.phase === "play";

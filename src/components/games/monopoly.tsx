@@ -145,14 +145,19 @@ export default function Monopoly({ item, state: raw }: { item: Item<"game">; sta
   const [busy, setBusy] = useState(false);
 
   const boxRef = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(600);
+  const [room, setRoom] = useState({ w: 600, h: 600 });
   useLayoutEffect(() => {
     const node = boxRef.current;
     if (!node) return;
-    const observe = new ResizeObserver(([entry]) => setWidth(Math.min(entry.contentRect.width, entry.contentRect.height || entry.contentRect.width)));
+    const observe = new ResizeObserver(([entry]) => setRoom({ w: entry.contentRect.width, h: entry.contentRect.height || entry.contentRect.width }));
     observe.observe(node);
     return () => observe.disconnect();
   }, []);
+  // A phone held upright has more screen below the board than in it. There
+  // the board takes the full width and what to do goes underneath, rather
+  // than being squeezed into the middle of a square a few inches across.
+  const tall = room.h > room.w * 1.3;
+  const width = tall ? Math.min(room.w, room.h * 0.64) : Math.min(room.w, room.h);
   const cell = width / 11;
   const roomy = cell >= 46;
 
@@ -382,7 +387,7 @@ export default function Monopoly({ item, state: raw }: { item: Item<"game">; sta
       </div>
 
       {/* The board */}
-      <div ref={boxRef} className="relative grid min-h-0 flex-1 place-items-center">
+      <div ref={boxRef} className={clsx("relative min-h-0 flex-1", tall ? "flex flex-col items-center gap-1.5" : "grid place-items-center")}>
         <div
           className="relative grid rounded-lg bg-[#cfe4d2] p-0.5 shadow-inner"
           style={{ width, height: width, gridTemplateColumns: "repeat(11, 1fr)", gridTemplateRows: "repeat(11, 1fr)" }}
@@ -464,10 +469,18 @@ export default function Monopoly({ item, state: raw }: { item: Item<"game">; sta
           })}
 
           {/* The middle of the board */}
-          <div className="relative flex items-center justify-center overflow-y-auto p-1 no-scrollbar" style={{ gridRow: "2 / 11", gridColumn: "2 / 11" }}>
-            {middle}
-          </div>
+          {tall ? (
+            <div className="pointer-events-none grid place-items-center" style={{ gridRow: "2 / 11", gridColumn: "2 / 11" }}>
+              <span className="-rotate-[38deg] rounded-md bg-[#c8322b] px-3 py-1 text-[clamp(14px,6vw,28px)] font-black tracking-wide text-white shadow">{tx("Monopoly")}</span>
+            </div>
+          ) : (
+            <div className="relative m-1 flex items-center justify-center overflow-y-auto rounded-lg bg-ink-900/90 p-1.5 no-scrollbar" style={{ gridRow: "2 / 11", gridColumn: "2 / 11" }}>
+              {middle}
+            </div>
+          )}
         </div>
+
+        {tall && <div className="no-scrollbar flex min-h-0 w-full flex-1 justify-center overflow-y-auto rounded-xl bg-white/4 p-2">{middle}</div>}
 
         {looking !== null && (
           <Deed

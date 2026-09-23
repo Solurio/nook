@@ -45,7 +45,7 @@ export default function Bomb({ item, state: raw }: { item: Item<"game">; state: 
   const chairs = chairsFor(state.seatCount);
   const holders = useMemo(() => state.holders ?? {}, [state.holders]);
   const myChair = chairOf(state.seats, holders, me);
-  const label = (chair: string) => state.seats[chair] ?? `seat ${chairs.indexOf(chair) + 1}`;
+  const label = (chair: string) => state.seats[chair] ?? tx(`seat ${chairs.indexOf(chair) + 1}`);
   const playing = state.phase === "play";
   /** This device plays for its own chair, and for any nobody is sitting in. */
   const mine = (chair: string) => canEdit && (holders[chair] ? holders[chair] === me?.userId : true);

@@ -104,7 +104,10 @@ function RoomBody() {
   if (!joined) return <JoinGate />;
 
   return (
-    <main className="relative h-dvh w-full overflow-hidden">
+    // Clip, not hidden: an overflow-hidden box can still be scrolled by the
+    // browser, and a sheet opening on a phone did exactly that, sliding the
+    // whole room sideways under things wider than the screen.
+    <main className="relative h-dvh w-full overflow-clip">
       <style>{BUNDLED_CSS}</style>
       <Canvas />
       {!chromeHidden && (
