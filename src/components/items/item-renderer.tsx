@@ -1,17 +1,25 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import type { AnyItem, Item } from "@/lib/types";
 import ImageItem from "./image-item";
 import NoteItem from "./note-item";
 import TextItem from "./text-item";
-import MediaItem from "./media-item";
-import EmbedItem from "./embed-item";
-import GameItem from "./game-item";
-import CobrowseItem from "./cobrowse-item";
-import ScreencastItem from "./screencast-item";
-import PdfItem from "./pdf-item";
 import TokenItem from "./token-item";
-import GridItem from "./grid-item";
+
+/** A frame's worth of nothing while the item's code arrives: the common, small items come with the room. */
+function Loading() {
+  return <div className="size-full rounded-2xl bg-white/4" />;
+}
+
+// Players, documents, shared browsers and the games are fetched when a room has one.
+const MediaItem = dynamic(() => import("./media-item"), { loading: Loading });
+const EmbedItem = dynamic(() => import("./embed-item"), { loading: Loading });
+const GameItem = dynamic(() => import("./game-item"), { loading: Loading });
+const CobrowseItem = dynamic(() => import("./cobrowse-item"), { loading: Loading });
+const ScreencastItem = dynamic(() => import("./screencast-item"), { loading: Loading });
+const PdfItem = dynamic(() => import("./pdf-item"), { loading: Loading });
+const GridItem = dynamic(() => import("./grid-item"), { loading: Loading });
 
 export default function ItemRenderer({
   item,

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, DoorOpen, Loader2, Sparkles, X } from "lucide-react";
-import { hasSupabaseConfig, supabaseBrowser } from "@/lib/supabase/client";
+import { hasSupabaseConfig } from "@/lib/supabase/config";
 import { generateSlug, normalizeSlugInput, slugifyName, withSuffix } from "@/lib/slug";
 import {
   forgetRoom,
@@ -41,6 +41,8 @@ export default function Landing() {
     setError(null);
 
     try {
+      // The database's client is only fetched once somebody makes a room.
+      const { supabaseBrowser } = await import("@/lib/supabase/client");
       const supabase = supabaseBrowser();
 
       const {

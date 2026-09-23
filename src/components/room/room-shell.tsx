@@ -2,6 +2,7 @@
 
 import { BUNDLED_CSS } from "@/lib/fonts";
 import { useEffect } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Loader2, X } from "lucide-react";
 import { hasSupabaseConfig } from "@/lib/supabase/client";
@@ -12,15 +13,17 @@ import Canvas from "@/components/canvas/canvas";
 import JoinGate from "@/components/room/join-gate";
 import TopBar from "@/components/chrome/top-bar";
 import Dock from "@/components/chrome/dock";
-import ChatPanel from "@/components/chrome/chat-panel";
-import BackgroundPanel from "@/components/chrome/background-panel";
-import PeersPanel from "@/components/chrome/peers-panel";
 import Inspector from "@/components/chrome/inspector";
 import FocusView from "@/components/room/focus-view";
 import ChromeToggle from "@/components/chrome/chrome-toggle";
 import MultiBar from "@/components/chrome/multi-bar";
 import { t as tx } from "@/lib/i18n";
 import { Localized } from "@/components/localized";
+
+// Opened now and then, so fetched when first opened rather than with the room.
+const ChatPanel = dynamic(() => import("@/components/chrome/chat-panel"));
+const BackgroundPanel = dynamic(() => import("@/components/chrome/background-panel"));
+const PeersPanel = dynamic(() => import("@/components/chrome/peers-panel"));
 
 export default function RoomShell({
   slug,

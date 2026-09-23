@@ -54,13 +54,17 @@ import {
 import { useRoom } from "@/realtime/room-provider";
 import { useRoomStore, viewportForItems } from "@/state/room-store";
 import { draftItem, topZ } from "@/lib/items";
-import EmojiPicker from "./emoji-picker";
+import { startingGame } from "@/lib/game-start";
 import type { GameKind, ItemDataMap, ItemKind } from "@/lib/types";
 import { emptyTable } from "@/lib/table";
 import { radioMedia } from "@/lib/radio";
 import BrushPopover from "./brush-popover";
-import StickersPanel from "./stickers-panel";
 import { t } from "@/lib/i18n";
+import dynamic from "next/dynamic";
+
+// The emoji list and the gif search are only wanted once someone opens them.
+const EmojiPicker = dynamic(() => import("./emoji-picker"));
+const StickersPanel = dynamic(() => import("./stickers-panel"));
 
 type GameGroup = "table" | "secrets" | "boards";
 
@@ -178,7 +182,8 @@ export default function Dock() {
       const at = centerOfView();
       // Scatter a little so repeated clicks do not stack perfectly.
       const jitter = { x: at.x + (Math.random() * 90 - 45), y: at.y + (Math.random() * 90 - 45) };
-      await createItem(draftItem(kind, jitter, z, game ? { game, ...(data ? { data } : {}) } : {}));
+      const gameData = game ? (data ?? (await startingGame(game))) : undefined;
+      await createItem(draftItem(kind, jitter, z, game ? { game, data: gameData } : {}));
       setGamesOpen(false);
       setSheetOpen(false);
     },

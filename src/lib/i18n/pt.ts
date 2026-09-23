@@ -1241,6 +1241,7 @@ const pt: Record<string, string> = {
   "opening": "abrindo",
   "opening it...": "abrindo...",
   "opening the dictionary...": "abrindo o dicionário...",
+  "opening the game...": "abrindo o jogo...",
   "opening the picture...": "abrindo a imagem...",
   "opening the project": "abrindo o projeto",
   "ops": "ações",

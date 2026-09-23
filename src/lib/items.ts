@@ -1,28 +1,6 @@
 import { emptyMedia } from "./media";
-import { initialBoard as initialChess } from "./chess";
-import { initialBoard as initialCheckers } from "./checkers";
-import { initialBoard as initialIntransitive } from "./intransitive";
-import { emptyTable } from "./table";
-import { emptyUno } from "./uno";
-import { emptyCoup } from "./coup";
-import { emptyDice } from "./dice";
-import { emptyCoin } from "./coin";
-import { emptyWheel } from "./wheel";
-import { emptyBuckshot } from "./buckshot";
-import { emptyRps } from "./rps";
-import { emptyBang } from "./bang";
-import { emptyBomb } from "./bomb";
-import { emptyWar } from "./war";
-import { emptyCah } from "./cah";
-import { emptyQuoridor } from "./quoridor";
-import { emptyCatan } from "./catan";
-import { emptyPool } from "./pool";
-import { emptyBattleship } from "./battleship";
-import { emptyMonopoly } from "./monopoly";
-import { emptyReversi } from "./reversi";
 import { emptyPdf } from "./pdf";
 import { emptyGrid, emptyToken } from "./grid";
-import { DEFAULT_SECONDS as SPYFALL_SECONDS } from "./spyfall";
 import type { AnyItem, GameKind, ItemDataMap, ItemKind } from "./types";
 
 export const NOTE_TINTS = [
@@ -108,163 +86,6 @@ const GAME_SIZE: Record<GameKind, { width: number; height: number }> = {
   monopoly: { width: 720, height: 780 },
 };
 
-function emptyGameData(game: GameKind): ItemDataMap["game"] {
-  switch (game) {
-    case "tictactoe":
-      return {
-        game: "tictactoe",
-        state: {
-          board: Array(9).fill(null),
-          turn: "x",
-          seats: { x: null, o: null },
-          wins: { x: 0, o: 0, draw: 0 },
-        },
-      };
-    case "connectfour":
-      return {
-        game: "connectfour",
-        state: {
-          columns: Array.from({ length: 7 }, () => [] as (string | null)[]),
-          turn: "r",
-          seats: { r: null, y: null },
-          wins: { r: 0, y: 0, draw: 0 },
-        },
-      };
-    case "doodle":
-      return { game: "doodle", state: { strokes: [] } };
-    case "chess":
-      return {
-        game: "chess",
-        state: {
-          board: initialChess(),
-          turn: "w",
-          seats: { w: null, b: null },
-          wins: { w: 0, b: 0, draw: 0 },
-        },
-      };
-    case "coup":
-      return { game: "coup", state: emptyCoup(4) };
-    case "spyfall":
-      return {
-        game: "spyfall",
-        state: {
-          seats: {},
-          seatCount: 6,
-          holders: {},
-          round: 0,
-          startedAt: null,
-          seconds: SPYFALL_SECONDS,
-          called: false,
-          pack: "en",
-          wins: { spy: 0, table: 0 },
-        },
-      };
-    case "uno":
-      return { game: "uno", state: emptyUno(4) };
-    case "dice":
-      return { game: "dice", state: emptyDice() };
-    case "coin":
-      return { game: "coin", state: emptyCoin() };
-    case "wheel":
-      return { game: "wheel", state: emptyWheel() };
-    case "buckshot":
-      return { game: "buckshot", state: emptyBuckshot(2) };
-    case "rps":
-      return { game: "rps", state: emptyRps(2) };
-    case "bang":
-      return { game: "bang", state: emptyBang(5) };
-    case "bomb":
-      return { game: "bomb", state: emptyBomb(4) };
-    case "war":
-      return { game: "war", state: emptyWar(4) };
-    case "cah":
-      return { game: "cah", state: emptyCah(5) };
-    case "quoridor":
-      return { game: "quoridor", state: emptyQuoridor(2) };
-    case "catan":
-      return { game: "catan", state: emptyCatan(4) };
-    case "reversi":
-      return { game: "reversi", state: emptyReversi() };
-    case "pool":
-      return { game: "pool", state: emptyPool() };
-    case "battleship":
-      return { game: "battleship", state: emptyBattleship() };
-    case "monopoly":
-      return { game: "monopoly", state: emptyMonopoly() };
-    case "resistance":
-      return {
-        game: "resistance",
-        state: {
-          seats: {},
-          seatCount: 5,
-          holders: {},
-          leader: 0,
-          mission: 0,
-          results: [],
-          rejections: 0,
-          team: [],
-          voteNo: 0,
-          stage: "lobby",
-          wins: { resistance: 0, spies: 0 },
-        },
-      };
-    case "codenames":
-      return {
-        game: "codenames",
-        state: {
-          pack: "en",
-          words: [],
-          turn: "red",
-          seats: { redMaster: null, blueMaster: null },
-          holders: { redMaster: null, blueMaster: null },
-          clue: null,
-          wins: { red: 0, blue: 0 },
-          round: 0,
-          results: {},
-          assassin: null,
-        },
-      };
-    case "dominoes":
-      return {
-        game: "dominoes",
-        state: {
-          line: [],
-          seats: {},
-          holders: {},
-          seatCount: 4,
-          teams: 2,
-          turn: "s0",
-          passes: 0,
-          round: 0,
-          results: {},
-        },
-      };
-    case "cards":
-      return { game: "cards", state: emptyTable("52") };
-    case "intransitive":
-      return {
-        game: "intransitive",
-        state: {
-          board: initialIntransitive(),
-          turn: "blue",
-          seats: { blue: null, red: null },
-          wins: { blue: 0, red: 0, draw: 0 },
-        },
-      };
-    case "checkers":
-      return {
-        game: "checkers",
-        state: {
-          board: initialCheckers(),
-          turn: "r",
-          seats: { r: null, b: null },
-          wins: { r: 0, b: 0, draw: 0 },
-          chain: null,
-        },
-      };
-  }
-}
-
 /** A slight tilt on drop makes a wall of items feel arranged rather than gridded. */
 function casualTilt(): number {
   return Math.round((Math.random() * 6 - 3) * 10) / 10;
@@ -300,7 +121,12 @@ export function draftItem(
       data = { url: "" };
       break;
     case "game":
-      data = emptyGameData(options.game ?? "tictactoe");
+      // The game's starting state comes from startingGame (lib/game-start),
+      // which loads the game's rules only when one is put down.
+      data = (options.data as ItemDataMap["game"] | undefined) ?? {
+        game: "tictactoe",
+        state: { board: Array(9).fill(null), turn: "x", seats: { x: null, o: null }, wins: { x: 0, o: 0, draw: 0 } },
+      };
       break;
     case "cobrowse":
       data = { url: "", status: "idle" };

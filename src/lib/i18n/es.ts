@@ -1235,6 +1235,7 @@ const es: Record<string, string> = {
   "opening": "abriendo",
   "opening it...": "abriéndolo...",
   "opening the dictionary...": "abriendo el diccionario...",
+  "opening the game...": "abriendo el juego...",
   "opening the picture...": "abriendo la imagen...",
   "opening the project": "abriendo el proyecto",
   "ops": "acciones",

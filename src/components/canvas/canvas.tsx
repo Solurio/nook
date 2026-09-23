@@ -50,7 +50,6 @@ const KEEPS_KEYS = new Set(["game", "media", "embed", "cobrowse", "screencast", 
 export default function Canvas() {
   const rootRef = useRef<HTMLDivElement>(null);
   const room = useRoomStore((s) => s.room);
-  const viewport = useRoomStore((s) => s.viewport);
   // Subscribe to the stable items map; the ordered array is derived here so the
   // store hook never returns a fresh reference on an unrelated update.
   const itemMap = useRoomStore((s) => s.items);
@@ -565,7 +564,7 @@ export default function Canvas() {
     <div
       ref={rootRef}
       className="absolute inset-0 touch-none overflow-clip select-none"
-      style={{ cursor, ...backgroundStyle(room?.background, viewport) }}
+      style={{ cursor }}
       onPointerDownCapture={stamp}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
@@ -580,6 +579,7 @@ export default function Canvas() {
       }}
       onDrop={onDrop}
     >
+      <Wall background={room?.background} />
       {room?.background.kind === "image" && (room.background.dim ?? 0) > 0 && (
         <div
           aria-hidden
@@ -588,12 +588,7 @@ export default function Canvas() {
         />
       )}
 
-      <div
-        className="absolute top-0 left-0 origin-top-left"
-        style={{
-          transform: `translate3d(${viewport.x}px, ${viewport.y}px, 0) scale(${viewport.scale})`,
-        }}
-      >
+      <World>
         {items.map((item) => (
           <ItemFrame
             key={item.id}
@@ -606,7 +601,7 @@ export default function Canvas() {
         <RoomInkLayer />
         <Cursors />
         <PingLayer />
-      </div>
+      </World>
 
       {box && (
         <div
@@ -646,6 +641,27 @@ export default function Canvas() {
       {dropping && <DropVeil />}
     </div>
   );
+}
+
+/**
+ * The room's contents, moved and scaled with the camera. Only this follows
+ * the camera, so panning and zooming move one element instead of drawing the
+ * whole room again every frame.
+ */
+function World({ children }: { children: React.ReactNode }) {
+  const viewport = useRoomStore((s) => s.viewport);
+  return (
+    <div className="absolute top-0 left-0 origin-top-left" style={{ transform: `translate3d(${viewport.x}px, ${viewport.y}px, 0) scale(${viewport.scale})` }}>
+      {children}
+    </div>
+  );
+}
+
+/** The walls. A tiled picture scrolls with the camera; anything else sits still and never redraws. */
+function Wall({ background }: { background: Background | undefined }) {
+  const tiled = background?.kind === "image" && background.fit === "tile";
+  const viewport = useRoomStore((s) => (tiled ? s.viewport : null));
+  return <div aria-hidden className="pointer-events-none absolute inset-0" style={backgroundStyle(background, viewport ?? { x: 0, y: 0, scale: 1 })} />;
 }
 
 function backgroundStyle(
