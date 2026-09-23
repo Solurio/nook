@@ -4,7 +4,7 @@ import clsx from "clsx";
 import { Bold, Check, FlipHorizontal2, FlipVertical2, Italic, RotateCw, X } from "lucide-react";
 import { SYMMETRIES, type BrushSpec, type Symmetry } from "@/lib/studio/brush";
 import type { Combine } from "@/lib/studio/mask";
-import { BUNDLED_FONTS } from "@/lib/fonts";
+import FontPicker from "@/components/chrome/font-picker";
 import { t as tx } from "@/lib/i18n";
 
 export type BrushTool = "brush" | "eraser" | "smudge" | "blur" | "liquify";
@@ -14,7 +14,6 @@ export const isBrushTool = (t: Tool): t is BrushTool => t === "brush" || t === "
 
 /** Families that are CSS words rather than names, left unquoted. */
 export const GENERIC_FONTS = ["sans-serif", "serif", "monospace", "cursive", "fantasy"];
-export const TEXT_FONTS = [...GENERIC_FONTS, "Arial", "Georgia", "Impact", "Comic Sans MS", "Courier New", "Times New Roman", "Trebuchet MS", ...BUNDLED_FONTS.map((f) => f.family)];
 
 export interface Options {
   stabilizer: number;
@@ -203,18 +202,9 @@ export default function ToolOptions({
     case "text":
       return (
         <>
-          <select
-            value={options.font}
-            onChange={(event) => set({ font: event.target.value })}
-            className="h-6 max-w-36 shrink-0 rounded-md bg-white/7 px-1 text-[10px] text-chalk outline-none"
-            aria-label={tx("font")}
-          >
-            {TEXT_FONTS.map((f) => (
-              <option key={f} value={f}>
-                {f}
-              </option>
-            ))}
-          </select>
+          <span className="shrink-0">
+            <FontPicker value={GENERIC_FONTS.includes(options.font) ? undefined : options.font} onPick={(family) => set({ font: family ?? "sans-serif" })} />
+          </span>
           <Flag on={options.bold} onClick={() => set({ bold: !options.bold })}>
             <Bold />
           </Flag>

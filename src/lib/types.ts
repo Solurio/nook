@@ -422,6 +422,8 @@ export interface DoodleState {
   /** Brushes people made on this board. */
   brushes?: BrushSpec[];
   palettes?: Palette[];
+  /** Which layers are an animation's frames, and how it plays. */
+  animation?: import("./studio/animation").AnimationState;
 }
 
 export interface Item<K extends ItemKind = ItemKind> {

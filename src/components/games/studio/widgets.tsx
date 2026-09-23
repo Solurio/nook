@@ -1,8 +1,10 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
 import clsx from "clsx";
 import { X } from "lucide-react";
 import { t } from "@/lib/i18n";
+import { PanelFrame, usePanelHost } from "./workspace";
 
 export function IconButton({
   children,
@@ -96,6 +98,9 @@ export function RailSlider({ label, value, min, max, onChange, display }: { labe
 }
 
 export function Panel({ title, onClose, children, className }: { title: string; onClose: () => void; children: React.ReactNode; className?: string }) {
+  // In the workspace, the place the panel is in draws its frame.
+  const host = usePanelHost();
+  if (host) return <PanelFrame title={title} onClose={onClose}>{children}</PanelFrame>;
   return (
     <div
       className={clsx("surface-raised absolute z-20 flex max-h-[92%] flex-col overflow-hidden rounded-xl shadow-2xl", className)}
@@ -128,4 +133,34 @@ export function Segmented<T extends string>({ value, options, onChange }: { valu
       ))}
     </span>
   );
+}
+
+/** A value the board changes often -- the zoom, while pinching -- that only its readout watches. */
+export interface WatchedValue<T> {
+  get: () => T;
+  set: (v: T) => void;
+  subscribe: (listener: () => void) => () => void;
+}
+
+export function watched<T>(initial: T): WatchedValue<T> {
+  let value = initial;
+  const listeners = new Set<() => void>();
+  return {
+    get: () => value,
+    set: (v) => {
+      if (Object.is(v, value)) return;
+      value = v;
+      listeners.forEach((l) => l());
+    },
+    subscribe: (listener) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+  };
+}
+
+/** Shows a watched value, drawing only itself again when it changes. */
+export function Watched<T>({ value, format }: { value: WatchedValue<T>; format?: (v: T) => string }) {
+  const v = useSyncExternalStore(value.subscribe, value.get, value.get);
+  return <>{format ? format(v) : String(v)}</>;
 }

@@ -9,6 +9,7 @@ import {
   ClipboardPaste,
   Copy,
   Droplet,
+  Film,
   Eraser,
   FingerprintPattern,
   FlipHorizontal,
@@ -21,7 +22,6 @@ import {
   Move,
   PaintBucket,
   Paintbrush,
-  Palette as PaletteIcon,
   Pipette,
   Plus,
   Redo2,
@@ -47,26 +47,28 @@ import { BUILT_IN_BRUSHES, mirrored, stabilize, type BrushMode, type BrushSpec }
 import type { Palette } from "@/lib/studio/color";
 import { encodeMask, fullMask, maskBounds, maskEdges, transformMask, type Mask } from "@/lib/studio/mask";
 import { trimPoints, type ClearOp, type GradientOp, type PaintOp, type SelectOp, type ShapeOp, type StrokeOp } from "@/lib/studio/ops";
-import { exportPicture, opsOn, Studio, type StudioDoc, type StudioLayer } from "@/lib/studio/render";
+import { exportPicture, opsOn, Studio, type LiveStroke, type Rect, type Split, type StudioDoc, type StudioLayer } from "@/lib/studio/render";
 import { fit, pin, scaleTo, toDoc, viewMatrix, warpCorners, warpMatrix, zoomAt, rotateAt, applyMat, NO_WARP, type Box, type View, type Warp } from "@/lib/studio/view";
-import type { FilterKind } from "@/lib/studio/filters";
 import type { DoodleState, Item } from "@/lib/types";
 import { usePaintOps } from "./use-paint-ops";
 import ToolOptions, { DEFAULT_OPTIONS, GENERIC_FONTS, isBrushTool, type BrushTool, type Options, type Tool } from "./tool-options";
 import ColorPanel from "./color-panel";
 import LayersPanel, { MAX_LAYERS } from "./layers-panel";
 import BrushPanel from "./brush-panel";
-import FilterPanel from "./filter-panel";
-import FilePanel, { type ExportKind } from "./file-panel";
-import { IconButton, RailSlider } from "./widgets";
+import FilterPanel, { type FilterChoice } from "./filter-panel";
+import FilePanel, { MAX_SIDE, type CanvasChange, type ExportKind } from "./file-panel";
+import AnimationPanel from "./animation-panel";
+import { DEFAULT_LAYOUT, modeFor, togglePanel, useLayout, Workspace, type Mode, type PanelId, type PanelView } from "./workspace";
+import { firealpacaBrushes } from "@/lib/studio/firealpaca-pack";
+import { readImported, writeImported } from "@/lib/studio/brush-import";
+import { currentFrame, emptyAnimation, frameDelay, shownLayers, tidyAnimation, type AnimationState } from "@/lib/studio/animation";
+import { IconButton, RailSlider, Watched, watched } from "./widgets";
 import { t as tx } from "@/lib/i18n";
 
 const PAPER = "#faf7f0";
 const EMPTY: PaintOp[] = [];
 const BROADCAST_MS = 90;
 const DEFAULT_LAYERS: StudioLayer[] = [{ id: "base", name: "layer 1", visible: true, opacity: 1 }];
-
-type PanelId = "color" | "layers" | "brushes" | "filters" | "file" | null;
 
 const TOOLS: Array<{ id: Tool; name: string; key: string; icon: React.ReactNode }> = [
   { id: "brush", name: "brush", key: "B", icon: <Paintbrush /> },
@@ -90,9 +92,9 @@ const KEYS: Record<string, Tool> = Object.fromEntries(TOOLS.map((t) => [t.key.to
 const toolForMode = (mode: BrushMode): BrushTool => (mode === "paint" ? "brush" : mode === "erase" ? "eraser" : mode);
 const builtIn = (id: string) => BUILT_IN_BRUSHES.find((b) => b.id === id) as BrushSpec;
 
-/** Brush sizes run 1 to 500 along the slider, spread out so the small ones get room. */
-const sizeToSlider = (size: number) => Math.round((Math.log(Math.max(1, size)) / Math.log(500)) * 100);
-const sliderToSize = (v: number) => Math.max(1, Math.round(Math.exp((v / 100) * Math.log(500))));
+/** Brush sizes run 1 to 1000 along the slider, spread out so the small ones get room. */
+const sizeToSlider = (size: number) => Math.round((Math.log(Math.max(1, size)) / Math.log(1000)) * 100);
+const sliderToSize = (v: number) => Math.max(1, Math.round(Math.exp((v / 100) * Math.log(1000))));
 
 function blank(w: number, h: number) {
   const c = document.createElement("canvas");
@@ -135,6 +137,9 @@ function edgePath(mask: Mask): Path2D {
   return path;
 }
 
+/** A fingerprint of how the layers are shown, to know when a picture made from them has gone stale. */
+const shownKey = (layers: StudioLayer[]) => layers.map((l) => `${l.id}:${l.visible ? 1 : 0}:${l.opacity}:${l.blend ?? ""}:${l.clip ? 1 : 0}:${l.hue ?? 0}:${JSON.stringify(l.effects ?? {})}`).join("|");
+
 /** A layer as its bare pixels, for folding into a picture: its own settings stay on the layer. */
 const raw = (layer: StudioLayer): StudioLayer => ({ id: layer.id, name: layer.name, visible: true, opacity: 1 });
 
@@ -154,7 +159,7 @@ function docFor(state: DoodleState, item: Item<"game">): StudioDoc {
 type Gesture =
   | { kind: "pan"; id: number; sx: number; sy: number; view: View }
   | { kind: "pinch"; a: number; b: number; d0: number; a0: number; view: View; doc: [number, number]; at: number; moved: boolean }
-  | { kind: "stroke"; id: number; op: StrokeOp; smooth: [number, number]; done: number; paths: number; incremental: boolean; sent: number }
+  | { kind: "stroke"; id: number; op: StrokeOp; smooth: [number, number]; done: number; paths: number; incremental: boolean; sent: number; live: LiveStroke | null }
   | { kind: "drag"; id: number; tool: "gradient" | "shape" | "rect" | "ellipse"; mode: SelectOp["mode"]; x0: number; y0: number; x1: number; y1: number; opId: string }
   | { kind: "lasso"; id: number; mode: SelectOp["mode"]; points: number[] }
   | { kind: "warp"; id: number; handle: "move" | "rotate" | [number, number]; start: [number, number]; warp0: Warp; angle0: number };
@@ -198,7 +203,7 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
 
   const editItemOps = useCallback((change: (ops: PaintOp[]) => PaintOp[]) => writeState({ strokes: change(latestState().strokes ?? []) }), [latestState, writeState]);
 
-  const { ops, mode, add, remove, replace } = usePaintOps({ itemId: item.id, roomId: item.room_id, itemOps: state.strokes ?? EMPTY, editItemOps });
+  const { ops, mode: opsMode, add, remove, replace } = usePaintOps({ itemId: item.id, roomId: item.room_id, itemOps: state.strokes ?? EMPTY, editItemOps });
   const opIds = useMemo(() => new Set(ops.map((op) => op.id)), [ops]);
 
   // ---------------------------------------------------------------------------
@@ -222,17 +227,26 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
   const [options, setOptions] = useState<Options>(DEFAULT_OPTIONS);
   const [activeState, setActive] = useState<string | null>(null);
   const [mySelState, setMySel] = useState<string | null>(null);
-  const [panel, setPanel] = useState<PanelId>(null);
+  const [layout, setLayout] = useLayout();
+  const [mode, setMode] = useState<Mode>("wide");
+  const [toolSheet, setToolSheet] = useState(false);
+  const [overlay, setOverlay] = useState<PanelId | null>(null);
+  const [imported, setImported] = useState(readImported);
+  const firealpaca = useMemo(() => firealpacaBrushes(process.env.NEXT_PUBLIC_SUPABASE_URL), []);
+  const [playing, setPlaying] = useState(false);
+  const [playFrame] = useState(() => watched(0));
   const [expanded, setExpanded] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
-  const [zoomPct, setZoomPct] = useState(100);
+  const [zoomPct] = useState(() => watched(100));
   const [warping, setWarping] = useState(false);
   const [history, setHistory] = useState({ undo: 0, redo: 0 });
-  const [filterPreview, setFilterPreview] = useState<{ kind: FilterKind; amount: number } | null>(null);
+  const [filterPreview, setFilterPreview] = useState<FilterChoice | null>(null);
   const [textDraft, setTextDraft] = useState<{ x: number; y: number; sx: number; sy: number; zoom: number } | null>(null);
   const [text, setText] = useState("");
 
   const active = layers.find((l) => l.id === activeState) ?? layers[layers.length - 1];
+  const anim = useMemo(() => tidyAnimation(state.animation, layers), [state.animation, layers]);
+  const frameInHand = anim ? currentFrame(anim, active.id) : null;
   // A selection someone undid or cleared away is no selection.
   const mySel = mySelState && opIds.has(mySelState) ? mySelState : null;
   const spec = isBrushTool(tool) ? specs[tool] : specs.brush;
@@ -279,6 +293,15 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
   const undoRef = useRef<PaintOp[][]>([]);
   const redoRef = useRef<PaintOp[][]>([]);
   const refit = useRef(true);
+  /** The picture split round the layer being drawn on, so a stroke redraws three pictures, not every layer. */
+  const splitRef = useRef<Split | null>(null);
+  /** The part of the picture that changed since it was last put together; null is all of it. */
+  const changedRef = useRef<Rect | null>(null);
+  const checkerRef = useRef<CanvasPattern | null>(null);
+  /** The frame showing while an animation plays. */
+  const playRef = useRef<string | null>(null);
+  /** What the split was made for: the layers as shown, so a change to any of them makes a new one. */
+  const splitKey = useRef("");
 
   const docCanvas = (ref: React.MutableRefObject<HTMLCanvasElement | null>) => {
     if (!ref.current || ref.current.width !== docW || ref.current.height !== docH) ref.current = blank(docW, docH);
@@ -289,17 +312,19 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
     if (queued.current) return;
     queued.current = true;
     const run = () => {
+      if (!queued.current) return;
       queued.current = false;
       drawRef.current();
     };
-    // Frames stop in a hidden page; a timer still comes round, so the picture is never left behind.
-    if (document.hidden) setTimeout(run, 16);
-    else requestAnimationFrame(run);
+    // Frames stop in a hidden page, or a window someone minimised; a timer
+    // still comes round, so the picture is never left behind.
+    if (!document.hidden) requestAnimationFrame(run);
+    setTimeout(run, document.hidden ? 16 : 60);
   };
 
   const setView = (v: View) => {
     viewRef.current = v;
-    setZoomPct(Math.round(v.zoom * 100));
+    zoomPct.set(Math.round(v.zoom * 100));
     requestDraw();
   };
 
@@ -311,10 +336,13 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
     const native = "nativeEvent" in event ? event.nativeEvent : event;
     const box = boxRef.current;
     if (!box) return [0, 0];
-    const at = pointIn(box, native, item.rotation);
+    const at = pointIn(box, native, expanded ? 0 : item.rotation);
     return [at.x, at.y];
   }
   const bumpHistory = () => setHistory({ undo: undoRef.current.length, redo: redoRef.current.length });
+
+  /** The layers as they are shown: while animating, one frame at a time, the ones either side faint. */
+  const displayed = () => shownLayers(layers, anim, playRef.current ?? frameInHand, !playRef.current);
 
   // Everything drawn: bring the layers up to date with the ops.
   useEffect(() => {
@@ -330,10 +358,12 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
         previewKind.current = null;
       }
     }
+    splitRef.current = null;
+    changedRef.current = null;
     dirtyRef.current = true;
     requestDraw();
     bus.dispatchEvent(new Event("synced"));
-  }, [bus, studio, ops, layers, imageTick, mySel, paper]);
+  }, [bus, studio, ops, layers, imageTick, mySel, paper, frameInHand, anim]);
 
   // Everyone else's strokes while they are still drawing them.
   const live = liveStrokes[item.id];
@@ -365,7 +395,7 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
       if (!ctx) return;
       ctx.clearRect(0, 0, work.width, work.height);
       ctx.drawImage(studio.canvasOf(active.id), 0, 0);
-      studio.apply(work, { id: "filter-preview", kind: "filter", filter: filterPreview.kind, amount: filterPreview.amount, sel: mySel }, active.id);
+      studio.apply(work, { id: "filter-preview", kind: "filter", filter: filterPreview.kind, amount: filterPreview.amount, params: filterPreview.params, sel: mySel }, active.id);
       previewRef.current = { layer: active.id, canvas: work };
       previewKind.current = "filter";
       dirtyRef.current = true;
@@ -395,14 +425,22 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
       ctx.clearRect(0, 0, work.width, work.height);
       ctx.drawImage(studio.canvasOf(layer), 0, 0);
     };
-    if (g?.kind === "stroke") {
+    if (g?.kind === "stroke" && g.live) {
+      const rect = studio.growLive(g.live);
+      if (!rect) return;
+      studio.showLive(g.live, work, rect);
+      previewRef.current = { layer: g.live.layer, canvas: work };
+      previewKind.current = "gesture";
+      markChanged(rect);
+      return;
+    } else if (g?.kind === "stroke") {
       const layer = g.op.layer as string;
       if (g.incremental) {
         const touched = studio.stroke(work, g.op, g.done);
         g.done += Math.round(touched / g.paths);
       } else {
         fresh(layer);
-        studio.stroke(work, g.op);
+        studio.stroke(work, g.op, 0, null);
       }
       previewRef.current = { layer, canvas: work };
     } else if (g?.kind === "drag" && (g.tool === "gradient" || g.tool === "shape")) {
@@ -417,13 +455,25 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
       return;
     }
     previewKind.current = "gesture";
-    dirtyRef.current = true;
+    markChanged(null);
   }
+
+  /** Something in `rect` changed (null: anywhere), and the picture needs putting together again there. */
+  const markChanged = (rect: Rect | null) => {
+    if (!dirtyRef.current) changedRef.current = rect;
+    else if (changedRef.current && rect) {
+      const c = changedRef.current;
+      changedRef.current = { x0: Math.min(c.x0, rect.x0), y0: Math.min(c.y0, rect.y0), x1: Math.max(c.x1, rect.x1), y1: Math.max(c.y1, rect.y1) };
+    } else changedRef.current = null;
+    dirtyRef.current = true;
+  };
 
   const clearPreview = () => {
     if (previewKind.current !== "gesture") return;
     previewRef.current = null;
     previewKind.current = null;
+    splitRef.current = null;
+    changedRef.current = null;
     dirtyRef.current = true;
     requestDraw();
   };
@@ -439,8 +489,19 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
       const pic = docCanvas(pictureRef);
       prepare();
       if (dirtyRef.current) {
-        studio.composite(pic, layers, previewRef.current, paper);
+        const preview = previewRef.current;
+        const shown = displayed();
+        const key = shownKey(shown);
+        if (preview && (!splitRef.current || splitRef.current.layer.id !== preview.layer || splitKey.current !== key)) {
+          splitRef.current = studio.split(shown, preview.layer, paper);
+          splitKey.current = key;
+          changedRef.current = null;
+        }
+        const split = preview ? splitRef.current : null;
+        if (preview && split) studio.compositeSplit(pic, split, preview.canvas, changedRef.current);
+        else studio.composite(pic, shown, preview, paper);
         dirtyRef.current = false;
+        changedRef.current = null;
       }
       // Pixels on the screen per pixel of layout: the display's density times
       // however far the room is zoomed, so the picture stays sharp at any zoom.
@@ -468,10 +529,22 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
       ctx.fillRect(0, 0, docW, docH);
       ctx.restore();
       if (!paper) {
-        const cell = Math.max(4, 10 / z);
-        ctx.fillStyle = "#d9d6d0";
-        for (let y = 0; y < docH; y += cell) {
-          for (let x = (Math.round(y / cell) % 2) * cell; x < docW; x += cell * 2) ctx.fillRect(x, y, Math.min(cell, docW - x), Math.min(cell, docH - y));
+        // See-through paper, as a checkerboard that keeps its size on screen.
+        if (!checkerRef.current) {
+          const tile = blank(20, 20);
+          const t = tile.getContext("2d");
+          if (t) {
+            t.fillStyle = "#d9d6d0";
+            t.fillRect(0, 0, 10, 10);
+            t.fillRect(10, 10, 10, 10);
+            checkerRef.current = ctx.createPattern(tile, "repeat");
+          }
+        }
+        const pattern = checkerRef.current;
+        if (pattern) {
+          pattern.setTransform(new DOMMatrix().scale(1 / z));
+          ctx.fillStyle = pattern;
+          ctx.fillRect(0, 0, docW, docH);
         }
       }
       ctx.imageSmoothingEnabled = z < 2.5;
@@ -590,25 +663,40 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
     };
   });
 
+  // Wide enough for docks, or a tablet, or a phone: from the board's own width, not the window's.
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const observe = new ResizeObserver(([entry]) => setMode(modeFor(entry.contentRect.width)));
+    observe.observe(root);
+    return () => observe.disconnect();
+  }, [expanded]);
+
+  // A phone's layout puts the picture somewhere else in the page, so the
+  // picture's box is a new one when it changes, and everything that watches
+  // the box starts again with it.
+  const docked = mode !== "phone";
+
   // Size the screen to its box, crisp on high-density displays, and fit the picture the first time.
   useEffect(() => {
     const box = boxRef.current;
     const screen = screenRef.current;
     if (!box || !screen) return;
     // Everything here is in layout pixels, which the room's zoom does not change.
-    const resize = () => {
-      if (refit.current || !viewRef.current) {
+    const resize = (again = false) => {
+      if (again || refit.current || !viewRef.current) {
         refit.current = false;
         setView(fit({ w: docW, h: docH }, box.clientWidth, box.clientHeight));
       }
       drawRef.current();
     };
-    resize();
-    const observer = new ResizeObserver(resize);
+    // A new box, a new canvas size or a new layout: the picture fits it afresh.
+    resize(true);
+    const observer = new ResizeObserver(() => resize());
     observer.observe(box);
     return () => observer.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [expanded, docW, docH]);
+  }, [expanded, docW, docH, docked]);
 
   // The wheel zooms the picture, not the room around it.
   useEffect(() => {
@@ -633,7 +721,7 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
     box.addEventListener("wheel", onWheel, { passive: false });
     return () => box.removeEventListener("wheel", onWheel);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [expanded]);
+  }, [expanded, docked]);
 
   // ---------------------------------------------------------------------------
   // Keeping ops
@@ -836,6 +924,8 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
 
   const onPointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
     event.stopPropagation();
+    if (playing) setPlaying(false);
+    if (toolSheet) setToolSheet(false);
     rootRef.current?.focus({ preventScroll: true });
     if (textDraft) {
       void placeText();
@@ -868,7 +958,7 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
     const [x, y] = toDoc(view, sx, sy);
 
     if (tool === "picker" || (tool === "brush" && event.altKey)) {
-      const picked = studio.pick(layers, x, y, paper);
+      const picked = studio.pick(displayed(), x, y, paper);
       if (picked) setColor(picked);
       return;
     }
@@ -891,13 +981,15 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
         sel: mySel,
       };
       const incremental = s.mode === "smudge" || s.mode === "blur" || s.mode === "liquify";
-      if (incremental) {
+      const live = incremental ? null : studio.beginLive(op, active.id);
+      if (incremental || live) {
+        // The layer as it is, for the stroke to be laid on a piece at a time.
         const work = docCanvas(workRef);
         const ctx = work.getContext("2d");
         ctx?.clearRect(0, 0, work.width, work.height);
         ctx?.drawImage(studio.canvasOf(active.id), 0, 0);
       }
-      gestureRef.current = { kind: "stroke", id: event.pointerId, op, smooth: [x, y], done: 0, paths: mirrored([0, 0], op.sym, docW, docH).length, incremental, sent: 0 };
+      gestureRef.current = { kind: "stroke", id: event.pointerId, op, smooth: [x, y], done: 0, paths: mirrored([0, 0], op.sym, docW, docH).length, incremental, sent: 0, live };
       needPrepare.current = true;
       requestDraw();
       return;
@@ -908,7 +1000,7 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
         if (!paintable()) return;
         let region: string | undefined;
         if (options.fillSample === "all") {
-          region = encodeMask(studio.wand(layers, active.id, x, y, options.fillTolerance, true, true));
+          region = encodeMask(studio.wand(displayed(), active.id, x, y, options.fillTolerance, true, true));
           if (region.length > 500000) {
             setNotice("that area is too detailed to fill across every layer. try filling from this layer only.");
             return;
@@ -935,7 +1027,7 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
       }
       case "wand": {
         if (!canEdit) return;
-        const mask = studio.wand(layers, active.id, x, y, options.wandTolerance, options.wandSample === "all", options.wandContiguous);
+        const mask = studio.wand(displayed(), active.id, x, y, options.wandTolerance, options.wandSample === "all", options.wandContiguous);
         const data = encodeMask(mask);
         if (data.length > 500000) {
           setNotice("that selection is too detailed to keep. try a lower tolerance.");
@@ -1279,6 +1371,197 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
   const bakeAll = () => void fold(layers.map((l) => ({ into: l, from: [l] })), "folding the history into pictures");
 
   // ---------------------------------------------------------------------------
+  // The canvas: a new size, a crop, the picture scaled
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Every layer onto a canvas of a new size, scaled and moved by `change`.
+   * Each layer's history is folded into a picture on the way, the way merging
+   * does: that is what lets the old strokes land where the new canvas says.
+   */
+  const reframe = async (change: CanvasChange, label: string) => {
+    if (!canEdit || busy) return;
+    const { w, h, x, y, sx, sy } = change;
+    setBusy(label);
+    try {
+      const next: PaintOp[] = [];
+      for (const layer of layers) {
+        if (!studio.bounds(layer.id)) continue;
+        const c = blank(w, h);
+        const ctx = c.getContext("2d");
+        if (!ctx) throw new Error("this device cannot hold a picture that big");
+        ctx.imageSmoothingQuality = "high";
+        ctx.setTransform(sx, 0, 0, sy, x, y);
+        ctx.drawImage(studio.canvasOf(layer.id), 0, 0);
+        const blob = await toBlob(c);
+        if (!blob) throw new Error("this device cannot hold a picture that big");
+        const url = await uploadFile(new File([blob], "layer.png", { type: "image/png" }));
+        if (!url) throw new Error("the picture could not be uploaded");
+        await loadImage(url).catch(() => null);
+        next.push({ id: newId(), kind: "image", layer: layer.id, url, x: 0, y: 0, w, h, baked: true, by });
+      }
+      const failed = await replace(
+        ops.map((op) => op.id),
+        next,
+      );
+      if (failed) throw new Error(failed);
+      writeState({ doc: { w, h, background: paper } });
+      setMySel(null);
+      forgetHistory();
+      refit.current = true;
+    } catch (error) {
+      setNotice(`that did not work: ${(error as Error).message}`);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  /** Cut to a box: everything outside it goes. */
+  const cropTo = (box: { x: number; y: number; w: number; h: number } | null, label: string) => {
+    if (!box || box.w < 1 || box.h < 1) {
+      setNotice("there is nothing there to keep.");
+      return;
+    }
+    void reframe({ w: box.w, h: box.h, x: -box.x, y: -box.y, sx: 1, sy: 1 }, label);
+  };
+
+  const trim = () => {
+    let box: { x0: number; y0: number; x1: number; y1: number } | null = null;
+    for (const layer of layers) {
+      const b = studio.bounds(layer.id);
+      if (!b) continue;
+      box = box ? { x0: Math.min(box.x0, b.x), y0: Math.min(box.y0, b.y), x1: Math.max(box.x1, b.x + b.w), y1: Math.max(box.y1, b.y + b.h) } : { x0: b.x, y0: b.y, x1: b.x + b.w, y1: b.y + b.h };
+    }
+    cropTo(box && { x: box.x0, y: box.y0, w: box.x1 - box.x0, h: box.y1 - box.y0 }, "trimming the canvas");
+  };
+
+  const cropToSelection = () => {
+    const mask = studio.maskOf(mySel);
+    cropTo(mask ? maskBounds(mask) : null, "cropping the canvas");
+  };
+
+  // ---------------------------------------------------------------------------
+  // Animation
+  // ---------------------------------------------------------------------------
+
+  const writeAnimation = (next: AnimationState | null) => writeState({ animation: next ?? undefined });
+
+  const startAnimation = () => {
+    if (!canEdit) return;
+    writeAnimation({ ...emptyAnimation(), frames: [{ layer: active.id }] });
+  };
+
+  /** A new layer right over the frame in hand, as the frame after it. */
+  const addFrame = () => {
+    if (!anim || !canEdit || layers.length >= MAX_LAYERS) return;
+    const at = anim.frames.findIndex((f) => f.layer === frameInHand);
+    const layer: StudioLayer = { id: newId(), name: `frame ${anim.frames.length + 1}`, visible: true, opacity: 1 };
+    const i = layers.findIndex((l) => l.id === frameInHand);
+    writeState({
+      layers: [...layers.slice(0, i + 1), layer, ...layers.slice(i + 1)],
+      animation: { ...anim, frames: [...anim.frames.slice(0, at + 1), { layer: layer.id }, ...anim.frames.slice(at + 1)] },
+    });
+    setActive(layer.id);
+  };
+
+  const duplicateFrame = () => {
+    if (!anim || !frameInHand || !canEdit || layers.length >= MAX_LAYERS) return;
+    const source = layers.find((l) => l.id === frameInHand);
+    if (!source) return;
+    const at = anim.frames.findIndex((f) => f.layer === frameInHand);
+    const layer: StudioLayer = { ...source, id: newId(), name: `${source.name} copy`.slice(0, 32) };
+    const copies = opsOn(ops, layers, source.id).map((op) => ({ ...op, id: newId(), layer: layer.id }));
+    const i = layers.findIndex((l) => l.id === source.id);
+    writeState({
+      layers: [...layers.slice(0, i + 1), layer, ...layers.slice(i + 1)],
+      animation: { ...anim, frames: [...anim.frames.slice(0, at + 1), { ...anim.frames[at], layer: layer.id }, ...anim.frames.slice(at + 1)] },
+    });
+    setActive(layer.id);
+    if (copies.length) void commit(copies);
+  };
+
+  const deleteFrame = () => {
+    if (!anim || !frameInHand || anim.frames.length <= 1 || layers.length <= 1) return;
+    const at = anim.frames.findIndex((f) => f.layer === frameInHand);
+    const gone = opsOn(ops, layers, frameInHand).map((op) => op.id);
+    const frames = anim.frames.filter((f) => f.layer !== frameInHand);
+    writeState({ layers: layers.filter((l) => l.id !== frameInHand), animation: { ...anim, frames } });
+    setActive(frames[Math.max(0, at - 1)].layer);
+    void remove(gone);
+    forgetHistory();
+  };
+
+  const moveFrame = (by: -1 | 1) => {
+    if (!anim) return;
+    const at = anim.frames.findIndex((f) => f.layer === frameInHand);
+    const to = at + by;
+    if (at < 0 || to < 0 || to >= anim.frames.length) return;
+    const frames = [...anim.frames];
+    [frames[at], frames[to]] = [frames[to], frames[at]];
+    writeAnimation({ ...anim, frames });
+  };
+
+  const animationGif = async () => {
+    if (!anim || busy) return;
+    setBusy("making the GIF");
+    try {
+      const k = Math.min(1, 480 / Math.max(docW, docH));
+      const w = Math.max(1, Math.round(docW * k));
+      const h = Math.max(1, Math.round(docH * k));
+      const full = blank(docW, docH);
+      const small = blank(w, h);
+      const sctx = small.getContext("2d", { willReadFrequently: true });
+      if (!sctx) return;
+      const frames: GifFrame[] = [];
+      for (const f of anim.frames) {
+        studio.composite(full, shownLayers(layers, anim, f.layer, false), null, paper ?? "#ffffff");
+        sctx.clearRect(0, 0, w, h);
+        sctx.drawImage(full, 0, 0, w, h);
+        frames.push({ data: sctx.getImageData(0, 0, w, h).data, delayMs: frameDelay(anim, f) });
+        await new Promise((r) => setTimeout(r, 0));
+      }
+      const bytes = encodeGif(frames, w, h);
+      saveFile(new Blob([bytes.buffer as ArrayBuffer], { type: "image/gif" }), `nook-animation-${stamp()}.gif`);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  // Playing: the frames in turn, on this screen only.
+  useEffect(() => {
+    if (!playing || !anim) return;
+    let i = Math.max(0, anim.frames.findIndex((f) => f.layer === frameInHand));
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const show = () => {
+      const f = anim.frames[i];
+      playRef.current = f.layer;
+      playFrame.set(i);
+      dirtyRef.current = true;
+      changedRef.current = null;
+      requestDraw();
+      timer = setTimeout(() => {
+        i += 1;
+        if (i >= anim.frames.length) {
+          if (!anim.loop) {
+            setPlaying(false);
+            return;
+          }
+          i = 0;
+        }
+        show();
+      }, frameDelay(anim, f));
+    };
+    show();
+    return () => {
+      clearTimeout(timer);
+      playRef.current = null;
+      dirtyRef.current = true;
+      requestDraw();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playing, anim]);
+
+  // ---------------------------------------------------------------------------
   // Files
   // ---------------------------------------------------------------------------
 
@@ -1349,8 +1632,8 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
       return next;
     });
     const nextDoc: StudioDoc = {
-      w: Math.max(16, Math.min(4096, Math.round(Number(data.doc.w) || 1600))),
-      h: Math.max(16, Math.min(4096, Math.round(Number(data.doc.h) || 1200))),
+      w: Math.max(16, Math.min(MAX_SIDE, Math.round(Number(data.doc.w) || 1600))),
+      h: Math.max(16, Math.min(MAX_SIDE, Math.round(Number(data.doc.h) || 1200))),
       background: typeof data.doc.background === "string" ? data.doc.background : null,
     };
     const failed = await replace(
@@ -1410,7 +1693,7 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
 
   const setBrushSize = (size: number) => {
     const t = isBrushTool(tool) ? tool : "brush";
-    setSpecs((s) => ({ ...s, [t]: { ...s[t], size: Math.max(1, Math.min(500, size)) } }));
+    setSpecs((s) => ({ ...s, [t]: { ...s[t], size: Math.max(1, Math.min(1000, size)) } }));
   };
 
   const onKeyDown = (event: React.KeyboardEvent) => {
@@ -1443,7 +1726,8 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
     if (event.key === "Enter" && warpRef.current) return endWarp(true);
     if (event.key === "Escape") {
       if (warpRef.current) endWarp(false);
-      else if (panel) setPanel(null);
+      else if (toolSheet) setToolSheet(false);
+      else if (overlay) setOverlay(null);
       else if (mySel) deselect();
       else if (expanded) setExpanded(false);
       return;
@@ -1499,15 +1783,464 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
   };
 
   const pickBrush = (b: BrushSpec) => {
+    studio.prepareBrush(b);
     const t = toolForMode(b.mode);
     setSpecs((s) => ({ ...s, [t]: b }));
     chooseTool(t);
   };
 
-  const togglePanel = (p: PanelId) => setPanel((current) => (current === p ? null : p));
+  // Docked panels are remembered; on a smaller screen one panel at a time opens over the picture, and none to start.
+  const isOpen = (id: PanelId) => (mode === "wide" ? layout.spots[id].open : overlay === id);
+  const toggle = (id: PanelId) => {
+    setToolSheet(false);
+    if (mode === "wide") setLayout((l) => togglePanel(l, id, mode));
+    else setOverlay((o) => (o === id ? null : id));
+  };
+  const close = (id: PanelId) => {
+    if (mode === "wide") setLayout((l) => togglePanel(l, id, mode, false));
+    else setOverlay((o) => (o === id ? null : o));
+  };
 
   const cursor = tool === "hand" ? "grab" : tool === "move" ? "move" : tool === "text" ? "text" : isBrushTool(tool) ? "none" : "crosshair";
   const empty = ops.length === 0;
+  const phone = mode === "phone";
+  const toolInfo = TOOLS.find((t) => t.id === tool) ?? TOOLS[0];
+
+  const zoomBy = (factor: number) => {
+    const v = viewRef.current;
+    const box = boxRef.current;
+    if (v && box) setView(zoomAt(v, factor, box.clientWidth / 2, box.clientHeight / 2));
+  };
+  const turnBy = (radians: number) => {
+    const v = viewRef.current;
+    const box = boxRef.current;
+    if (v && box) setView(rotateAt(v, radians, box.clientWidth / 2, box.clientHeight / 2));
+  };
+
+  // ---------------------------------------------------------------------------
+  // The panels
+  // ---------------------------------------------------------------------------
+
+  const panelViews: PanelView[] = [];
+  if (isOpen("color"))
+    panelViews.push({
+      id: "color",
+      node: (
+        <ColorPanel
+          color={color}
+          second={second}
+          recent={recent}
+          palettes={palettes}
+          canEdit={canEdit}
+          onColor={setColor}
+          onSwap={() => {
+            setColor(second);
+            setSecond(color);
+          }}
+          onPalettes={(next) => writeState({ palettes: next.slice(0, 20) })}
+          onClose={() => close("color")}
+        />
+      ),
+    });
+  if (isOpen("layers"))
+    panelViews.push({
+      id: "layers",
+      node: (
+        <LayersPanel
+          studio={studio}
+          bus={bus}
+          layers={layers}
+          active={active.id}
+          paper={paper}
+          canEdit={canEdit}
+          opCounts={opCounts}
+          onSelect={(id) => {
+            if (warpRef.current) endWarp(true);
+            setActive(id);
+          }}
+          onChange={writeLayers}
+          onAdd={addLayer}
+          onDuplicate={duplicateLayer}
+          onMergeDown={(id) => void mergeDown(id)}
+          onDelete={deleteLayer}
+          onClear={clearLayer}
+          onClose={() => close("layers")}
+        />
+      ),
+    });
+  if (isOpen("brushes"))
+    panelViews.push({
+      id: "brushes",
+      node: (
+        <BrushPanel
+          spec={spec}
+          color={color}
+          custom={customBrushes}
+          firealpaca={firealpaca}
+          imported={imported}
+          canEdit={canEdit}
+          onPick={pickBrush}
+          onSpec={pickBrush}
+          onCustom={(next) => writeState({ brushes: next.slice(0, 60) })}
+          onImported={(next) => {
+            setImported(next);
+            writeImported(next);
+          }}
+          upload={uploadFile}
+          notice={setNotice}
+          onClose={() => close("brushes")}
+        />
+      ),
+    });
+  if (isOpen("adjust"))
+    panelViews.push({
+      id: "adjust",
+      node: (
+        <FilterPanel
+          selected={Boolean(mySel)}
+          canEdit={canEdit}
+          onPreview={setFilterPreview}
+          onApply={(f) => {
+            if (!paintable()) return;
+            void commit([{ id: newId(), kind: "filter", filter: f.kind, amount: f.amount, params: Object.keys(f.params).length ? f.params : undefined, layer: active.id, sel: mySel }]);
+          }}
+          onClose={() => close("adjust")}
+        />
+      ),
+    });
+  if (isOpen("animation"))
+    panelViews.push({
+      id: "animation",
+      node: (
+        <AnimationPanel
+          studio={studio}
+          bus={bus}
+          anim={anim}
+          layers={layers}
+          current={frameInHand}
+          playing={playing}
+          playFrame={playFrame}
+          canEdit={canEdit}
+          busy={Boolean(busy)}
+          onStart={startAnimation}
+          onStop={() => {
+            setPlaying(false);
+            writeAnimation(null);
+          }}
+          onSelect={(id) => {
+            if (warpRef.current) endWarp(true);
+            setPlaying(false);
+            setActive(id);
+          }}
+          onAdd={addFrame}
+          onDuplicate={duplicateFrame}
+          onDelete={deleteFrame}
+          onMove={moveFrame}
+          onChange={writeAnimation}
+          onPlay={() => setPlaying((v) => !v)}
+          onGif={() => void animationGif()}
+          onClose={() => {
+            setPlaying(false);
+            close("animation");
+          }}
+        />
+      ),
+    });
+  if (isOpen("file"))
+    panelViews.push({
+      id: "file",
+      node: (
+        <FilePanel
+          doc={{ w: docW, h: docH }}
+          paper={paper}
+          empty={empty}
+          opCount={ops.length}
+          mode={opsMode}
+          busy={busy}
+          canEdit={canEdit}
+          selected={Boolean(mySel)}
+          layerCount={layers.length}
+          onExport={(kind) => void exportAs(kind)}
+          onGif={() => void timelapse()}
+          onSaveProject={saveProject}
+          onOpenProject={(file) => void openProject(file)}
+          onImportImage={(file) => void importImage(file)}
+          onPaper={(c) => writeState({ doc: { w: docW, h: docH, background: c } })}
+          onSize={(w, h) => {
+            refit.current = true;
+            writeState({ doc: { w, h, background: paper } });
+          }}
+          onCanvas={(change) => void reframe(change, "changing the canvas")}
+          onTrim={trim}
+          onCropToSelection={cropToSelection}
+          onResetLayout={() => setLayout(() => DEFAULT_LAYOUT)}
+          onBake={bakeAll}
+          onClearAll={clearAll}
+          onClose={() => close("file")}
+        />
+      ),
+    });
+
+  // ---------------------------------------------------------------------------
+  // The chrome round the picture
+  // ---------------------------------------------------------------------------
+
+  const topBar = (
+    // Kept clear of the corners, where the table's resize handles sit.
+    <div className={clsx("no-scrollbar relative z-10 flex h-10 shrink-0 items-center gap-1 overflow-x-auto border-b border-white/8", expanded || phone ? "px-1.5" : "px-7")}>
+      <IconButton label={tx("file")} onClick={() => toggle("file")} active={isOpen("file")}>
+        <Menu />
+      </IconButton>
+      <IconButton label={tx("undo (ctrl z, or tap with two fingers)")} onClick={undo} disabled={!canEdit || (!history.undo && !warping)}>
+        <Undo2 />
+      </IconButton>
+      <IconButton label={tx("redo (ctrl shift z)")} onClick={redo} disabled={!canEdit || !history.redo}>
+        <Redo2 />
+      </IconButton>
+      <span className="mx-0.5 h-5 w-px shrink-0 bg-white/10" />
+      <ToolOptions tool={tool} spec={spec} options={options} set={setOption} warping={warping} onBrushes={() => toggle("brushes")} onWarp={warpAction} />
+      <span className="min-w-2 flex-1" />
+      {!phone && (
+        <IconButton label={tx("zoom out")} onClick={() => zoomBy(1 / 1.25)}>
+          <Minus />
+        </IconButton>
+      )}
+      <button
+        type="button"
+        title={tx("fit the picture (ctrl 0)")}
+        onClick={() => {
+          const box = boxRef.current;
+          if (box) setView(fit({ w: docW, h: docH }, box.clientWidth, box.clientHeight));
+        }}
+        className="min-h-7 shrink-0 rounded-md px-1.5 text-[10px] text-muted tabular-nums hover:bg-white/8 hover:text-chalk"
+      >
+        <Watched value={zoomPct} format={(v) => `${v}%`} />
+      </button>
+      {!phone && (
+        <>
+          <IconButton label={tx("zoom in")} onClick={() => zoomBy(1.25)}>
+            <Plus />
+          </IconButton>
+          <IconButton label={tx("turn the view left (alt and the wheel)")} onClick={() => turnBy(-Math.PI / 12)}>
+            <RotateCcw />
+          </IconButton>
+          <IconButton label={tx("turn the view right")} onClick={() => turnBy(Math.PI / 12)}>
+            <RotateCw />
+          </IconButton>
+        </>
+      )}
+      <IconButton
+        label={tx("mirror the view (the picture stays as it is)")}
+        onClick={() => {
+          const v = viewRef.current;
+          const box = boxRef.current;
+          if (!v || !box) return;
+          const [dx, dy] = toDoc(v, box.clientWidth / 2, box.clientHeight / 2);
+          setView(pin({ ...v, flip: !v.flip }, dx, dy, box.clientWidth / 2, box.clientHeight / 2));
+        }}
+      >
+        <FlipHorizontal />
+      </IconButton>
+      <IconButton
+        label={expanded ? tx("back to the table") : tx("full screen")}
+        onClick={() => {
+          refit.current = true;
+          setExpanded((v) => !v);
+        }}
+      >
+        {expanded ? <Minimize2 /> : <Maximize2 />}
+      </IconButton>
+    </div>
+  );
+
+  const toolRail = (
+    <div className="no-scrollbar flex shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-white/8 p-1">
+      {TOOLS.map((t) => (
+        <IconButton key={t.id} label={`${tx(t.name)} (${t.key})`} active={tool === t.id} onClick={() => chooseTool(t.id)} disabled={!canEdit && t.id !== "hand" && t.id !== "picker"}>
+          {t.icon}
+        </IconButton>
+      ))}
+    </div>
+  );
+
+  const sizeSlider = railSize !== null && <RailSlider label={tx("size")} value={sizeToSlider(railSize)} min={0} max={100} onChange={(v) => setRailSize(sliderToSize(v))} display={`${Math.round(railSize)}`} />;
+  const opacitySlider = <RailSlider label={tx("opac")} value={Math.round(railOpacity * 100)} min={1} max={100} onChange={(v) => setRailOpacity(v / 100)} display={`${Math.round(railOpacity * 100)}%`} />;
+
+  const swatch = (
+    <button type="button" onClick={() => toggle("color")} className="relative size-9 shrink-0" title={tx("colour")} aria-label={tx("colour")}>
+      <span className="absolute right-0 bottom-0 size-5 rounded ring-1 ring-white/30" style={{ background: second }} />
+      <span className={clsx("absolute top-0 left-0 size-7 rounded-md ring-2", isOpen("color") ? "ring-glow" : "ring-white/40")} style={{ background: color }} />
+    </button>
+  );
+
+  const sideRail = (
+    <div className="no-scrollbar flex w-12 shrink-0 flex-col items-center gap-2 overflow-y-auto border-l border-white/8 py-1.5">
+      {swatch}
+      {sizeSlider}
+      {opacitySlider}
+      <IconButton label={tx("brushes")} onClick={() => toggle("brushes")} active={isOpen("brushes")}>
+        <Brush />
+      </IconButton>
+      <IconButton label={tx("layers")} onClick={() => toggle("layers")} active={isOpen("layers")}>
+        <Layers />
+      </IconButton>
+      <IconButton label={tx("adjust and filters")} onClick={() => toggle("adjust")} active={isOpen("adjust")}>
+        <SlidersHorizontal />
+      </IconButton>
+      <IconButton label={tx("animation")} onClick={() => toggle("animation")} active={isOpen("animation")}>
+        <Film />
+      </IconButton>
+      <IconButton label={tx("paste a picture as a layer (ctrl v)")} onClick={() => void pasteFromClipboard(importImage, setNotice)} disabled={!canEdit}>
+        <ClipboardPaste />
+      </IconButton>
+    </div>
+  );
+
+  // On a phone: the tools and panels along the bottom, where the thumb is.
+  const phoneBar = (
+    <div className="flex shrink-0 items-center justify-around gap-0.5 border-t border-white/8 px-1 pt-1 pb-[max(0.25rem,env(safe-area-inset-bottom))]">
+      <PhoneButton
+        label={tx(toolInfo.name)}
+        active={toolSheet}
+        onClick={() => {
+          setOverlay(null);
+          setToolSheet((v) => !v);
+        }}
+      >
+        {toolInfo.icon}
+      </PhoneButton>
+      <PhoneButton label={tx("brushes")} active={isOpen("brushes")} onClick={() => toggle("brushes")}>
+        <Brush />
+      </PhoneButton>
+      <PhoneButton label={tx("colour")} active={isOpen("color")} onClick={() => toggle("color")}>
+        <span className="block size-5 rounded-md ring-2 ring-white/50" style={{ background: color }} />
+      </PhoneButton>
+      <PhoneButton label={tx("layers")} active={isOpen("layers")} onClick={() => toggle("layers")}>
+        <Layers />
+      </PhoneButton>
+      <PhoneButton label={tx("adjust")} active={isOpen("adjust")} onClick={() => toggle("adjust")}>
+        <SlidersHorizontal />
+      </PhoneButton>
+      <PhoneButton label={tx("animation")} active={isOpen("animation")} onClick={() => toggle("animation")}>
+        <Film />
+      </PhoneButton>
+    </div>
+  );
+
+  const canvasArea = (
+    <div
+      ref={boxRef}
+      className="absolute inset-0 overflow-hidden bg-[#26212c]"
+      onDragOver={(event) => {
+        if ([...event.dataTransfer.items].some((i) => i.kind === "file")) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      }}
+      onDrop={(event) => {
+        const file = [...event.dataTransfer.files].find((f) => f.type.startsWith("image/"));
+        if (!file) return;
+        event.preventDefault();
+        event.stopPropagation();
+        void importImage(file);
+      }}
+    >
+      <canvas
+        ref={screenRef}
+        className="absolute inset-0 size-full touch-none"
+        style={{ cursor }}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        onPointerLeave={onPointerLeave}
+        onContextMenu={(event) => event.preventDefault()}
+      />
+
+      {textDraft && (
+        <div className="absolute z-10" style={{ left: textDraft.sx, top: textDraft.sy }} onPointerDown={(event) => event.stopPropagation()}>
+          <textarea
+            autoFocus
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+            onKeyDown={(event) => {
+              event.stopPropagation();
+              if (event.key === "Escape") setTextDraft(null);
+              if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) void placeText();
+            }}
+            placeholder={tx("type...")}
+            rows={Math.max(1, text.split("\n").length)}
+            className="min-w-24 resize-none border border-dashed border-glow/70 bg-transparent p-0 leading-[1.2] outline-none"
+            style={{
+              color,
+              opacity: paintOpacity,
+              fontFamily: fontString(options.font),
+              fontSize: textSize * textDraft.zoom,
+              fontWeight: options.bold ? 700 : 400,
+              fontStyle: options.italic ? "italic" : "normal",
+              width: `${Math.max(6, ...text.split("\n").map((l) => l.length + 2))}ch`,
+            }}
+          />
+          <div className="mt-1 flex gap-1">
+            <button type="button" onClick={() => void placeText()} className="rounded-md bg-glow/30 px-2 py-1 text-[10px] font-semibold text-glow">{tx("place it")}</button>
+            <button type="button" onClick={() => setTextDraft(null)} className="rounded-md bg-white/10 px-2 py-1 text-[10px] text-muted">{tx("cancel")}</button>
+          </div>
+        </div>
+      )}
+
+      {mySel && canEdit && (
+        <div
+          className="surface-raised absolute bottom-2 left-1/2 z-10 flex max-w-[96%] -translate-x-1/2 items-center gap-0.5 overflow-x-auto rounded-xl p-1 shadow-xl no-scrollbar"
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          <SelButton onClick={deselect} icon={<X />}>{tx("deselect")}</SelButton>
+          <SelButton onClick={invertSelection}>{tx("invert")}</SelButton>
+          <SelButton onClick={selectAll}>{tx("all")}</SelButton>
+          <SelButton onClick={clearArea}>{tx("clear")}</SelButton>
+          <SelButton onClick={fillArea}>{tx("fill")}</SelButton>
+          <SelButton onClick={() => toNewLayer(false)} icon={<Copy />}>{tx("copy to layer")}</SelButton>
+          <SelButton onClick={() => toNewLayer(true)} icon={<Scissors />}>{tx("cut to layer")}</SelButton>
+          <SelButton onClick={() => chooseTool("move")} icon={<Move />}>{tx("transform")}</SelButton>
+          <SelButton onClick={() => toggle("adjust")} icon={<SlidersHorizontal />}>{tx("filter")}</SelButton>
+          <SelButton onClick={cropToSelection} icon={<Scissors />}>{tx("crop")}</SelButton>
+        </div>
+      )}
+
+      {/* A phone's size and opacity, down the left edge, the way painting apps put them. */}
+      {phone && (
+        <div className="absolute top-1/2 left-1 z-10 flex -translate-y-1/2 flex-col items-center gap-3 rounded-xl bg-ink-950/55 px-1 py-2 backdrop-blur-sm" onPointerDown={(event) => event.stopPropagation()}>
+          {sizeSlider}
+          {opacitySlider}
+        </div>
+      )}
+
+      {phone && toolSheet && (
+        <div className="surface-raised animate-drift-in absolute inset-x-0 bottom-0 z-20 grid grid-cols-4 gap-1 rounded-t-2xl p-2 shadow-2xl" onPointerDown={(event) => event.stopPropagation()}>
+          {TOOLS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              disabled={!canEdit && t.id !== "hand" && t.id !== "picker"}
+              onClick={() => {
+                chooseTool(t.id);
+                setToolSheet(false);
+              }}
+              className={clsx("flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl text-[10px] disabled:opacity-30 [&_svg]:size-5", tool === t.id ? "bg-glow/25 text-glow" : "bg-white/5 text-muted")}
+            >
+              {t.icon}
+              <span className="max-w-full truncate px-1">{tx(t.name)}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {busy && !isOpen("file") && (
+        <p className="surface-raised absolute top-2 left-1/2 z-10 -translate-x-1/2 rounded-lg px-2.5 py-1 text-[11px] text-chalk">{tx(busy)}...</p>
+      )}
+      {opsMode === "loading" && <p className="absolute top-2 left-2 text-[10px] text-muted">{tx("opening the picture...")}</p>}
+      {playing && <p className="pointer-events-none absolute top-2 right-2 rounded-md bg-ink-950/70 px-2 py-0.5 text-[10px] text-chalk">{tx("playing")}</p>}
+    </div>
+  );
 
   const body = (
     <div
@@ -1522,306 +2255,29 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
         expanded ? "fixed inset-0 z-[70] bg-ink-900" : "surface grain relative size-full rounded-2xl",
       )}
     >
-      {/* Top: file, history, what the tool does, the view. */}
-      {/* Kept clear of the corners, where the table's resize handles sit. */}
-      <div className={clsx("no-scrollbar relative z-10 flex h-10 shrink-0 items-center gap-1 overflow-x-auto border-b border-white/8", expanded ? "px-1.5" : "px-7")}>
-        <IconButton label={tx("file")} onClick={() => togglePanel("file")} active={panel === "file"}>
-          <Menu />
-        </IconButton>
-        <IconButton label={tx("undo (ctrl z, or tap with two fingers)")} onClick={undo} disabled={!canEdit || (!history.undo && !warping)}>
-          <Undo2 />
-        </IconButton>
-        <IconButton label={tx("redo (ctrl shift z)")} onClick={redo} disabled={!canEdit || !history.redo}>
-          <Redo2 />
-        </IconButton>
-        <span className="mx-0.5 h-5 w-px shrink-0 bg-white/10" />
-        <ToolOptions tool={tool} spec={spec} options={options} set={setOption} warping={warping} onBrushes={() => togglePanel("brushes")} onWarp={warpAction} />
-        <span className="min-w-2 flex-1" />
-        <IconButton
-          label={tx("zoom out")}
-          onClick={() => {
-            const v = viewRef.current;
-            const box = boxRef.current;
-            if (v && box) setView(zoomAt(v, 1 / 1.25, box.clientWidth / 2, box.clientHeight / 2));
-          }}
-        >
-          <Minus />
-        </IconButton>
-        <button
-          type="button"
-          title={tx("fit the picture (ctrl 0)")}
-          onClick={() => {
-            const box = boxRef.current;
-            if (box) setView(fit({ w: docW, h: docH }, box.clientWidth, box.clientHeight));
-          }}
-          className="min-h-7 shrink-0 rounded-md px-1.5 text-[10px] text-muted tabular-nums hover:bg-white/8 hover:text-chalk"
-        >
-          {zoomPct}%
-        </button>
-        <IconButton
-          label={tx("zoom in")}
-          onClick={() => {
-            const v = viewRef.current;
-            const box = boxRef.current;
-            if (v && box) setView(zoomAt(v, 1.25, box.clientWidth / 2, box.clientHeight / 2));
-          }}
-        >
-          <Plus />
-        </IconButton>
-        <IconButton
-          label={tx("turn the view left (alt and the wheel)")}
-          onClick={() => {
-            const v = viewRef.current;
-            const box = boxRef.current;
-            if (v && box) setView(rotateAt(v, -Math.PI / 12, box.clientWidth / 2, box.clientHeight / 2));
-          }}
-        >
-          <RotateCcw />
-        </IconButton>
-        <IconButton
-          label={tx("turn the view right")}
-          onClick={() => {
-            const v = viewRef.current;
-            const box = boxRef.current;
-            if (v && box) setView(rotateAt(v, Math.PI / 12, box.clientWidth / 2, box.clientHeight / 2));
-          }}
-        >
-          <RotateCw />
-        </IconButton>
-        <IconButton
-          label={tx("mirror the view (the picture stays as it is)")}
-          onClick={() => {
-            const v = viewRef.current;
-            const box = boxRef.current;
-            if (!v || !box) return;
-            const [dx, dy] = toDoc(v, box.clientWidth / 2, box.clientHeight / 2);
-            setView(pin({ ...v, flip: !v.flip }, dx, dy, box.clientWidth / 2, box.clientHeight / 2));
-          }}
-        >
-          <FlipHorizontal />
-        </IconButton>
-        <IconButton
-          label={expanded ? tx("back to the table") : tx("full screen")}
-          onClick={() => {
-            refit.current = true;
-            setExpanded((v) => !v);
-          }}
-        >
-          {expanded ? <Minimize2 /> : <Maximize2 />}
-        </IconButton>
-      </div>
-
-      <div className="relative flex min-h-0 flex-1">
-        {/* Tools */}
-        <div className="no-scrollbar flex shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-white/8 p-1">
-          {TOOLS.map((t) => (
-            <IconButton key={t.id} label={`${t.name} (${t.key})`} active={tool === t.id} onClick={() => chooseTool(t.id)} disabled={!canEdit && t.id !== "hand" && t.id !== "picker"}>
-              {t.icon}
-            </IconButton>
-          ))}
-        </div>
-
-        {/* The picture */}
-        <div
-          ref={boxRef}
-          className="relative min-w-0 flex-1 overflow-hidden bg-[#26212c]"
-          onDragOver={(event) => {
-            if ([...event.dataTransfer.items].some((i) => i.kind === "file")) {
-              event.preventDefault();
-              event.stopPropagation();
-            }
-          }}
-          onDrop={(event) => {
-            const file = [...event.dataTransfer.files].find((f) => f.type.startsWith("image/"));
-            if (!file) return;
-            event.preventDefault();
-            event.stopPropagation();
-            void importImage(file);
-          }}
-        >
-          <canvas
-            ref={screenRef}
-            className="absolute inset-0 size-full touch-none"
-            style={{ cursor }}
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-            onPointerCancel={onPointerUp}
-            onPointerLeave={onPointerLeave}
-            onContextMenu={(event) => event.preventDefault()}
-          />
-
-          {textDraft && (
-            <div className="absolute z-10" style={{ left: textDraft.sx, top: textDraft.sy }} onPointerDown={(event) => event.stopPropagation()}>
-              <textarea
-                autoFocus
-                value={text}
-                onChange={(event) => setText(event.target.value)}
-                onKeyDown={(event) => {
-                  event.stopPropagation();
-                  if (event.key === "Escape") setTextDraft(null);
-                  if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) void placeText();
-                }}
-                placeholder={tx("type...")}
-                rows={Math.max(1, text.split("\n").length)}
-                className="min-w-24 resize-none border border-dashed border-glow/70 bg-transparent p-0 leading-[1.2] outline-none"
-                style={{
-                  color,
-                  opacity: paintOpacity,
-                  fontFamily: fontString(options.font),
-                  fontSize: textSize * textDraft.zoom,
-                  fontWeight: options.bold ? 700 : 400,
-                  fontStyle: options.italic ? "italic" : "normal",
-                  width: `${Math.max(6, ...text.split("\n").map((l) => l.length + 2))}ch`,
-                }}
-              />
-              <div className="mt-1 flex gap-1">
-                <button type="button" onClick={() => void placeText()} className="rounded-md bg-glow/30 px-2 py-1 text-[10px] font-semibold text-glow">{tx("place it")}</button>
-                <button type="button" onClick={() => setTextDraft(null)} className="rounded-md bg-white/10 px-2 py-1 text-[10px] text-muted">{tx("cancel")}</button>
-              </div>
-            </div>
-          )}
-
-          {mySel && canEdit && (
-            <div
-              className="surface-raised absolute bottom-2 left-1/2 z-10 flex max-w-[96%] -translate-x-1/2 items-center gap-0.5 overflow-x-auto rounded-xl p-1 shadow-xl no-scrollbar"
-              onPointerDown={(event) => event.stopPropagation()}
-            >
-              <SelButton onClick={deselect} icon={<X />}>{tx("deselect")}</SelButton>
-              <SelButton onClick={invertSelection}>{tx("invert")}</SelButton>
-              <SelButton onClick={selectAll}>{tx("all")}</SelButton>
-              <SelButton onClick={clearArea}>{tx("clear")}</SelButton>
-              <SelButton onClick={fillArea}>{tx("fill")}</SelButton>
-              <SelButton onClick={() => toNewLayer(false)} icon={<Copy />}>{tx("copy to layer")}</SelButton>
-              <SelButton onClick={() => toNewLayer(true)} icon={<Scissors />}>{tx("cut to layer")}</SelButton>
-              <SelButton onClick={() => chooseTool("move")} icon={<Move />}>{tx("transform")}</SelButton>
-              <SelButton onClick={() => togglePanel("filters")} icon={<SlidersHorizontal />}>{tx("filter")}</SelButton>
-            </div>
-          )}
-
-          {panel === "color" && (
-            <ColorPanel
-              color={color}
-              second={second}
-              recent={recent}
-              palettes={palettes}
-              canEdit={canEdit}
-              onColor={setColor}
-              onSwap={() => {
-                setColor(second);
-                setSecond(color);
-              }}
-              onPalettes={(next) => writeState({ palettes: next.slice(0, 20) })}
-              onClose={() => setPanel(null)}
-            />
-          )}
-          {panel === "layers" && (
-            <LayersPanel
-              studio={studio}
-              bus={bus}
-              layers={layers}
-              active={active.id}
-              paper={paper}
-              canEdit={canEdit}
-              opCounts={opCounts}
-              onSelect={(id) => {
-                if (warpRef.current) endWarp(true);
-                setActive(id);
-              }}
-              onChange={writeLayers}
-              onAdd={addLayer}
-              onDuplicate={duplicateLayer}
-              onMergeDown={(id) => void mergeDown(id)}
-              onDelete={deleteLayer}
-              onClear={clearLayer}
-              onClose={() => setPanel(null)}
-            />
-          )}
-          {panel === "brushes" && (
-            <BrushPanel
-              spec={spec}
-              color={color}
-              custom={customBrushes}
-              canEdit={canEdit}
-              onPick={pickBrush}
-              onSpec={pickBrush}
-              onCustom={(next) => writeState({ brushes: next.slice(0, 40) })}
-              onClose={() => setPanel(null)}
-            />
-          )}
-          {panel === "filters" && (
-            <FilterPanel
-              selected={Boolean(mySel)}
-              canEdit={canEdit}
-              onPreview={setFilterPreview}
-              onApply={(kind, amount) => {
-                if (!paintable()) return;
-                void commit([{ id: newId(), kind: "filter", filter: kind, amount, layer: active.id, sel: mySel }]);
-              }}
-              onClose={() => setPanel(null)}
-            />
-          )}
-          {panel === "file" && (
-            <FilePanel
-              doc={{ w: docW, h: docH }}
-              paper={paper}
-              empty={empty}
-              opCount={ops.length}
-              mode={mode}
-              busy={busy}
-              canEdit={canEdit}
-              onExport={(kind) => void exportAs(kind)}
-              onGif={() => void timelapse()}
-              onSaveProject={saveProject}
-              onOpenProject={(file) => void openProject(file)}
-              onImportImage={(file) => void importImage(file)}
-              onPaper={(c) => writeState({ doc: { w: docW, h: docH, background: c } })}
-              onSize={(w, h) => {
-                refit.current = true;
-                writeState({ doc: { w, h, background: paper } });
-              }}
-              onBake={bakeAll}
-              onClearAll={clearAll}
-              onClose={() => setPanel(null)}
-            />
-          )}
-
-          {busy && panel !== "file" && (
-            <p className="surface-raised absolute top-2 left-1/2 z-10 -translate-x-1/2 rounded-lg px-2.5 py-1 text-[11px] text-chalk">{busy}...</p>
-          )}
-          {mode === "loading" && <p className="absolute top-2 left-2 text-[10px] text-muted">{tx("opening the picture...")}</p>}
-        </div>
-
-        {/* Right rail: the colour, size and opacity, and the panels. */}
-        <div className="no-scrollbar flex w-12 shrink-0 flex-col items-center gap-2 overflow-y-auto border-l border-white/8 py-1.5">
-          <button type="button" onClick={() => togglePanel("color")} className="relative size-9 shrink-0" title={tx("colour")} aria-label={tx("colour")}>
-            <span className="absolute right-0 bottom-0 size-5 rounded ring-1 ring-white/30" style={{ background: second }} />
-            <span className={clsx("absolute top-0 left-0 size-7 rounded-md ring-2", panel === "color" ? "ring-glow" : "ring-white/40")} style={{ background: color }} />
-          </button>
-          {railSize !== null && <RailSlider label={tx("size")} value={sizeToSlider(railSize)} min={0} max={100} onChange={(v) => setRailSize(sliderToSize(v))} display={`${Math.round(railSize)}`} />}
-          <RailSlider label={tx("opac")} value={Math.round(railOpacity * 100)} min={1} max={100} onChange={(v) => setRailOpacity(v / 100)} display={`${Math.round(railOpacity * 100)}%`} />
-          <IconButton label={tx("brushes")} onClick={() => togglePanel("brushes")} active={panel === "brushes"}>
-            <Brush />
-          </IconButton>
-          <IconButton label={tx("layers")} onClick={() => togglePanel("layers")} active={panel === "layers"}>
-            <Layers />
-          </IconButton>
-          <IconButton label={tx("filters")} onClick={() => togglePanel("filters")} active={panel === "filters"} disabled={!canEdit}>
-            <SlidersHorizontal />
-          </IconButton>
-          <IconButton label={tx("palettes")} onClick={() => togglePanel("color")} active={panel === "color"}>
-            <PaletteIcon />
-          </IconButton>
-          <IconButton label={tx("paste a picture as a layer (ctrl v)")} onClick={() => void pasteFromClipboard(importImage, setNotice)} disabled={!canEdit}>
-            <ClipboardPaste />
-          </IconButton>
-        </div>
-      </div>
+      {topBar}
+      <Workspace mode={mode} layout={layout} setLayout={setLayout} panels={panelViews} canvas={canvasArea} toolRail={toolRail} sideRail={sideRail} bottomBar={phoneBar} />
     </div>
   );
 
   return expanded ? createPortal(body, document.body) : body;
 }
+
+/** One of the phone's bottom buttons: an icon over its name. */
+function PhoneButton({ label, active, onClick, children }: { label: string; active?: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className={clsx("flex min-h-12 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl text-[9px] [&_svg]:size-5", active ? "bg-glow/20 text-glow" : "text-muted active:bg-white/8")}
+    >
+      {children}
+      <span className="max-w-full truncate">{label}</span>
+    </button>
+  );
+}
+
 
 /** The knob that turns the transform: out from the middle of the top edge. */
 function rotateKnob(corners: Array<[number, number]>): [number, number] {

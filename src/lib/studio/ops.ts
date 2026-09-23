@@ -8,7 +8,7 @@
 
 import type { BrushSpec, Symmetry } from "./brush";
 import type { Combine } from "./mask";
-import type { FilterKind } from "./filters";
+import type { FilterKind, FilterParams } from "./filters";
 
 interface OpBase {
   id: string;
@@ -136,6 +136,8 @@ export interface FilterOp extends OpBase {
   kind: "filter";
   filter: FilterKind;
   amount: number;
+  /** The filter's other settings: a gradient map's colours, a blur's angle. */
+  params?: FilterParams;
 }
 
 /** A picture put on a layer: pasted in, or old strokes baked into one. */

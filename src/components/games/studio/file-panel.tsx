@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import clsx from "clsx";
-import { Download, Film, FolderOpen, ImagePlus, Layers, Loader2, Save, Trash2 } from "lucide-react";
+import { Crop, Download, Film, FolderOpen, ImagePlus, Layers, LayoutGrid, Loader2, Save, Scissors, Trash2 } from "lucide-react";
 import { Panel } from "./widgets";
 import { t } from "@/lib/i18n";
 
@@ -40,6 +40,12 @@ export default function FilePanel({
   onImportImage,
   onPaper,
   onSize,
+  onCanvas,
+  onTrim,
+  onCropToSelection,
+  onResetLayout,
+  selected,
+  layerCount,
   onBake,
   onClearAll,
   onClose,
@@ -58,6 +64,12 @@ export default function FilePanel({
   onImportImage: (file: File) => void;
   onPaper: (color: string | null) => void;
   onSize: (w: number, h: number) => void;
+  onCanvas: (change: CanvasChange) => void;
+  onTrim: () => void;
+  onCropToSelection: () => void;
+  onResetLayout: () => void;
+  selected: boolean;
+  layerCount: number;
   onBake: () => void;
   onClearAll: () => void;
   onClose: () => void;
@@ -146,24 +158,10 @@ export default function FilePanel({
         </div>
       </Section>
 
-      <Section title={t(`canvas: ${doc.w} x ${doc.h}`)}>
-        {empty ? (
-          <div className="grid grid-cols-2 gap-1">
-            {CANVAS_SIZES.map((s) => (
-              <button
-                key={s.name}
-                type="button"
-                disabled={!canEdit}
-                onClick={() => onSize(s.w, s.h)}
-                className={clsx("min-h-7 rounded-md px-2 text-left text-[10px] disabled:opacity-40", s.w === doc.w && s.h === doc.h ? "bg-glow/25 text-glow" : "bg-white/5 text-muted hover:text-chalk")}
-              >
-                {t(s.name)} <span className="text-muted/60">{s.w}x{s.h}</span>
-              </button>
-            ))}
-          </div>
-        ) : (
-          <p className="text-[10px] text-muted">{t("the size is set once something is drawn.")}</p>
-        )}
+      <CanvasSection doc={doc} empty={empty} canEdit={canEdit && !busy} selected={selected} layerCount={layerCount} onSize={onSize} onCanvas={onCanvas} onTrim={onTrim} onCropToSelection={onCropToSelection} />
+
+      <Section title={t("panels")}>
+        <Action onClick={onResetLayout} icon={<LayoutGrid />}>{t("put the panels back where they started")}</Action>
       </Section>
 
       <Section title={t("history")}>
@@ -193,6 +191,198 @@ export default function FilePanel({
         </div>
       </Section>
     </Panel>
+  );
+}
+
+/** The biggest a side of the picture can be. */
+export const MAX_SIDE = 10000;
+
+/** Moving the picture to a new canvas: each layer scaled by sx, sy, then moved by x, y. */
+export interface CanvasChange {
+  w: number;
+  h: number;
+  x: number;
+  y: number;
+  sx: number;
+  sy: number;
+}
+
+/**
+ * How big a picture this browser can hold, found by trying: phones stop far
+ * short of what a computer manages, and a canvas that is too big simply
+ * comes out blank rather than saying so.
+ */
+let probed: number | null = null;
+export function largestSide(): number {
+  if (probed !== null) return probed;
+  // Smallest first, stopping at the first that fails -- and not even trying
+  // the biggest on a device with little memory, where trying could itself hurt.
+  const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8;
+  const sides = [2048, 4096, 6144, 8192, MAX_SIDE].filter((s) => memory > 4 || s <= 6144);
+  let best = 1024;
+  for (const side of sides) {
+    let ok = false;
+    try {
+      const c = document.createElement("canvas");
+      c.width = side;
+      c.height = side;
+      const ctx = c.getContext("2d");
+      if (ctx) {
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(side - 1, side - 1, 1, 1);
+        ok = ctx.getImageData(side - 1, side - 1, 1, 1).data[3] === 255;
+      }
+      c.width = 1;
+      c.height = 1;
+    } catch {
+      ok = false;
+    }
+    if (!ok) break;
+    best = side;
+  }
+  probed = best;
+  return best;
+}
+
+const ANCHORS: Array<[number, number]> = [
+  [0, 0],
+  [0.5, 0],
+  [1, 0],
+  [0, 0.5],
+  [0.5, 0.5],
+  [1, 0.5],
+  [0, 1],
+  [0.5, 1],
+  [1, 1],
+];
+
+function CanvasSection({
+  doc,
+  empty,
+  canEdit,
+  selected,
+  layerCount,
+  onSize,
+  onCanvas,
+  onTrim,
+  onCropToSelection,
+}: {
+  doc: { w: number; h: number };
+  empty: boolean;
+  canEdit: boolean;
+  selected: boolean;
+  layerCount: number;
+  onSize: (w: number, h: number) => void;
+  onCanvas: (change: CanvasChange) => void;
+  onTrim: () => void;
+  onCropToSelection: () => void;
+}) {
+  const [how, setHow] = useState<"canvas" | "scale">("canvas");
+  const [w, setW] = useState(doc.w);
+  const [h, setH] = useState(doc.h);
+  const [anchor, setAnchor] = useState<[number, number]>([0.5, 0.5]);
+  const [keep, setKeep] = useState(true);
+  const [limit] = useState(largestSide);
+  const clamp = (v: number) => Math.max(16, Math.min(limit, Math.round(v) || 16));
+  // Every layer is a picture this size in memory, and there are a few more besides.
+  const megabytes = Math.round((w * h * 4 * (layerCount + 4)) / 1_000_000);
+
+  const setWidth = (v: number) => {
+    setW(v);
+    if (how === "scale" && keep) setH(Math.round((v * doc.h) / doc.w));
+  };
+  const setHeight = (v: number) => {
+    setH(v);
+    if (how === "scale" && keep) setW(Math.round((v * doc.w) / doc.h));
+  };
+
+  const apply = () => {
+    const nw = clamp(w);
+    const nh = clamp(h);
+    if (empty) return onSize(nw, nh);
+    if (how === "scale") onCanvas({ w: nw, h: nh, x: 0, y: 0, sx: nw / doc.w, sy: nh / doc.h });
+    else onCanvas({ w: nw, h: nh, x: Math.round((nw - doc.w) * anchor[0]), y: Math.round((nh - doc.h) * anchor[1]), sx: 1, sy: 1 });
+  };
+
+  return (
+    <Section title={t(`canvas: ${doc.w} x ${doc.h}`)}>
+      {empty && (
+        <div className="mb-1.5 grid grid-cols-2 gap-1">
+          {CANVAS_SIZES.map((s) => (
+            <button
+              key={s.name}
+              type="button"
+              disabled={!canEdit}
+              onClick={() => onSize(s.w, s.h)}
+              className={clsx("min-h-7 rounded-md px-2 text-left text-[10px] disabled:opacity-40", s.w === doc.w && s.h === doc.h ? "bg-glow/25 text-glow" : "bg-white/5 text-muted hover:text-chalk")}
+            >
+              {t(s.name)} <span className="text-muted/60">{s.w}x{s.h}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {!empty && (
+        <div className="mb-1.5 flex flex-wrap gap-1">
+          <Action onClick={onTrim} icon={<Crop />} disabled={!canEdit}>{t("trim to what is drawn")}</Action>
+          <Action onClick={onCropToSelection} icon={<Scissors />} disabled={!canEdit || !selected}>{t("crop to the selection")}</Action>
+        </div>
+      )}
+      {!empty && (
+        <div className="mb-1.5 flex rounded-lg bg-white/6 p-0.5">
+          {(
+            [
+              ["canvas", t("canvas size")],
+              ["scale", t("resize the picture")],
+            ] as const
+          ).map(([id, label]) => (
+            <button key={id} type="button" onClick={() => setHow(id)} className={clsx("min-h-7 flex-1 rounded-md text-[10px]", how === id ? "bg-chalk text-ink-950" : "text-muted hover:text-chalk")}>
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="flex items-center gap-1.5">
+        <label className="flex items-center gap-1 text-[10px] text-muted">
+          W
+          <input type="number" min={16} max={limit} value={w} onChange={(event) => setWidth(Number(event.target.value))} className="h-7 w-16 rounded-md bg-white/7 px-1.5 text-[11px] text-chalk tabular-nums outline-none" />
+        </label>
+        <label className="flex items-center gap-1 text-[10px] text-muted">
+          H
+          <input type="number" min={16} max={limit} value={h} onChange={(event) => setHeight(Number(event.target.value))} className="h-7 w-16 rounded-md bg-white/7 px-1.5 text-[11px] text-chalk tabular-nums outline-none" />
+        </label>
+        {how === "scale" && !empty && (
+          <button type="button" onClick={() => setKeep((v) => !v)} className={clsx("min-h-7 rounded-md px-1.5 text-[10px]", keep ? "bg-glow/25 text-glow" : "bg-white/6 text-muted")}>
+            {t("keep the shape")}
+          </button>
+        )}
+      </div>
+      {how === "canvas" && !empty && (
+        <div className="mt-1.5 flex items-center gap-2">
+          <div className="grid grid-cols-3 gap-0.5" role="group" aria-label={t("where the picture sits")}>
+            {ANCHORS.map(([ax, ay]) => (
+              <button
+                key={`${ax}${ay}`}
+                type="button"
+                onClick={() => setAnchor([ax, ay])}
+                aria-label={t("anchor here")}
+                className={clsx("size-5 rounded-sm", anchor[0] === ax && anchor[1] === ay ? "bg-glow" : "bg-white/10 hover:bg-white/20")}
+              />
+            ))}
+          </div>
+          <p className="text-[9px] leading-snug text-muted/70">{t("where the picture sits on the new canvas; smaller than it is cuts it.")}</p>
+        </div>
+      )}
+      <div className="mt-1.5 flex items-center gap-1.5">
+        <button type="button" disabled={!canEdit || (w === doc.w && h === doc.h)} onClick={apply} className="min-h-8 rounded-lg bg-glow/30 px-3 text-[11px] font-semibold text-glow hover:bg-glow/40 disabled:opacity-30">
+          {t("apply")}
+        </button>
+        <p className="text-[9px] leading-snug text-muted/70">
+          {t(`up to ${limit} x ${limit} on this device.`)}
+          {megabytes > 900 ? ` ${t(`about ${megabytes} MB of memory: it may be slow.`)}` : ""}
+        </p>
+      </div>
+      {!empty && <p className="mt-1 text-[9px] text-muted/60">{t("changing the canvas folds each layer's history into a picture.")}</p>}
+    </Section>
   );
 }
 

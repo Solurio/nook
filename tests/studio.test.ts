@@ -144,7 +144,7 @@ test("symmetry, the stabiliser, and brushes kept in range", () => {
   assert.deepEqual(stabilize([0, 0], [10, 0], 0), [10, 0]);
   assert.ok(stabilize([0, 0], [10, 0], 5)[0] < 3);
   const wild = tidyBrush({ size: 9999, spacing: -1, tip: "nonsense" as never });
-  assert.equal(wild.size, 500);
+  assert.equal(wild.size, 1000);
   assert.equal(wild.spacing, 0.02);
   assert.equal(wild.tip, "round");
   assert.equal(new Set(BUILT_IN_BRUSHES.map((b) => b.id)).size, BUILT_IN_BRUSHES.length);
