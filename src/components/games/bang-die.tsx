@@ -90,7 +90,7 @@ export default function BangDie({
       type="button"
       onClick={onClick}
       disabled={!onClick}
-      title={title}
+      title={title && t(title)}
       className={clsx("relative flex shrink-0 flex-col items-center gap-0.5 disabled:cursor-default", onClick && "active:scale-95")}
     >
       <span
@@ -115,7 +115,7 @@ export default function BangDie({
           </span>
         )}
       </span>
-      {marked && <span className="max-w-16 truncate text-[9px] leading-none text-warm">{marked}</span>}
+      {marked && <span className="max-w-16 truncate text-[9px] leading-none text-warm">{t(marked)}</span>}
     </button>
   );
 }

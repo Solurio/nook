@@ -249,7 +249,7 @@ export default function Codenames({
         <p className="min-w-0 flex-1 truncate text-xs font-medium text-muted">
           {state.clue && !over ? (
             <span className="text-chalk">
-              {state.clue.word} <span className="text-muted">{t("for")}{" "}{state.clue.count}</span>
+              {state.clue.word} <span className="text-muted">{t("for {count}", { count: state.clue.count })}</span>
             </span>
           ) : (
             t(status)
@@ -283,7 +283,7 @@ export default function Codenames({
           title={t(`switch to ${PACK_NAME[state.pack === "en" ? "pt" : "en"]} and deal`)}
           className="min-h-9 shrink-0 rounded-lg px-2 py-1.5 text-[10px] font-medium text-muted transition hover:bg-white/8 hover:text-chalk disabled:opacity-40"
         >
-          {PACK_NAME[state.pack]}
+          {t(PACK_NAME[state.pack])}
         </button>
 
         <button type="button" disabled={!canEdit || busy} onClick={() => void deal(state.pack)} aria-label={t("new board")} title={t("new board")} className="grid size-9 shrink-0 place-items-center rounded-lg text-muted transition hover:bg-white/8 hover:text-chalk disabled:opacity-40 sm:size-8">

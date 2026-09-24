@@ -168,7 +168,7 @@ export default function GridItem({ item }: { item: Item<"grid"> }) {
       <g key={area.id}>
         {"circle" in shape ? <circle cx={shape.circle.cx} cy={shape.circle.cy} r={shape.circle.r} {...common} {...eraseMe} /> : <polygon points={shape.points.map((p) => p.join(",")).join(" ")} {...common} {...eraseMe} />}
         <text x={labelAt.x + 4} y={labelAt.y - 4} fontSize={fontSize} fontWeight={700} fill="#f4efe6" stroke="#100d16" strokeWidth={3} paintOrder="stroke">
-          {areaText(area, cell, data.unit)}
+          {tx(areaText(area, cell, data.unit))}
         </text>
       </g>
     );
@@ -205,7 +205,7 @@ export default function GridItem({ item }: { item: Item<"grid"> }) {
             <circle cx={drag.x} cy={drag.y} r={4} fill="#f6c177" />
             <circle cx={drag.tx} cy={drag.ty} r={4} fill="#f6c177" />
             <text x={drag.tx + 8} y={drag.ty - 8} fontSize={fontSize} fontWeight={700} fill="#f6c177" stroke="#100d16" strokeWidth={3} paintOrder="stroke">
-              {distanceText(measured, data.unit)}
+              {tx(distanceText(measured, data.unit))}
             </text>
           </g>
         )}
@@ -243,7 +243,7 @@ export default function GridItem({ item }: { item: Item<"grid"> }) {
             ] as Array<[string, number, number, number, (v: number) => void]>
           ).map(([name, value, min, max, set]) => (
             <label key={name} className="flex items-center gap-2">
-              <span className="w-9">{name}</span>
+              <span className="w-9">{tx(name)}</span>
               <input
                 type="range"
                 min={min}
@@ -268,8 +268,8 @@ export default function GridItem({ item }: { item: Item<"grid"> }) {
           <button
             key={t.tool}
             type="button"
-            title={t.label}
-            aria-label={t.label}
+            title={tx(t.label)}
+            aria-label={tx(t.label)}
             onClick={() => {
               setTool(tool === t.tool ? null : t.tool);
               setDrag(null);
@@ -303,7 +303,7 @@ export default function GridItem({ item }: { item: Item<"grid"> }) {
           onClick={() => save({ unit: nextUnit(data.unit) })}
           className="min-h-7 rounded-md px-1.5 text-[10px] text-chalk tabular-nums hover:bg-white/10 disabled:cursor-default"
         >
-          1 = {unitText(data.unit)}
+          1 = {tx(unitText(data.unit))}
         </button>
         {canEdit && (
           <button

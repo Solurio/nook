@@ -20,7 +20,7 @@ export default function ErrorBoundary({
       <div className="w-full max-w-md text-center">
         <h1 className="text-xl font-semibold">{t("Something came loose.")}</h1>
         <p className="mt-2.5 text-sm leading-relaxed text-muted">
-          {error.message || t("An unexpected error, which is not very helpful of it.")}
+          {(error.message && t(error.message)) || t("An unexpected error, which is not very helpful of it.")}
         </p>
         <div className="mt-6 flex items-center justify-center gap-2">
           <button

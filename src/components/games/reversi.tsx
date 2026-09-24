@@ -39,7 +39,7 @@ export default function Reversi({ item, state: raw }: { item: Item<"game">; stat
       turn={state.turn}
       me={name}
       order={SIDES}
-      label={(s) => `${NAME[s]} ${score[s]}`}
+      label={(s) => `${t(NAME[s])} ${score[s]}`}
       tint={(s) => TINT[s]}
       onSit={(s) => write({ ...state, seats: takeSeat(state.seats, s, name) })}
       status={status}

@@ -135,10 +135,10 @@ export default function Coin({ item, state: raw }: { item: Item<"game">; state: 
           <>
             <p className="animate-drift-in text-[20px] leading-none font-bold text-chalk">{name(latest.side)}</p>
             <p className="mt-1 text-[10px] text-muted">
-              {latest.by}{" "}{t("flipped it")}{run && run.length > 1 && (
+              {t("{by} flipped it", { by: latest.by })}{run && run.length > 1 && (
                 <>
                   {" "}
-                  · {run.length} {name(run.side)}{" "}{t("in a row")}</>
+                  {t("· {run} {side} in a row", { run: run.length, side: name(run.side) })}</>
               )}
             </p>
           </>
@@ -173,7 +173,7 @@ export default function Coin({ item, state: raw }: { item: Item<"game">; state: 
           </div>
           {(["heads", "tails"] as const).map((side) => (
             <label key={side} className="flex items-center gap-2 text-[11px] text-muted">
-              <span className="w-10">{side}</span>
+              <span className="w-10">{t(side)}</span>
               <input
                 defaultValue={side === "heads" ? state.heads : state.tails}
                 maxLength={LABEL_MAX}
@@ -189,8 +189,8 @@ export default function Coin({ item, state: raw }: { item: Item<"game">; state: 
                 key={m}
                 type="button"
                 onClick={() => void write({ ...state, metal: m })}
-                aria-label={m}
-                title={m}
+                aria-label={t(m)}
+                title={t(m)}
                 className={clsx("size-9 rounded-full", state.metal === m && "ring-2 ring-chalk ring-offset-2 ring-offset-ink-950")}
                 style={{ background: METAL[m].face }}
               />

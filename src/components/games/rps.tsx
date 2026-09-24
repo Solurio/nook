@@ -168,7 +168,7 @@ export default function Rps({ item, state: raw }: { item: Item<"game">; state: u
             >
               <span className="min-w-0 flex-1">
                 <span className={clsx("block truncate text-[11px]", chair === myChair ? "text-chalk" : "text-muted")}>
-                  {state.seats[chair] ?? <span className="text-muted/50">{tx("seat")}{" "}{index + 1}</span>}
+                  {state.seats[chair] ?? <span className="text-muted/50">{tx("seat {n}", { n: index + 1 })}</span>}
                 </span>
                 {state.playing.includes(chair) && (
                   <span className="block text-[10px] text-muted/70 tabular-nums">
@@ -226,7 +226,7 @@ export default function Rps({ item, state: raw }: { item: Item<"game">; state: u
       {/* Your hand */}
       {state.winner ? (
         <div className="flex items-center gap-2">
-          <p className="min-w-0 flex-1 text-[12px] font-semibold text-warm">{label(state.winner)}{" "}{tx("wins the match")}</p>
+          <p className="min-w-0 flex-1 text-[12px] font-semibold text-warm">{tx("{winner} wins the match", { winner: label(state.winner) })}</p>
           <button type="button" disabled={!canEdit || busy || seated.length < 2} onClick={() => void begin()} className="min-h-10 rounded-xl bg-chalk px-4 text-[12px] font-semibold text-ink-950 disabled:opacity-40">{tx("again")}</button>
         </div>
       ) : inMatch && imPlaying ? (
@@ -245,10 +245,10 @@ export default function Rps({ item, state: raw }: { item: Item<"game">; state: u
                   picked ? "ring-2 ring-chalk" : locked ? "opacity-35" : "hover:brightness-110",
                 )}
                 style={{ background: TINT[shape] }}
-                aria-label={HAND_NAME[shape]}
+                aria-label={tx(HAND_NAME[shape])}
               >
                 <RpsIcon shape={shape} className="size-8" />
-                <span className="text-[10px] font-semibold text-ink-950">{HAND_NAME[shape]}</span>
+                <span className="text-[10px] font-semibold text-ink-950">{tx(HAND_NAME[shape])}</span>
               </button>
             );
           })}

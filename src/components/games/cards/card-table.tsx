@@ -685,7 +685,7 @@ export default function CardTable({ item, state }: { item: Item<"game">; state: 
             className="absolute top-1.5 left-1.5 flex items-center gap-1 rounded-lg bg-amber-500/20 px-1.5 py-1 text-[9px] text-amber-200 ring-1 ring-amber-400/40"
           >
             <TriangleAlert className="size-3" />
-            {count.held}{" "}{t("of")}{" "}{count.expected}{" "}{t("cards -- put it right")}</button>
+            {t("{held} of {expected} cards -- put it right", { held: count.held, expected: count.expected })}</button>
         )}
       </div>
 
@@ -856,7 +856,7 @@ export default function CardTable({ item, state }: { item: Item<"game">; state: 
               <TrayButton label={t("gather and reshuffle")} onClick={() => !empty && void act((fresh) => gather(fresh))} disabled={empty}>
                 <RotateCcw className="size-4" />
               </TrayButton>
-              {stackPick.length > 1 && <span className="shrink-0 px-2 text-[10px] text-glow">{stackPick.length}{" "}{t("picked up")}</span>}
+              {stackPick.length > 1 && <span className="shrink-0 px-2 text-[10px] text-glow">{t("{stackPick} picked up", { stackPick: stackPick.length })}</span>}
               <span className="ml-auto shrink-0 px-2 text-[10px] text-muted/55">
                 {grouping ? t("tap the stacks to carry together") : t("tap to pick up · drag to move · drop on a stack to join them")}
               </span>

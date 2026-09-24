@@ -327,6 +327,8 @@ function ItemFrame({
         zIndex: item.z,
       }}
       data-item-id={item.id}
+      // The wheel is these items' own: games, documents and the shared browser scroll inside themselves.
+      data-wheel={item.kind === "game" || item.kind === "pdf" || item.kind === "cobrowse" || item.kind === "screencast" ? "own" : undefined}
       onPointerDown={(event) => {
         if (event.button !== 0 && event.pointerType === "mouse") return;
         // Waiting to link something: this tap is the other end.

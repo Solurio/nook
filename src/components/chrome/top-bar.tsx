@@ -89,7 +89,7 @@ export default function TopBar() {
             connection === "connecting" && "bg-warm animate-pulse",
             connection === "offline" && "bg-red-400",
           )}
-          title={connection === "live" ? t("connected") : connection}
+          title={connection === "live" ? t("connected") : t(connection)}
         />
       </div>
 

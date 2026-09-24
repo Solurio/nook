@@ -312,7 +312,7 @@ export default function Dominoes({
                   {who ? (
                     <span className={isMine ? "text-chalk" : "text-muted"}>{who}</span>
                   ) : (
-                    <span className="text-muted/55">{t("seat")}{" "}{index + 1}</span>
+                    <span className="text-muted/55">{t("seat {n}", { n: index + 1 })}</span>
                   )}
                 </span>
                 {(wins[chair] ?? 0) > 0 && (
@@ -353,12 +353,12 @@ export default function Dominoes({
             {myChair ? t("your hand") : passedRound ? t(`${label(state.turn)}'s hand`) : t("take a seat")}
           </span>
           {ends && (
-            <span className="text-[10px] text-muted/50">{t("ends")}{" "}{ends.left}{" "}{t("and")}{" "}{ends.right}
+            <span className="text-[10px] text-muted/50">{t("ends {left} and {right}", { left: ends.left, right: ends.right })}
             </span>
           )}
           <div className="flex-1" />
           {shownHand.length > 0 && !gated && (
-            <span className="text-[10px] text-muted/50">{handPips(shownHand)}{" "}{t("pips")}</span>
+            <span className="text-[10px] text-muted/50">{t("{shownHand} pips", { shownHand: handPips(shownHand) })}</span>
           )}
         </div>
 
@@ -369,7 +369,7 @@ export default function Dominoes({
               onClick={() => setLookingAt(state.turn)}
               className="flex min-h-11 items-center gap-2 rounded-xl bg-white/8 px-3 text-[12px] text-chalk transition active:bg-white/14"
             >
-              <Eye className="size-4" strokeWidth={2.2} />{t("pass the phone to")}{" "}{label(state.turn)}{t(", then tap to look")}</button>
+              <Eye className="size-4" strokeWidth={2.2} />{t("pass the phone to {turn}, then tap to look", { turn: label(state.turn) })}</button>
           ) : shownHand.length > 0 ? (
             shownHand.map((tile, i) => {
               const sides = playableSides(line, tile);

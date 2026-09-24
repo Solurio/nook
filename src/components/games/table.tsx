@@ -129,7 +129,7 @@ function Chair({
         {who ? (
           <span className={mine ? "text-chalk" : "text-muted"}>{who}</span>
         ) : (
-          <span className="text-muted/60">{t(label)}{" "}{t("· open")}</span>
+          <span className="text-muted/60">{t("{v} · open", { v: t(label) })}</span>
         )}
       </span>
       {mine && <span className="shrink-0 text-[10px] font-medium text-glow">{t("you")}</span>}

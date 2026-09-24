@@ -298,7 +298,7 @@ export default function Resistance({
             <Minus className="size-3" strokeWidth={2.6} />
           </button>
           <span className="tabular-nums text-chalk">{state.seatCount}</span>
-          <span>{t("chairs ·")}{" "}{spyCount(state.seatCount)}{" "}{t("spies")}</span>
+          <span>{t("chairs · {seatCount} spies", { seatCount: spyCount(state.seatCount) })}</span>
           <button type="button" disabled={!canEdit || state.seatCount >= MAX_SEATS} onClick={() => resize(1)} aria-label={t("one chair more")} className="grid size-7 place-items-center rounded transition hover:bg-white/10 hover:text-chalk disabled:opacity-30">
             <Plus className="size-3" strokeWidth={2.6} />
           </button>
@@ -365,7 +365,7 @@ export default function Resistance({
             >
               {chair === leader && dealt && <span title={t("proposes this mission")} className="size-2 shrink-0 rounded-full bg-glow" />}
               <span className="min-w-0 flex-1 truncate text-[11px]">
-                {who ? <span className={isMe ? "text-chalk" : "text-muted"}>{who}</span> : <span className="text-muted/55">{t("seat")}{" "}{index + 1}</span>}
+                {who ? <span className={isMe ? "text-chalk" : "text-muted"}>{who}</span> : <span className="text-muted/55">{t("seat {n}", { n: index + 1 })}</span>}
               </span>
               {voted && <span className="shrink-0 text-[9px] text-muted/60">{t("voted")}</span>}
               {lastVote !== undefined && (
@@ -420,7 +420,7 @@ export default function Resistance({
                 ))}
               {state.rejections > 0 && (
                 <span className="ml-auto text-[10px] text-warm">
-                  {state.rejections}{" "}{t("of")}{" "}{MAX_REJECTIONS}{" "}{t("refused")}</span>
+                  {t("{rejections} of {maxRejections} refused", { rejections: state.rejections, maxRejections: MAX_REJECTIONS })}</span>
               )}
             </div>
 
@@ -429,7 +429,7 @@ export default function Resistance({
                 {myRole(peek) === SPY ? (
                   <>
                     <p className="text-[12px] font-semibold text-[#e0655c]">{t("you are a spy")}</p>
-                    <p className="mt-0.5 text-[11px] text-muted">{t("with")}{" "}{myTeam(peek).filter((c) => c !== peek).map(label).join(", ") || t("nobody")}
+                    <p className="mt-0.5 text-[11px] text-muted">{t("with {nobody}", { nobody: myTeam(peek).filter((c) => c !== peek).map(label).join(", ") || t("nobody") })}
                     </p>
                   </>
                 ) : myRole(peek) ? (
@@ -441,14 +441,14 @@ export default function Resistance({
             )}
 
             {state.lastFails !== null && state.lastFails !== undefined && state.stage === "propose" && state.results.length > 0 && (
-              <p className="text-[10px] text-muted/70">{t("the last mission came back with")}{" "}{state.lastFails} {state.lastFails === 1 ? t("fail") : t("fails")}
+              <p className="text-[10px] text-muted/70">{t("the last mission came back with {lastFails} {what}", { lastFails: state.lastFails, what: state.lastFails === 1 ? t("fail") : t("fails") })}
               </p>
             )}
 
             {state.stage === "propose" && (
               <>
                 <p className="text-[12px] text-chalk">
-                  {label(leader)}{" "}{t("sends")}{" "}{size}{" "}{t("on mission")}{" "}{state.mission + 1}
+                  {t("{leader} sends {size} on mission {mission}", { leader: label(leader), size, mission: state.mission + 1 })}
                   {needsTwoFails(state.seatCount, state.mission) && <span className="text-warm">{" "}{t("· this one takes two to sink")}</span>}
                 </p>
                 <p className="text-[10px] text-muted/60">
@@ -462,8 +462,8 @@ export default function Resistance({
 
             {state.stage === "vote" && (
               <>
-                <p className="text-[12px] text-chalk">{t("send")}{" "}{state.team.map(label).join(", ")}?</p>
-                <p className="text-[10px] text-muted/60">{t("waiting on")}{" "}{waiting(voteSlots)}{" "}{t("· every vote stays sealed until they are all in")}</p>
+                <p className="text-[12px] text-chalk">{t("send {team}?", { team: state.team.map(label).join(", ") })}</p>
+                <p className="text-[10px] text-muted/60">{t("waiting on {voteSlots} · every vote stays sealed until they are all in", { voteSlots: waiting(voteSlots) })}</p>
                 {canEdit &&
                   chairs
                     .filter((chair) => mineToPlay(chair) && (piles?.[voteSlot(voteNo, chair)]?.size ?? 0) === 0)
@@ -484,8 +484,8 @@ export default function Resistance({
 
             {state.stage === "mission" && (
               <>
-                <p className="text-[12px] text-chalk">{state.team.map(label).join(", ")}{" "}{t("are out there")}</p>
-                <p className="text-[10px] text-muted/60">{t("waiting on")}{" "}{waiting(playSlots)}{" "}{t("· the cards come back shuffled, so only the count is known")}</p>
+                <p className="text-[12px] text-chalk">{t("{team} are out there", { team: state.team.map(label).join(", ") })}</p>
+                <p className="text-[10px] text-muted/60">{t("waiting on {playSlots} · the cards come back shuffled, so only the count is known", { playSlots: waiting(playSlots) })}</p>
                 {canEdit &&
                   state.team
                     .filter((chair) => mineToPlay(chair) && (piles?.[playSlot(state.mission, chair)]?.size ?? 0) === 0)
@@ -513,7 +513,7 @@ export default function Resistance({
       </div>
 
       <div className="flex items-center gap-2">
-        <p className="min-w-0 flex-1 truncate text-[10px] text-muted/60">{t("rebels")}{" "}{state.wins.resistance}{" "}{t("· spies")}{" "}{state.wins.spies}
+        <p className="min-w-0 flex-1 truncate text-[10px] text-muted/60">{t("rebels {resistance} · spies {spies}", { resistance: state.wins.resistance, spies: state.wins.spies })}
         </p>
         <button type="button" disabled={!canEdit || busy} onClick={() => void newGame()} aria-label={t("deal a new game")} title={t("deal a new game")} className="grid size-9 shrink-0 place-items-center rounded-lg text-muted transition hover:bg-white/8 hover:text-chalk disabled:opacity-40 sm:size-8">
           <RotateCcw className="size-3.5" strokeWidth={2.2} />

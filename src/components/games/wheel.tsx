@@ -120,7 +120,7 @@ function fitLabel(text: string, span: number): { lines: string[]; size: number }
 
 function SliceText({ arc }: { arc: PlacedArc }) {
   const { mid, span, slice } = arc;
-  const { lines, size } = useMemo(() => fitLabel(slice.label, span), [slice.label, span]);
+  const { lines, size } = useMemo(() => fitLabel(t(slice.label), span), [slice.label, span]);
   // On the left half the words would hang upside down, so that half is read
   // from the rim inwards instead.
   const flip = mid > 180;
@@ -241,14 +241,14 @@ export default function Wheel({ item, state: raw }: { item: Item<"game">; state:
       <div className="flex w-full items-center gap-1">
         <p className="min-w-0 flex-1 truncate text-[12px] font-semibold text-chalk">{state.title || t("spin the wheel")}</p>
         <span className="shrink-0 text-[10px] text-muted/60">
-          {shown.length}{" "}{t("in")}{resting > 0 ? t(`, ${resting} out`) : ""}
+          {t("{v} in{what}", { v: shown.length, what: resting > 0 ? t(`, ${resting} out`) : "" })}
         </span>
         <button
           type="button"
           onClick={() => setShelf(true)}
           className="flex min-h-9 items-center gap-1 rounded-lg px-2 text-[11px] text-muted transition hover:bg-white/8 hover:text-chalk"
         >
-          <Bookmark className="size-3" />{" "}{t("saved")}{state.saved?.length ? ` ${state.saved.length}` : ""}
+          <Bookmark className="size-3" />{" "}{t("saved{what}", { what: state.saved?.length ? ` ${state.saved.length}` : "" })}
         </button>
         <button
           type="button"
@@ -313,9 +313,9 @@ export default function Wheel({ item, state: raw }: { item: Item<"game">; state:
               className="animate-drift-in line-clamp-2 max-w-full text-[17px] leading-tight font-bold break-words"
               style={{ color: winner.color }}
             >
-              {winner.label || "?"}
+              {t(winner.label) || "?"}
             </p>
-            <p className="text-[10px] text-muted">{state.spin?.by}{" "}{t("spun it")}</p>
+            <p className="text-[10px] text-muted">{t("{by} spun it", { by: state.spin?.by })}</p>
           </>
         ) : (
           <p className="text-[11px] text-muted/60">
@@ -408,7 +408,7 @@ function SliceList({
                 style={{ background: slice.color }}
               />
               <span className="min-w-0 flex-1 text-[11px] leading-snug break-words text-chalk">
-                {slice.label || <span className="text-muted/50">{t("unnamed")}</span>}
+                {t(slice.label) || <span className="text-muted/50">{t("unnamed")}</span>}
                 {slice.weight > 1 && <span className="ml-1 text-muted/70">×{slice.weight}</span>}
               </span>
               <span className="mt-px shrink-0 text-right text-[10px] tabular-nums text-muted">
@@ -418,7 +418,7 @@ function SliceList({
                 <button
                   type="button"
                   onClick={() => onRemove(slice.id)}
-                  aria-label={`remove ${slice.label}`}
+                  aria-label={t("remove {name}", { name: t(slice.label) })}
                   className="shrink-0 text-muted/40 transition hover:text-chalk focus-visible:text-chalk"
                 >
                   <X className="size-3" />
@@ -606,7 +606,7 @@ function Editor({
             </span>
             <button
               type="button"
-              aria-label="remove"
+              aria-label={t("remove")}
               disabled={state.slices.length <= 1}
               onClick={() => void write(removeSlice(live(), slice.id))}
               className="grid size-8 shrink-0 place-items-center rounded-md text-muted hover:text-chalk disabled:opacity-30"
@@ -655,7 +655,7 @@ function Editor({
             onClick={() => void write(putBack(live()))}
             className="flex min-h-9 items-center gap-1 rounded-lg px-2 text-[11px] text-muted hover:bg-white/8 hover:text-chalk"
           >
-            <RotateCcw className="size-3" />{" "}{t("put them back (")}{state.slices.length - inPlay(state.slices).length})
+            <RotateCcw className="size-3" />{" "}{t("put them back ({slices})", { slices: state.slices.length - inPlay(state.slices).length })}
           </button>
         )}
         <button
@@ -728,7 +728,7 @@ function Shelf({
             </span>
             <button type="button" disabled={!canEdit} onClick={() => onLoad(w.id)} className="min-w-0 flex-1 truncate text-left text-[12px] text-chalk hover:underline disabled:cursor-default">
               {w.title}
-              <span className="ml-1.5 text-[10px] text-muted">{w.slices.length}{" "}{t("slices")}</span>
+              <span className="ml-1.5 text-[10px] text-muted">{t("{slices} slices", { slices: w.slices.length })}</span>
             </button>
             <button type="button" disabled={!canEdit} onClick={() => onForget(w.id)} aria-label={t(`forget ${w.title}`)} className="grid size-8 place-items-center rounded-lg text-muted hover:bg-white/8 hover:text-[#f2a4b8] disabled:opacity-30">
               <Trash2 className="size-3.5" />

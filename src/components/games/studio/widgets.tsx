@@ -28,8 +28,8 @@ export function IconButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      aria-label={label}
-      title={label}
+      aria-label={t(label)}
+      title={t(label)}
       className={clsx(
         "grid size-8 shrink-0 place-items-center rounded-lg transition select-none disabled:opacity-30 [&_svg]:size-4",
         active ? "bg-glow/25 text-glow" : danger ? "text-muted hover:bg-red-500/15 hover:text-red-300" : "text-muted hover:bg-white/10 hover:text-chalk",
@@ -60,7 +60,7 @@ export function Range({
 }) {
   return (
     <label className="flex min-w-0 items-center gap-2 text-[10px] text-muted">
-      <span className="w-20 shrink-0 truncate">{label}</span>
+      <span className="w-20 shrink-0 truncate">{t(label)}</span>
       <input
         type="range"
         min={min}
@@ -79,7 +79,7 @@ export function Range({
 /** A tall slider down the side of the canvas, for size and opacity, the way drawing apps put them. */
 export function RailSlider({ label, value, min, max, onChange, display }: { label: string; value: number; min: number; max: number; onChange: (v: number) => void; display: string }) {
   return (
-    <div className="flex flex-col items-center gap-1" title={label}>
+    <div className="flex flex-col items-center gap-1" title={t(label)}>
       <span className="text-[9px] text-muted tabular-nums">{display}</span>
       <input
         type="range"
@@ -87,12 +87,12 @@ export function RailSlider({ label, value, min, max, onChange, display }: { labe
         max={max}
         step={1}
         value={value}
-        aria-label={label}
+        aria-label={t(label)}
         onChange={(event) => onChange(Number(event.target.value))}
         onPointerDown={(event) => event.stopPropagation()}
         className="h-28 w-5 cursor-pointer accent-[#c4a7f0] [writing-mode:vertical-lr] [direction:rtl]"
       />
-      <span className="text-[8px] tracking-wide text-muted/60 uppercase">{label}</span>
+      <span className="text-[8px] tracking-wide text-muted/60 uppercase">{t(label)}</span>
     </div>
   );
 }
@@ -100,7 +100,7 @@ export function RailSlider({ label, value, min, max, onChange, display }: { labe
 export function Panel({ title, onClose, children, className }: { title: string; onClose: () => void; children: React.ReactNode; className?: string }) {
   // In the workspace, the place the panel is in draws its frame.
   const host = usePanelHost();
-  if (host) return <PanelFrame title={title} onClose={onClose}>{children}</PanelFrame>;
+  if (host) return <PanelFrame title={t(title)} onClose={onClose}>{children}</PanelFrame>;
   return (
     <div
       className={clsx("surface-raised absolute z-20 flex max-h-[92%] flex-col overflow-hidden rounded-xl shadow-2xl", className)}
@@ -108,7 +108,7 @@ export function Panel({ title, onClose, children, className }: { title: string; 
       onWheel={(event) => event.stopPropagation()}
     >
       <div className="flex shrink-0 items-center justify-between border-b border-white/8 px-2.5 py-1.5">
-        <span className="text-[11px] font-semibold text-chalk">{title}</span>
+        <span className="text-[11px] font-semibold text-chalk">{t(title)}</span>
         <button type="button" onClick={onClose} aria-label={t("close")} className="grid size-6 place-items-center rounded text-muted hover:bg-white/8 hover:text-chalk">
           <X className="size-3.5" />
         </button>

@@ -19,7 +19,7 @@ export default function RulesSheet({
   return (
     <div className="absolute inset-0 z-30 flex flex-col rounded-2xl bg-ink-950/95 p-3 backdrop-blur-sm">
       <div className="mb-2 flex shrink-0 items-center justify-between">
-        <h3 className="text-[12px] font-semibold text-chalk">{title}</h3>
+        <h3 className="text-[12px] font-semibold text-chalk">{t(title)}</h3>
         <button
           type="button"
           onClick={onClose}

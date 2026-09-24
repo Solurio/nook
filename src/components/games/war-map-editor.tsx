@@ -309,7 +309,7 @@ function MapTab({ world, locked, canEdit, change }: { world: WarWorld; locked: b
               tool === t.tool ? "bg-chalk text-ink-950" : "bg-white/6 text-muted hover:text-chalk",
             )}
           >
-            {t.icon} {t.label}
+            {t.icon} {tx(t.label)}
           </button>
         ))}
         <button
@@ -321,7 +321,7 @@ function MapTab({ world, locked, canEdit, change }: { world: WarWorld; locked: b
         >
           <Sparkles className="size-3.5" />{" "}{tx("suggest borders")}</button>
         <span className="ml-auto text-[10px] text-muted">
-          {world.territories.length}{" "}{tx("territories ·")}{" "}{borders.length}{" "}{tx("borders")}{!connected(world) && world.territories.length > 1 && <span className="text-[#f2a4b8]">{" "}{tx("· some cannot be reached")}</span>}
+          {tx("{territories} territories · {borders} borders", { territories: world.territories.length, borders: borders.length })}{!connected(world) && world.territories.length > 1 && <span className="text-[#f2a4b8]">{" "}{tx("· some cannot be reached")}</span>}
         </span>
       </div>
 
@@ -486,7 +486,7 @@ function MapTab({ world, locked, canEdit, change }: { world: WarWorld; locked: b
             {selected.shape && (
               <button type="button" disabled={!canEdit} onClick={() => change(outline(world, selected.id, undefined))} className="min-h-8 rounded-lg px-2 text-muted hover:text-chalk">{tx("no outline")}</button>
             )}
-            <span className="text-[10px] text-muted">{index.neighbors.get(selected.id)?.length ?? 0}{" "}{tx("borders")}</span>
+            <span className="text-[10px] text-muted">{tx("{selected} borders", { selected: index.neighbors.get(selected.id)?.length ?? 0 })}</span>
             <button
               type="button"
               disabled={!canEdit || locked}
@@ -558,7 +558,7 @@ function MapTab({ world, locked, canEdit, change }: { world: WarWorld; locked: b
                           setConfirmDrop(null);
                         }}
                         className="min-h-7 rounded-md bg-white/8 px-1.5 text-[10px] text-chalk"
-                      >{tx("keep its land (move to")}{" "}{world.continents.find((o) => o.id !== c.id)?.name})
+                      >{tx("keep its land (move to {continents})", { continents: world.continents.find((o) => o.id !== c.id)?.name })}
                       </button>
                     )}
                     <button
@@ -568,7 +568,7 @@ function MapTab({ world, locked, canEdit, change }: { world: WarWorld; locked: b
                         setConfirmDrop(null);
                       }}
                       className="min-h-7 rounded-md bg-[#e0655c]/25 px-1.5 text-[10px] text-[#f2a4b8]"
-                    >{tx("delete")}{count ? tx(` with its ${count}`) : ""}
+                    >{tx("delete{what}", { what: count ? tx(` with its ${count}`) : "" })}
                     </button>
                     <button type="button" onClick={() => setConfirmDrop(null)} aria-label={tx("never mind")} className="grid size-7 place-items-center text-muted">
                       <X className="size-3" />
@@ -745,7 +745,7 @@ function RulesTab({
           {specs.map((spec, i) =>
             spec.kind === "destroy" ? null : (
               <div key={i} className="flex items-center gap-2 rounded-lg bg-white/4 px-2 py-1">
-                <span className="min-w-0 flex-1 text-chalk">{describeObjective(world, encodeObjective(spec))}</span>
+                <span className="min-w-0 flex-1 text-chalk">{tx(describeObjective(world, encodeObjective(spec)))}</span>
                 <button type="button" disabled={locked} onClick={() => setSpecs(specs.filter((_, j) => j !== i))} aria-label="remove it" className="grid size-7 place-items-center text-muted hover:text-[#f2a4b8] disabled:opacity-30">
                   <X className="size-3" />
                 </button>
@@ -902,8 +902,8 @@ function SavedTab({
               <button type="button" disabled={!canEdit || locked || busy} onClick={() => void open(m.id)} className="min-w-0 flex-1 truncate text-left text-chalk hover:underline disabled:opacity-40">
                 {m.name}
               </button>
-              <span className="shrink-0 text-muted">{m.territory_count}{" "}{tx("territories")}</span>
-              {m.author && <span className="max-w-24 shrink-0 truncate text-muted/60">{tx("by")}{" "}{m.author}</span>}
+              <span className="shrink-0 text-muted">{tx("{territory_count} territories", { territory_count: m.territory_count })}</span>
+              {m.author && <span className="max-w-24 shrink-0 truncate text-muted/60">{tx("by {author}", { author: m.author })}</span>}
               {mine &&
                 (confirm === m.id ? (
                   <button

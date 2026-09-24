@@ -1,6 +1,7 @@
 "use client";
 
 import clsx from "clsx";
+import { t } from "@/lib/i18n";
 
 /**
  * A slider you can actually hit with a thumb. The visible track stays thin, but
@@ -34,8 +35,8 @@ export default function Slider({
       onChange={(event) => onChange(Number(event.target.value))}
       // Sliders live inside draggable items; the canvas must not steal the drag.
       onPointerDown={(event) => event.stopPropagation()}
-      aria-label={label}
-      title={label}
+      aria-label={t(label)}
+      title={t(label)}
       className={clsx(
         "h-7 w-full cursor-pointer appearance-none bg-transparent",
         "[&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-white/15",

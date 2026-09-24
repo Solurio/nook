@@ -398,7 +398,7 @@ export default function Uno({ item, state: raw }: { item: Item<"game">; state: u
             <div className="flex flex-col items-center gap-1 text-[10px] text-muted">
               {state.direction === 1 ? <RotateCw className="size-5 text-chalk/70" /> : <RotateCcw className="size-5 text-chalk/70" />}
               {state.color && (
-                <span className="size-4 rounded-full ring-2 ring-white/40" style={{ background: COLOR_HEX[state.color] }} title={COLOR_NAME[state.color]} />
+                <span className="size-4 rounded-full ring-2 ring-white/40" style={{ background: COLOR_HEX[state.color] }} title={t(COLOR_NAME[state.color])} />
               )}
             </div>
           </>
@@ -424,7 +424,7 @@ export default function Uno({ item, state: raw }: { item: Item<"game">; state: u
                   onClick={() => (wildFor ? void play(wildFor, c) : void chooseOpeningColor(c))}
                   className="size-14 rounded-2xl shadow-lg ring-2 ring-white/30 transition active:scale-95"
                   style={{ background: COLOR_HEX[c] }}
-                  aria-label={COLOR_NAME[c]}
+                  aria-label={t(COLOR_NAME[c])}
                 />
               ))}
             </div>
@@ -439,7 +439,7 @@ export default function Uno({ item, state: raw }: { item: Item<"game">; state: u
       <div className="min-h-[5.5rem]">
         {gated && hand.length > 0 ? (
           <button type="button" onClick={() => setLookingAt(state.turn)} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-white/8 text-[12px] text-chalk">
-            <Eye className="size-4" />{" "}{t("pass the phone to")}{" "}{label(state.turn)}{t(", then tap to look")}</button>
+            <Eye className="size-4" />{" "}{t("pass the phone to {turn}, then tap to look", { turn: label(state.turn) })}</button>
         ) : hand.length > 0 ? (
           <div className="flex gap-1 overflow-x-auto px-1 pt-3 pb-1">
             {hand.map((card, i) => {

@@ -76,7 +76,7 @@ export default function TableSetup({
     <div className="absolute inset-0 z-30 flex flex-col rounded-2xl bg-ink-950/96 backdrop-blur-sm">
       <div className="flex shrink-0 items-center gap-2 border-b border-white/8 px-3 py-2">
         <h3 className="text-[13px] font-semibold">{t("decks and chairs")}</h3>
-        <span className="text-[10px] text-muted/60">{total}{" "}{t("cards in all")}</span>
+        <span className="text-[10px] text-muted/60">{t("{total} cards in all", { total })}</span>
         <button
           type="button"
           onClick={onClose}
@@ -123,7 +123,7 @@ export default function TableSetup({
                 onClick={() => addDeck(preset)}
                 className="min-h-10 rounded-xl bg-white/6 px-2 text-left text-[11px] text-chalk transition hover:bg-white/10"
               >
-                {PRESET_NAME[preset]}
+                {t(PRESET_NAME[preset])}
               </button>
             ))}
           </div>
@@ -239,7 +239,7 @@ function DeckEditor({
             className="h-8 w-full rounded-lg bg-white/7 px-2 text-[12px] ring-1 ring-white/10 outline-none focus:ring-glow/45"
           />
           <p className="text-[10px] text-muted/60">
-            {deck.kind} · {cards.length}{" "}{t("cards")}</p>
+            {t("{kind} · {cards} cards", { kind: t(deck.kind), cards: cards.length })}</p>
         </div>
         {onRemove && (
           <button
@@ -316,7 +316,7 @@ function DeckEditor({
         <div className="flex flex-wrap items-center gap-1">
           {(["classic", "night", "rose"] as const).map((theme) => (
             <Chip key={theme} on={(deck.theme ?? "classic") === theme} onClick={() => onChange({ theme })}>
-              {theme}
+              {t(theme)}
             </Chip>
           ))}
           <Chip on={Boolean(deck.reversals)} onClick={() => onChange({ reversals: !deck.reversals })}>{t("reversals")}</Chip>
@@ -427,7 +427,7 @@ function BackEditor({ deck, onChange }: { deck: DeckDef; onChange: (patch: Parti
           on={deck.back.pattern === pattern && !deck.back.image}
           onClick={() => onChange({ back: { ...deck.back, pattern, image: undefined } })}
         >
-          {pattern}
+          {t(pattern)}
         </Chip>
       ))}
       <ImagePicker value={deck.back.image} onChange={(image) => onChange({ back: { ...deck.back, image } })} />

@@ -58,7 +58,7 @@ export const DEFAULT_OPTIONS: Options = {
 function Mini({ label, value, min, max, onChange, suffix = "" }: { label: string; value: number; min: number; max: number; onChange: (v: number) => void; suffix?: string }) {
   return (
     <label className="flex shrink-0 items-center gap-1 text-[10px] text-muted">
-      {label}
+      {tx(label)}
       <input
         type="range"
         min={min}
@@ -96,7 +96,7 @@ function Flag({ on, onClick, children, title }: { on: boolean; onClick: () => vo
   return (
     <button
       type="button"
-      title={title}
+      title={title && tx(title)}
       onClick={onClick}
       className={clsx("flex min-h-6 shrink-0 items-center gap-1 rounded-md px-1.5 text-[10px] whitespace-nowrap [&_svg]:size-3", on ? "bg-glow/25 text-glow" : "bg-white/6 text-muted hover:text-chalk")}
     >
@@ -133,7 +133,7 @@ export default function ToolOptions({
     return (
       <>
         <button type="button" onClick={onBrushes} className="flex min-h-6 shrink-0 items-center rounded-md bg-white/8 px-2 text-[10px] text-chalk hover:bg-white/12" title={tx("brushes")}>
-          {spec.name}
+          {spec.source ? spec.name : tx(spec.name)}
         </button>
         <Mini label={tx("steady")} value={options.stabilizer} min={0} max={10} onChange={(v) => set({ stabilizer: v })} />
         <label className="flex shrink-0 items-center gap-1 text-[10px] text-muted">{tx("symmetry")}<select

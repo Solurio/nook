@@ -344,7 +344,7 @@ function ThumbAction({
     <button
       type="button"
       onClick={onClick}
-      aria-label={label}
+      aria-label={t(label)}
       className={clsx(
         "flex shrink-0 flex-col items-center justify-center gap-0.5 rounded-xl transition",
         small ? "min-h-9 px-2 py-1" : "min-h-11 px-2.5",
@@ -354,7 +354,7 @@ function ThumbAction({
       )}
     >
       {children}
-      <span className="text-[9px] leading-none font-medium">{label}</span>
+      <span className="text-[9px] leading-none font-medium">{t(label)}</span>
     </button>
   );
 }
@@ -387,7 +387,7 @@ function TextControls({ item }: { item: Item<"text"> }) {
       {(["left", "center", "right"] as const).map((align) => (
         <Action
           key={align}
-          label={align}
+          label={t(align)}
           active={data.align === align}
           onClick={() => void updateData(item.id, { ...data, align })}
         >
@@ -503,8 +503,8 @@ function PicturePick({ label, onPicked }: { label: string; onPicked: (url: strin
       <button
         type="button"
         onClick={() => input.current?.click()}
-        title={label}
-        aria-label={label}
+        title={t(label)}
+        aria-label={t(label)}
         className="grid size-8 shrink-0 place-items-center rounded-xl text-muted transition hover:bg-white/8 hover:text-chalk"
       >
         <ImagePlus className="size-4" strokeWidth={2.2} />
@@ -652,8 +652,8 @@ function Action({
     <button
       type="button"
       onClick={onClick}
-      title={label}
-      aria-label={label}
+      title={t(label)}
+      aria-label={t(label)}
       className={clsx(
         "grid size-8 shrink-0 place-items-center rounded-xl transition",
         active && "bg-glow/22 text-glow",

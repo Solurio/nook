@@ -395,7 +395,7 @@ export default function Coup({ item, state: raw }: { item: Item<"game">; state: 
         faded && "opacity-35",
       )}
       style={{ background: CARD_TINT[c] }}
-      title={c}
+      title={t(c)}
     >
       {CARD_MARK[c]}
     </span>
@@ -426,7 +426,7 @@ export default function Coup({ item, state: raw }: { item: Item<"game">; state: 
         )}
         <span className="ml-auto flex items-center gap-0.5">
           <button type="button" onClick={() => setSetup(true)} disabled={!canEdit} className="flex min-h-8 items-center gap-1 rounded-lg px-1.5 hover:bg-white/8 hover:text-chalk disabled:opacity-40">
-            <Settings2 className="size-3" /> {ruleName(state.rules)}
+            <Settings2 className="size-3" /> {t(ruleName(state.rules))}
           </button>
           <button type="button" onClick={() => setManual(true)} className="flex min-h-8 items-center gap-1 rounded-lg px-1.5 hover:bg-white/8 hover:text-chalk">
             <BookOpen className="size-3" />{" "}{t("cards")}</button>
@@ -454,11 +454,11 @@ export default function Coup({ item, state: raw }: { item: Item<"game">; state: 
               )}
             >
               <span className="min-w-0 flex-1 truncate text-[11px]">
-                {who ? <span className={isMine ? "text-chalk" : "text-muted"}>{who}</span> : <span className="text-muted/55">{t("seat")}{" "}{index + 1}</span>}
+                {who ? <span className={isMine ? "text-chalk" : "text-muted"}>{who}</span> : <span className="text-muted/55">{t("seat {n}", { n: index + 1 })}</span>}
                 {(state.wins[chair] ?? 0) > 0 && <span className="ml-1 text-warm">{state.wins[chair]}</span>}
               </span>
               {player?.allegiance && (
-                <span className={clsx("shrink-0 rounded px-1 text-[9px] font-bold", player.allegiance === "loyalist" ? "bg-[#6aa9e0]/25 text-[#8bc7e8]" : "bg-[#e0655c]/25 text-[#f2a4b8]")} title={player.allegiance}>
+                <span className={clsx("shrink-0 rounded px-1 text-[9px] font-bold", player.allegiance === "loyalist" ? "bg-[#6aa9e0]/25 text-[#8bc7e8]" : "bg-[#e0655c]/25 text-[#f2a4b8]")} title={player.allegiance && t(player.allegiance)}>
                   {player.allegiance === "loyalist" ? "L" : "R"}
                 </span>
               )}
@@ -487,13 +487,13 @@ export default function Coup({ item, state: raw }: { item: Item<"game">; state: 
           </span>
           {gated ? (
             <button type="button" onClick={() => setLooking(shownChair)} className="flex min-h-8 items-center gap-1.5 rounded-lg bg-white/8 px-2.5 text-[11px] text-chalk">
-              <Eye className="size-3.5" />{" "}{t("pass the phone to")}{" "}{label(shownChair)}{t(", then tap to look")}</button>
+              <Eye className="size-3.5" />{" "}{t("pass the phone to {shownChair}, then tap to look", { shownChair: label(shownChair) })}</button>
           ) : (
             <>
               <div className="flex gap-1">
                 {shownHand.map((c, i) => (
                   <span key={i} className="flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] font-semibold text-ink-950" style={{ background: CARD_TINT[c] }}>
-                    <span className="font-mono">{CARD_MARK[c]}</span> {c}
+                    <span className="font-mono">{CARD_MARK[c]}</span> {t(c)}
                   </span>
                 ))}
               </div>
@@ -518,14 +518,14 @@ export default function Coup({ item, state: raw }: { item: Item<"game">; state: 
 
         {phase.kind === "over" && (
           <div className="my-auto text-center">
-            <p className="text-sm font-semibold text-chalk">{label(phase.winner)}{" "}{t("is the last one standing")}</p>
+            <p className="text-sm font-semibold text-chalk">{t("{winner} is the last one standing", { winner: label(phase.winner) })}</p>
             <button type="button" disabled={!canEdit || busy} onClick={() => void deal()} className="mt-2 min-h-9 rounded-lg bg-white/8 px-3 text-[11px] text-chalk">{t("deal again")}</button>
           </div>
         )}
 
         {phase.kind === "act" && (
           <>
-            <p className="text-[11px] text-muted">{label(state.turn)}{" "}{t("to move")}</p>
+            <p className="text-[11px] text-muted">{t("{turn} to move", { turn: label(state.turn) })}</p>
             {myMove && canEdit && (
               <>
                 <div className="flex flex-wrap gap-1">
@@ -537,7 +537,7 @@ export default function Coup({ item, state: raw }: { item: Item<"game">; state: 
                       onClick={() => (needsTarget(kind) || kind === "convert" ? setTarget(target === kind ? null : kind) : void act(kind))}
                       className={clsx(button, target === kind ? "bg-glow/25 text-glow" : "bg-white/8 text-chalk hover:bg-white/14")}
                     >
-                      {ACTION_LABEL[kind]}
+                      {t(ACTION_LABEL[kind])}
                     </button>
                   ))}
                 </div>
@@ -563,9 +563,9 @@ export default function Coup({ item, state: raw }: { item: Item<"game">; state: 
         {(phase.kind === "respond" || phase.kind === "blocked") && (
           <>
             <p className="text-[12px] text-chalk">
-              {phase.kind === "respond" ? describe(phase.action) : t(`${label(phase.blocker)} blocks with the ${phase.card}`)}
+              {phase.kind === "respond" ? t(describe(phase.action)) : t(`${label(phase.blocker)} blocks with the ${phase.card}`)}
             </p>
-            <p className="text-[10px] text-muted/60">{t("waiting on")}{" "}{alive.filter((c) => c !== (phase.kind === "respond" ? phase.action.by : phase.blocker) && !phase.passed.includes(c)).length}
+            <p className="text-[10px] text-muted/60">{t("waiting on {passed}", { passed: alive.filter((c) => c !== (phase.kind === "respond" ? phase.action.by : phase.blocker) && !phase.passed.includes(c)).length })}
             </p>
             {canEdit &&
               responders.map((c) => (
@@ -579,7 +579,7 @@ export default function Coup({ item, state: raw }: { item: Item<"game">; state: 
                   {phase.kind === "respond" &&
                     blockers(state, phase.action, alive).chairs.includes(c) &&
                     blockers(state, phase.action, alive).cards.map((b) => (
-                      <button key={b} type="button" disabled={busy} onClick={() => void respondBlock(c, b)} className={clsx(button, "bg-white/10 text-chalk")}>{t("block (")}{b})
+                      <button key={b} type="button" disabled={busy} onClick={() => void respondBlock(c, b)} className={clsx(button, "bg-white/10 text-chalk")}>{t(`block (${b})`)}
                       </button>
                     ))}
                   <button type="button" disabled={busy} onClick={() => void respondPass(c)} className={clsx(button, "text-muted")}>{t("allow")}</button>
@@ -591,8 +591,9 @@ export default function Coup({ item, state: raw }: { item: Item<"game">; state: 
         {phase.kind === "prove" && (
           <>
             <p className="text-[12px] text-chalk">
-              {label(phase.challenger)}{" "}{t("doubts")}{" "}{label(phase.claimant)}
-              {phase.card === "not-duke" ? t(" has no duke") : t(` has the ${phase.card}`)}
+              {phase.card === "not-duke"
+                ? t("{challenger} doubts {claimant} has no duke", { challenger: label(phase.challenger), claimant: label(phase.claimant) })
+                : t("{challenger} doubts {claimant} has the {card}", { challenger: label(phase.challenger), claimant: label(phase.claimant), card: t(phase.card) })}
             </p>
             {phase.card === "not-duke" ? (
               <div className="flex items-center gap-2">
@@ -610,12 +611,12 @@ export default function Coup({ item, state: raw }: { item: Item<"game">; state: 
                   className={clsx(button, "text-ink-950")}
                   style={{ background: CARD_TINT[phase.card] }}
                   title={shownHand.includes(phase.card) ? t("show it") : t("you do not hold one")}
-                >{t("show the")}{" "}{phase.card}
+                >{t(`show the ${phase.card}`)}
                 </button>
                 <button type="button" disabled={busy} onClick={() => void concede()} className={clsx(button, "bg-white/8 text-chalk")}>{t("give a card up")}</button>
               </div>
             ) : (
-              <p className="text-[10px] text-muted/60">{t("waiting on")}{" "}{label(phase.claimant)}</p>
+              <p className="text-[10px] text-muted/60">{t("waiting on {claimant}", { claimant: label(phase.claimant) })}</p>
             )}
           </>
         )}
@@ -623,13 +624,13 @@ export default function Coup({ item, state: raw }: { item: Item<"game">; state: 
         {phase.kind === "lose" && (
           <>
             <p className="text-[12px] text-chalk">
-              {label(phase.who)}{" "}{t("gives")}{" "}{phase.forced ? t(`up the ${phase.forced}`) : t("a card up")}
+              {phase.forced ? t(`${label(phase.who)} gives up the ${phase.forced}`) : t(`${label(phase.who)} gives a card up`)}
             </p>
             {myMove && !gated && canEdit && (
               <div className="flex flex-wrap gap-1">
                 {shownHand.map((c, i) => (
                   <button key={i} type="button" disabled={busy || (phase.forced !== undefined && c !== phase.forced)} onClick={() => void loseCard(c)} className={clsx(button, "text-ink-950")} style={{ background: CARD_TINT[c] }}>
-                    {c}
+                    {t(c)}
                   </button>
                 ))}
               </div>
@@ -640,12 +641,12 @@ export default function Coup({ item, state: raw }: { item: Item<"game">; state: 
         {phase.kind === "guess" && (
           <>
             <p className="text-[12px] text-chalk">
-              {label(phase.action.by)}{" "}{t("names a card")}{" "}{label(phase.action.target ?? "")}{" "}{t("holds")}</p>
+              {t(`${label(phase.action.by)} names a card ${label(phase.action.target ?? "")} holds`)}</p>
             {myMove && canEdit && (
               <div className="flex flex-wrap gap-1">
                 {characters(state.rules).map((c) => (
                   <button key={c} type="button" disabled={busy} onClick={() => void guess(c)} className={clsx(button, "text-ink-950")} style={{ background: CARD_TINT[c] }}>
-                    {c}
+                    {t(c)}
                   </button>
                 ))}
               </div>
@@ -671,7 +672,7 @@ export default function Coup({ item, state: raw }: { item: Item<"game">; state: 
                       className={clsx(button, "text-ink-950", chosen.includes(String(i)) ? "ring-2 ring-chalk" : "opacity-80")}
                       style={{ background: CARD_TINT[c] }}
                     >
-                      {c}
+                      {t(c)}
                     </button>
                   ))}
                 </div>
@@ -684,11 +685,11 @@ export default function Coup({ item, state: raw }: { item: Item<"game">; state: 
         {phase.kind === "examine" && (
           <>
             <p className="text-[12px] text-chalk">
-              {label(phase.who)}{" "}{t("examines")}{" "}{label(phase.target)}{t(": pick a card to show them, and only them")}</p>
+              {t("{who} examines {target}: pick a card to show them, and only them", { who: label(phase.who), target: label(phase.target) })}</p>
             {myMove && !gated && canEdit && (
               <div className="flex flex-wrap gap-1">
                 {shownHand.map((c, i) => (
-                  <button key={i} type="button" disabled={busy} onClick={() => void showToInquisitor(c)} className={clsx(button, "text-ink-950")} style={{ background: CARD_TINT[c] }}>{t("show the")}{" "}{c}
+                  <button key={i} type="button" disabled={busy} onClick={() => void showToInquisitor(c)} className={clsx(button, "text-ink-950")} style={{ background: CARD_TINT[c] }}>{t(`show the ${c}`)}
                   </button>
                 ))}
               </div>
@@ -698,11 +699,11 @@ export default function Coup({ item, state: raw }: { item: Item<"game">; state: 
 
         {phase.kind === "judge" && (
           <>
-            <p className="text-[12px] text-chalk">{label(phase.who)}{" "}{t("has seen one of")}{" "}{label(phase.target)}{t("'s cards")}</p>
+            <p className="text-[12px] text-chalk">{t("{who} has seen one of {target}'s cards", { who: label(phase.who), target: label(phase.target) })}</p>
             {owns(phase.who) && canEdit && (
               <>
                 {(mine[shownSlot(phase.who)] as Card[] | undefined)?.[0] && (
-                  <p className="text-[11px] text-muted">{t("they showed you the")}{" "}<b className="text-chalk">{(mine[shownSlot(phase.who)] as Card[])[0]}</b>
+                  <p className="text-[11px] text-muted">{t("they showed you the")}{" "}<b className="text-chalk">{t((mine[shownSlot(phase.who)] as Card[])[0])}</b>
                   </p>
                 )}
                 <div className="flex flex-wrap gap-1">
@@ -716,11 +717,11 @@ export default function Coup({ item, state: raw }: { item: Item<"game">; state: 
 
         {phase.kind === "swap" && (
           <>
-            <p className="text-[12px] text-chalk">{label(phase.who)}{" "}{t("swaps the card they showed for one from the court")}</p>
+            <p className="text-[12px] text-chalk">{t("{who} swaps the card they showed for one from the court", { who: label(phase.who) })}</p>
             {myMove && !gated && canEdit && (
               <div className="flex flex-wrap gap-1">
                 {shownHand.map((c, i) => (
-                  <button key={i} type="button" disabled={busy} onClick={() => void swapCard(c)} className={clsx(button, "text-ink-950")} style={{ background: CARD_TINT[c] }}>{t("swap the")}{" "}{c}
+                  <button key={i} type="button" disabled={busy} onClick={() => void swapCard(c)} className={clsx(button, "text-ink-950")} style={{ background: CARD_TINT[c] }}>{t(`swap the ${c}`)}
                   </button>
                 ))}
               </div>
@@ -730,7 +731,7 @@ export default function Coup({ item, state: raw }: { item: Item<"game">; state: 
       </div>
 
       <div className="flex items-center gap-2">
-        <p className="min-w-0 flex-1 truncate text-[10px] text-muted/60">{state.log.at(-1) ?? t("two cards each, and nobody has to tell the truth")}</p>
+        <p className="min-w-0 flex-1 truncate text-[10px] text-muted/60">{state.log.length ? t(state.log[state.log.length - 1]) : t("two cards each, and nobody has to tell the truth")}</p>
         <button type="button" disabled={!canEdit || busy} onClick={() => void deal()} aria-label={t("new game")} title={t("new game")} className="grid size-9 shrink-0 place-items-center rounded-lg text-muted transition hover:bg-white/8 hover:text-chalk disabled:opacity-40 sm:size-8">
           <RotateCcw className="size-3.5" strokeWidth={2.2} />
         </button>
@@ -795,7 +796,7 @@ function RulesSetup({
               JSON.stringify(draft) === JSON.stringify(PRESETS[preset]) ? "bg-chalk text-ink-950" : "bg-white/8 text-chalk",
             )}
           >
-            {PRESET_NAME[preset]}
+            {t(PRESET_NAME[preset])}
           </button>
         ))}
       </div>
@@ -815,7 +816,7 @@ function RulesSetup({
           >
             <span className={clsx("mt-0.5 size-4 shrink-0 rounded border", draft[key] ? "border-glow bg-glow" : "border-white/30")} />
             <span>
-              <b>{title}</b>
+              <b>{t(title)}</b>
               <br />
               <span className="text-[10px]">{t(hint)}</span>
             </span>
@@ -849,10 +850,10 @@ function Manual({ rules, onClose }: { rules: CoupRules; onClose: () => void }) {
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-[11px] font-semibold" style={{ color: CARD_TINT[c] }}>
-                {c} <span className="font-mono text-muted/60">{CARD_MARK[c]}</span>
+                {t(c)} <span className="font-mono text-muted/60">{CARD_MARK[c]}</span>
               </p>
-              <p className="text-[10px]">{guide.does}</p>
-              <p className="text-[10px] text-muted/60">{guide.stops}</p>
+              <p className="text-[10px]">{t(guide.does)}</p>
+              <p className="text-[10px] text-muted/60">{t(guide.stops)}</p>
             </div>
           </div>
         );
@@ -872,7 +873,7 @@ function Manual({ rules, onClose }: { rules: CoupRules; onClose: () => void }) {
       {rules.guess && (
         <div className="border-t border-white/8 pt-2">
           <h4>{t("guessing")}</h4>
-          <p>{t("To knock a card out with a coup or an assassination, name the character you think they hold. Right, and they lose that card; wrong, and the action is spent for nothing.")}{rules.mode === "duel" && t(" At a table of two, whoever goes first starts with one coin.")}
+          <p>{t("To knock a card out with a coup or an assassination, name the character you think they hold. Right, and they lose that card; wrong, and the action is spent for nothing.{extra}", { extra: rules.mode === "duel" ? t(" At a table of two, whoever goes first starts with one coin.") : "" })}
           </p>
         </div>
       )}

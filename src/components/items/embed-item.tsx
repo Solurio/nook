@@ -149,7 +149,7 @@ export default function EmbedItem({
               className="min-w-0 flex-1 truncate text-left text-[11px] text-muted transition hover:text-chalk disabled:hover:text-muted"
             >
               {title ?? safeHost(url)}
-              {openedBy && <span className="text-muted/50"> {"·"}{" "}{t("opened by")}{" "}{openedBy}</span>}
+              {openedBy && <span className="text-muted/50"> {t("· opened by {openedBy}", { openedBy })}</span>}
             </button>
 
             <button

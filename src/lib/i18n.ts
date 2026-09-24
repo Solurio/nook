@@ -29,9 +29,9 @@ let chosen: Lang = "en";
 /** The table the interface is being drawn with right now. */
 let table: Table | null = null;
 
-export type Vars = Record<string, string | number>;
+export type Vars = Record<string, string | number | null | undefined>;
 
-const fill = (text: string, vars: Vars) => text.replace(/\{(\w+)\}/g, (whole, name: string) => (name in vars ? String(vars[name]) : whole));
+const fill = (text: string, vars: Vars) => text.replace(/\{(\w+)\}/g, (whole, name: string) => (name in vars ? String(vars[name] ?? "") : whole));
 
 /**
  * Phrases that have something filled in -- "{name} is thinking" -- worked out
@@ -42,6 +42,8 @@ interface Pattern {
   match: RegExp;
   names: string[];
   into: string;
+  /** The pattern has words of its own, not just blanks and punctuation. */
+  worded: boolean;
 }
 const patterns = new WeakMap<Table, Pattern[]>();
 const answers = new WeakMap<Table, Map<string, string>>();
@@ -64,7 +66,7 @@ function patternsOf(of: Table): Pattern[] {
         return part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       })
       .join("");
-    list.push({ match: new RegExp(`^${source}$`, "s"), names, into });
+    list.push({ match: new RegExp(`^${source}$`, "s"), names, into, worded: /[A-Za-z]{2}/.test(key.replace(/\{\w+\}/g, "")) });
   }
   // The longer the fixed part, the surer the match.
   list.sort((a, b) => b.match.source.length - a.match.source.length);
@@ -72,9 +74,27 @@ function patternsOf(of: Table): Pattern[] {
   return list;
 }
 
-function lookUp(of: Table, text: string): string {
+/**
+ * A phrase's translation: said as it is, or matched by the shape of one
+ * with blanks, the blanks' own words translated in turn -- "{who}: {action}"
+ * with "coup (7)" in it. Only worded shapes are tried inside a blank, so a
+ * name is never taken apart.
+ */
+function translate(of: Table, text: string, depth: number): string {
   const exact = of[text];
   if (exact) return exact;
+  for (const p of patternsOf(of)) {
+    if (depth > 0 && !p.worded) continue;
+    const hit = p.match.exec(text);
+    if (!hit) continue;
+    const vars: Vars = {};
+    p.names.forEach((name, i) => (vars[name] = depth < 3 ? translate(of, hit[i + 1], depth + 1) : (of[hit[i + 1]] ?? hit[i + 1])));
+    return fill(p.into, vars);
+  }
+  return text;
+}
+
+function lookUp(of: Table, text: string): string {
   let cache = answers.get(of);
   if (!cache) {
     cache = new Map();
@@ -82,15 +102,14 @@ function lookUp(of: Table, text: string): string {
   }
   const known = cache.get(text);
   if (known !== undefined) return known;
-  let out = text;
-  for (const p of patternsOf(of)) {
-    const hit = p.match.exec(text);
-    if (!hit) continue;
-    const vars: Vars = {};
-    // What was filled in may be a phrase of its own: "{what} is out" with "the eight".
-    p.names.forEach((name, i) => (vars[name] = of[hit[i + 1]] ?? hit[i + 1]));
-    out = fill(p.into, vars);
-    break;
+  let out = translate(of, text, 0);
+  // " (inverted)" is the phrase "(inverted)" with a space to go after something.
+  if (out === text) {
+    const edges = /^(\s*)([\s\S]*?)(\s*)$/.exec(text);
+    if (edges && (edges[1] || edges[3]) && edges[2]) {
+      const inner = translate(of, edges[2], 0);
+      if (inner !== edges[2]) out = edges[1] + inner + edges[3];
+    }
   }
   if (cache.size > 4000) cache.clear();
   cache.set(text, out);
@@ -106,9 +125,21 @@ function lookUp(of: Table, text: string): string {
 export function t(text: string, vars?: Vars): string {
   if (typeof text !== "string") return text;
   let out = table && text ? lookUp(table, text) : text;
+  if (missing && table && out === text && /[A-Za-z]{2}/.test(text)) missing.set(text, (missing.get(text) ?? 0) + 1);
   if (vars) out = fill(out, vars);
   return out;
 }
+
+/**
+ * While developing, every phrase asked for in another language that had no
+ * translation, as window.__nookMissing, for finding the gaps.
+ */
+const missing: Map<string, number> | null =
+  process.env.NODE_ENV !== "production" && typeof window !== "undefined"
+    ? ((window as unknown as { __nookMissing?: Map<string, number> }).__nookMissing ??= new Map())
+    : null;
+// And the table in use, to check what is on screen against it.
+if (missing) (window as unknown as { __nookTable?: () => Table | null }).__nookTable = () => table;
 
 async function fetchTable(lang: Lang): Promise<Table> {
   const have = loaded[lang];

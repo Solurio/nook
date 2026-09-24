@@ -196,7 +196,7 @@ export default function Spyfall({ item, state }: { item: Item<"game">; state: Sp
         </button>
 
         <span className="ml-auto flex items-center gap-1.5">
-          <span className="text-muted/50">{t("spy")}{" "}{state.wins.spy}{" "}{t("· table")}{" "}{state.wins.table}
+          <span className="text-muted/50">{t("spy {spy} · table {table}", { spy: state.wins.spy, table: state.wins.table })}
           </span>
           <span className={clsx("tabular-nums", expired ? "font-semibold text-warm" : "text-chalk")}>
             {clock(left)}
@@ -246,7 +246,7 @@ export default function Spyfall({ item, state }: { item: Item<"game">; state: Sp
                 {who ? (
                   <span className={isMine ? "text-chalk" : "text-muted"}>{who}</span>
                 ) : (
-                  <span className="text-muted/55">{t("seat")}{" "}{index + 1}</span>
+                  <span className="text-muted/55">{t("seat {n}", { n: index + 1 })}</span>
                 )}
               </span>
               {called && dealt && (
@@ -273,7 +273,7 @@ export default function Spyfall({ item, state }: { item: Item<"game">; state: Sp
                 <p className="text-[11px] text-muted/60">{t("everyone was at the")}</p>
                 <p className="text-sm font-semibold text-chalk">{end.place ?? "?"}</p>
                 <p className="mt-1 text-[11px] text-warm">
-                  {end.spy ? label(end.spy) : t("somebody")}{" "}{t("was the spy")}</p>
+                  {t("{what} was the spy", { what: end.spy ? label(end.spy) : t("somebody") })}</p>
               </>
             )}
           </div>
@@ -307,8 +307,8 @@ export default function Spyfall({ item, state }: { item: Item<"game">; state: Sp
 
             {peek && (
               <div className="rounded-xl bg-[#f3ead7] p-3 text-center text-[#2a2118] shadow-lg">
-                <p className="text-sm font-semibold">{briefing(peek).title}</p>
-                <p className="mt-0.5 text-[11px] opacity-75">{briefing(peek).body}</p>
+                <p className="text-sm font-semibold">{t(briefing(peek).title)}</p>
+                <p className="mt-0.5 text-[11px] opacity-75">{t(briefing(peek).body)}</p>
               </div>
             )}
 
@@ -337,7 +337,7 @@ export default function Spyfall({ item, state }: { item: Item<"game">; state: Sp
           className="flex min-w-0 flex-1 items-center gap-1.5 truncate rounded-lg px-1.5 py-1 text-left text-[10px] text-muted transition hover:bg-white/8 hover:text-chalk"
         >
           <MapPin className="size-3 shrink-0" strokeWidth={2.2} />
-          <span className="truncate">{t("all")}{" "}{pack.length}{" "}{t("places")}</span>
+          <span className="truncate">{t("all {pack} places", { pack: pack.length })}</span>
         </button>
         <button
           type="button"

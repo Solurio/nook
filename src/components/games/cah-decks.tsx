@@ -128,7 +128,7 @@ export function DeckPicker({
               onChange={() => onPack(id)}
               className="size-4 accent-warm"
             />
-            <span className="text-chalk">{PACKS[id].name}</span>
+            <span className="text-chalk">{tx(PACKS[id].name)}</span>
             <Badge adult={PACKS[id].adult} />
             <span className="ml-auto text-muted/60 tabular-nums">
               {PACKS[id].black.length} / {PACKS[id].white.length}
@@ -176,8 +176,8 @@ export function DeckPicker({
                 />
                 <span className="min-w-0 truncate text-chalk">{d.name}</span>
                 <Badge adult={d.adult} />
-                <span className="shrink-0 text-muted/50">{DECK_LANGUAGES[d.language] ?? d.language}</span>
-                {d.author && <span className="min-w-0 truncate text-muted/50">{tx("by")}{" "}{d.author}</span>}
+                <span className="shrink-0 text-muted/50">{tx(DECK_LANGUAGES[d.language] ?? d.language)}</span>
+                {d.author && <span className="min-w-0 truncate text-muted/50">{tx("by {author}", { author: d.author })}</span>}
                 <span className="ml-auto shrink-0 text-muted/60 tabular-nums">
                   {d.black_count} / {d.white_count}
                 </span>
@@ -320,7 +320,7 @@ export function DeckEditor({
         >
           {(Object.keys(DECK_LANGUAGES) as DeckLanguage[]).map((l) => (
             <option key={l} value={l} className="bg-ink-950">
-              {DECK_LANGUAGES[l]}
+              {tx(DECK_LANGUAGES[l])}
             </option>
           ))}
         </select>
@@ -364,7 +364,7 @@ export function DeckEditor({
           <option value="" className="bg-ink-950">{tx("start from a pack...")}</option>
           {(Object.keys(PACKS) as PackId[]).map((id) => (
             <option key={id} value={id} className="bg-ink-950">
-              {PACKS[id].name}
+              {tx(PACKS[id].name)}
             </option>
           ))}
         </select>
@@ -398,7 +398,7 @@ export function DeckEditor({
             />
             <div className="flex items-center gap-1.5 text-[10px] text-muted">
               {editing !== null ? tx("changing a card -- Enter to keep it, Esc to leave it") : tx("Enter adds it")}
-              {side === "black" && text.trim() && <span className="text-muted/70">{tx("· asks for")}{" "}{pickOf(text.replace(/_+/g, "____"))}</span>}
+              {side === "black" && text.trim() && <span className="text-muted/70">{tx("· asks for {g}", { g: pickOf(text.replace(/_+/g, "____")) })}</span>}
               <button type="button" disabled={!text.trim()} onClick={commit} className="ml-auto min-h-7 rounded-lg bg-chalk px-3 font-semibold text-ink-950 disabled:opacity-35">
                 {editing !== null ? tx("keep") : tx("add")}
               </button>
@@ -438,7 +438,7 @@ export function DeckEditor({
         {loading ? (
           <p className="p-2 text-[11px] text-muted">{tx("fetching the deck...")}</p>
         ) : cards.length === 0 ? (
-          <p className="p-2 text-[11px] text-muted/60">{tx("no")}{" "}{side === "black" ? tx("questions") : tx("answers")}{" "}{tx("yet.")}</p>
+          <p className="p-2 text-[11px] text-muted/60">{tx("no {what} yet.", { what: side === "black" ? tx("questions") : tx("answers") })}</p>
         ) : (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(7rem,1fr))] gap-1.5">
             {cards.map((card, i) => (
@@ -477,9 +477,9 @@ export function DeckEditor({
 
       <div className="flex flex-wrap items-center gap-2 text-[10px] text-muted">
         <span>
-          {draft.black.length}{" "}{tx("questions,")}{" "}{draft.white.length}{" "}{tx("answers")}{draft.adult && " · 18+"}
+          {tx("{black} questions, {white} answers{extra}", { black: draft.black.length, white: draft.white.length, extra: draft.adult ? " · 18+" : "" })}
         </span>
-        {(error || problem) && <span className="text-[#f2a4b8]">{error ?? problem}</span>}
+        {(error || problem) && <span className="text-[#f2a4b8]">{tx(error ?? problem ?? "")}</span>}
         <span className="ml-auto flex items-center gap-1.5">
           {owned && userId && (
             <button type="button" disabled={busy} onClick={() => void remove()} className="flex min-h-9 items-center gap-1 rounded-xl px-2.5 text-[#f2a4b8] hover:bg-[#e0655c]/15">

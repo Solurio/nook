@@ -174,7 +174,7 @@ export default function Dice({ item, state: raw }: { item: Item<"game">; state: 
       </form>
 
       <p className="-mt-1 min-h-4 truncate px-1 text-[10px] text-muted/70">
-        {error ?? (parsed.ok && odds
+        {(error && t(error)) ?? (parsed.ok && odds
           ? t(`${odds.lo === -Infinity ? "?" : odds.lo} to ${odds.hi === Infinity ? "no ceiling" : odds.hi} · averages ${round1(odds.mean)}`)
           : expr.trim()
             ? (parsed as { error: string }).error
@@ -325,7 +325,7 @@ function Landed({ roll, tumble }: { roll: DiceRoll; tumble: boolean }) {
         <p className="text-[34px] leading-none font-bold tabular-nums text-chalk">{roll.total}</p>
         <p className="mt-1 text-[10px] text-muted">
           <span style={{ color: roll.tint }}>{roll.by}</span> · <span className="font-mono">{roll.label ?? roll.expr}</span>
-          {average !== null && dice.length > 1 && <> · {round1(average)}{" "}{t("a die")}</>}
+          {average !== null && dice.length > 1 && <> {t("· {average} a die", { average: round1(average) })}</>}
         </p>
       </div>
     </>

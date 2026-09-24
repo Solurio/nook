@@ -202,7 +202,7 @@ export default function Landing() {
 
             {error && (
               <p className="mt-5 max-w-lg rounded-xl bg-red-500/10 px-4 py-3 text-xs text-red-300 ring-1 ring-red-500/25">
-                {error}
+                {t(error)}
               </p>
             )}
           </div>

@@ -185,7 +185,7 @@ export default function CobrowseItem({
             {busy ? t("opening") : data.status === "ended" ? t("open it again") : t("open it together")}
           </button>
           {error && error !== "not-configured" && (
-            <p className="text-[11px] text-red-300">{error}</p>
+            <p className="text-[11px] text-red-300">{t(error)}</p>
           )}
         </form>
       ) : (

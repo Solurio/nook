@@ -177,13 +177,11 @@ export default function LayersPanel({
                   />
                 ) : (
                   <p onDoubleClick={() => canEdit && setRenaming(layer.id)} className="truncate text-[11px] text-chalk" title={t("double-click to rename")}>
-                    {layer.name}
+                    {t(layer.name)}
                   </p>
                 )}
                 <p className="truncate text-[9px] text-muted">
-                  {BLENDS.find((b) => b.id === (layer.blend ?? "source-over"))?.name} · {Math.round(layer.opacity * 100)}%
-                  {layer.clip ? t(" · clipped") : ""}
-                  {layer.alphaLock ? t(" · alpha lock") : ""} · {opCounts[layer.id] ?? 0}{" "}{t("ops")}</p>
+                  {t("{over} · {opacity}%{what}{what2} · {layer} ops", { over: t(BLENDS.find((b) => b.id === (layer.blend ?? "source-over"))?.name ?? ""), opacity: Math.round(layer.opacity * 100), what: layer.clip ? t(" · clipped") : "", what2: layer.alphaLock ? t(" · alpha lock") : "", layer: opCounts[layer.id] ?? 0 })}</p>
               </div>
               <button
                 type="button"
@@ -265,7 +263,7 @@ function Toggle({ on, onClick, children, title, disabled }: { on: boolean; onCli
     <button
       type="button"
       onClick={onClick}
-      title={title}
+      title={t(title)}
       disabled={disabled}
       className={clsx("flex min-h-7 items-center gap-1 rounded-md px-2 text-[10px] disabled:opacity-30", on ? "bg-glow/25 text-glow" : "bg-white/6 text-muted hover:text-chalk")}
     >

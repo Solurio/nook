@@ -145,7 +145,7 @@ export default function Bomb({ item, state: raw }: { item: Item<"game">; state: 
         </span>
         <span className="ml-auto flex items-center gap-0.5">
           {(Object.keys(LANGUAGE_NAME) as Language[]).map((lang) => (
-            <button key={lang} type="button" disabled={!canEdit || playing} onClick={() => void write({ ...state, language: lang })} className={clsx("min-h-7 rounded-md px-1.5 uppercase disabled:opacity-60", state.language === lang ? "bg-white/12 text-chalk" : "hover:bg-white/8")} title={LANGUAGE_NAME[lang]}>
+            <button key={lang} type="button" disabled={!canEdit || playing} onClick={() => void write({ ...state, language: lang })} className={clsx("min-h-7 rounded-md px-1.5 uppercase disabled:opacity-60", state.language === lang ? "bg-white/12 text-chalk" : "hover:bg-white/8")} title={tx(LANGUAGE_NAME[lang])}>
               {lang}
             </button>
           ))}
@@ -170,7 +170,7 @@ export default function Bomb({ item, state: raw }: { item: Item<"game">; state: 
             >
               {playing && state.turn === chair && <BombIcon className="size-4 shrink-0 text-[#e0655c]" />}
               <span className={clsx("min-w-0 flex-1 truncate text-[11px]", chair === myChair ? "text-chalk" : "text-muted")}>
-                {state.seats[chair] ?? <span className="text-muted/50">{tx("seat")}{" "}{index + 1}</span>}
+                {state.seats[chair] ?? <span className="text-muted/50">{tx("seat {n}", { n: index + 1 })}</span>}
                 {(state.wins[chair] ?? 0) > 0 && <span className="ml-1 text-warm">{state.wins[chair]}</span>}
               </span>
               {inGame && (
@@ -203,18 +203,18 @@ export default function Bomb({ item, state: raw }: { item: Item<"game">; state: 
               </span>
             </div>
             <p className="text-[11px] text-muted">
-              {label(state.turn)}{tx("'s bomb")}{state.last && (
+              {tx("{who}'s bomb", { who: label(state.turn) })}{state.last && (
                 <>
                   {" "}
-                  · {label(state.last.chair)}{" "}{tx("said")}{" "}<b className="text-chalk">{state.last.word}</b>
+                  {tx("· {chair} said", { chair: label(state.last.chair) })}{" "}<b className="text-chalk">{state.last.word}</b>
                 </>
               )}
             </p>
-            {boom && state.lastBang && <p className="text-[12px] font-bold text-[#f2a4b8]">{tx("BOOM --")}{" "}{label(state.lastBang.chair)}{" "}{tx("loses a life")}</p>}
+            {boom && state.lastBang && <p className="text-[12px] font-bold text-[#f2a4b8]">{tx("BOOM -- {chair} loses a life", { chair: label(state.lastBang.chair) })}</p>}
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2 text-center">
-            {state.winner && <p className="text-sm font-semibold text-warm">{label(state.winner)}{" "}{tx("is the last one standing")}</p>}
+            {state.winner && <p className="text-sm font-semibold text-warm">{tx("{winner} is the last one standing", { winner: label(state.winner) })}</p>}
             <p className="max-w-64 text-[11px] text-muted/70">{tx("type a five-letter word with the letters on the bomb before it goes off -- a real one, it is checked. Everyone who sits down plays; with nobody sitting, every chair plays from this screen.")}</p>
             <button type="button" disabled={!canEdit || !ready} onClick={() => begin()} className="min-h-10 rounded-xl bg-chalk px-4 text-[12px] font-semibold text-ink-950 disabled:opacity-40">
               {!ready ? tx("opening the dictionary...") : state.winner ? tx("again") : tx("light it")}
@@ -260,7 +260,7 @@ export default function Bomb({ item, state: raw }: { item: Item<"game">; state: 
           <button type="submit" disabled={!holding || !word.trim()} className="h-11 rounded-xl bg-chalk px-4 text-[12px] font-semibold text-ink-950 disabled:opacity-40">{tx("go")}</button>
         </form>
       )}
-      {why && <p className="-mt-1 text-[10px] text-[#f2a4b8]">{why}</p>}
+      {why && <p className="-mt-1 text-[10px] text-[#f2a4b8]">{tx(why)}</p>}
     </div>
   );
 }

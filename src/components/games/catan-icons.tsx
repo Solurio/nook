@@ -1,6 +1,7 @@
 "use client";
 
 import type { Resource, Terrain } from "@/lib/catan";
+import { t } from "@/lib/i18n";
 
 export const RESOURCE_COLOR: Record<Resource, string> = {
   wood: "#3f8f4a",
@@ -78,7 +79,7 @@ export function ResourceGlyph({ r, color = "currentColor" }: { r: Resource; colo
 /** A resource on a little card, with a count. */
 export function ResourceChip({ r, n, size = 22, dim }: { r: Resource; n?: number; size?: number; dim?: boolean }) {
   return (
-    <span className="relative inline-grid place-items-center" style={{ width: size, height: size * 1.3, opacity: dim ? 0.35 : 1 }} title={RESOURCE_NAME[r]}>
+    <span className="relative inline-grid place-items-center" style={{ width: size, height: size * 1.3, opacity: dim ? 0.35 : 1 }} title={t(RESOURCE_NAME[r])}>
       <svg viewBox="0 0 16 21" className="size-full" aria-hidden>
         <rect x="0.5" y="0.5" width="15" height="20" rx="2.5" fill="#f4efe6" stroke="rgba(0,0,0,0.25)" />
         <g transform="translate(0 2.5)">

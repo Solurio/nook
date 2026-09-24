@@ -352,7 +352,7 @@ export default function Cah({ item, state: raw }: { item: Item<"game">; state: u
               {czar && <Crown className="size-3 text-warm" />}
               {done && <Check className="size-3 text-glow" />}
               <span className={clsx("max-w-24 truncate", chair === myChair ? "text-chalk" : "text-muted")}>
-                {state.seats[chair] ?? <span className="text-muted/50">{tx("seat")}{" "}{index + 1}</span>}
+                {state.seats[chair] ?? <span className="text-muted/50">{tx("seat {n}", { n: index + 1 })}</span>}
               </span>
               {(playing || state.phase === "over") && <span className="tabular-nums text-warm">{state.points[chair] ?? 0}</span>}
             </button>
@@ -372,7 +372,7 @@ export default function Cah({ item, state: raw }: { item: Item<"game">; state: u
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 overflow-y-auto text-center">
           {state.phase === "over" && state.champion && (
             <div className="flex flex-col items-center gap-2">
-              <p className="text-sm font-semibold text-warm">{label(state.champion)}{" "}{tx("wins,")}{" "}{state.points[state.champion]}{" "}{tx("to the goal of")}{" "}{state.goal}</p>
+              <p className="text-sm font-semibold text-warm">{tx("{champion} wins, {points} to the goal of {goal}", { champion: label(state.champion), points: state.points[state.champion], goal: state.goal })}</p>
               {state.picked && answerOf(state, state.picked) && (
                 <div className="w-64">
                   <BlackCard prompt={prompt} answers={answerOf(state, state.picked) ?? []} small />
@@ -383,11 +383,11 @@ export default function Cah({ item, state: raw }: { item: Item<"game">; state: u
           {picker}
           <div className="flex flex-col gap-0.5 text-[11px] text-muted/70">
             {(state.custom.black.length > 0 || state.custom.white.length > 0) && (
-              <p>{tx("this table's own cards:")}{" "}{state.custom.black.length} / {state.custom.white.length} ·{" "}
+              <p>{tx("this table's own cards: {black} / {white} ·", { black: state.custom.black.length, white: state.custom.white.length })}{" "}
                 <button type="button" disabled={!canEdit} onClick={() => void write({ ...state, custom: { black: [], white: [] } })} className="underline-offset-2 hover:underline">{tx("leave them out")}</button>
               </p>
             )}
-            <p>{tx("playing with about")}{" "}{counts.black}{" "}{tx("questions and")}{" "}{counts.white}{" "}{tx("answers")}</p>
+            <p>{tx("playing with about {black} questions and {white} answers", { black: counts.black, white: counts.white })}</p>
           </div>
           <div className="flex items-center gap-1 text-[11px] text-muted">{tx("first to")}{GOALS.map((g) => (
               <button
@@ -401,7 +401,7 @@ export default function Cah({ item, state: raw }: { item: Item<"game">; state: u
               </button>
             ))}
           </div>
-          {(problem || deckIssue) && <p className="max-w-72 text-[11px] text-[#f2a4b8]">{problem ?? deckIssue}</p>}
+          {(problem || deckIssue) && <p className="max-w-72 text-[11px] text-[#f2a4b8]">{tx(problem ?? deckIssue ?? "")}</p>}
           <button
             type="button"
             disabled={!canEdit || busy || Boolean(deckIssue)}
@@ -419,13 +419,12 @@ export default function Cah({ item, state: raw }: { item: Item<"game">; state: u
             <div className="flex flex-col gap-1.5 text-[11px] text-muted">
               <p>
                 <Crown className="mr-1 inline size-3 text-warm" />
-                <b className="text-chalk">{label(state.czar)}</b>{" "}{tx("is the czar")}{czarHere && myChair === state.czar ? tx(" -- that's you") : ""}
+                <b className="text-chalk">{label(state.czar)}</b>{" "}{tx("is the czar{what}", { what: czarHere && myChair === state.czar ? tx(" -- that's you") : "" })}
               </p>
               {state.step === "answer" && !judging && (
                 <>
                   {waitingOn.length ? (
-                    <p>{tx("waiting for")}{" "}{waitingOn.map(label).join(", ")}
-                      {pick > 1 && tx(` · pick ${pick}`)}
+                    <p>{tx("waiting for {waitingOn}{extra}", { waitingOn: waitingOn.map(label).join(", "), extra: pick > 1 ? tx(` · pick ${pick}`) : "" })}
                     </p>
                   ) : (
                     <p className="text-chalk">{tx("everyone's in, turning them over...")}</p>
@@ -433,7 +432,7 @@ export default function Cah({ item, state: raw }: { item: Item<"game">; state: u
                   {canEdit && waitingOn.length > 0 && waitingOn.length < answering(state).length && (
                     <span className="flex flex-wrap gap-1">
                       {waitingOn.map((c) => (
-                        <button key={c} type="button" disabled={busy} onClick={() => void skip(c)} className="min-h-7 rounded-lg bg-white/6 px-2 text-[10px] text-muted hover:text-chalk">{tx("go on without")}{" "}{label(c)}
+                        <button key={c} type="button" disabled={busy} onClick={() => void skip(c)} className="min-h-7 rounded-lg bg-white/6 px-2 text-[10px] text-muted hover:text-chalk">{tx("go on without {v}", { v: label(c) })}
                         </button>
                       ))}
                     </span>
@@ -503,7 +502,7 @@ export default function Cah({ item, state: raw }: { item: Item<"game">; state: u
                 </span>
                 {canAnswer && (
                   <span className="text-muted/70">
-                    {current.length}/{pick}{" "}{tx("chosen")}</span>
+                    {tx("{current}/{pick} chosen", { current: current.length, pick })}</span>
                 )}
                 {canAnswer && (
                   <button
@@ -511,7 +510,7 @@ export default function Cah({ item, state: raw }: { item: Item<"game">; state: u
                     disabled={busy || current.length !== pick}
                     onClick={() => void answer()}
                     className="ml-auto min-h-9 rounded-xl bg-chalk px-4 text-[12px] font-semibold text-ink-950 disabled:opacity-35"
-                  >{tx("play")}{" "}{pick > 1 ? tx("these") : tx("this")}
+                  >{tx("play {what}", { what: pick > 1 ? tx("these") : tx("this") })}
                   </button>
                 )}
                 {!myChair && holding && (

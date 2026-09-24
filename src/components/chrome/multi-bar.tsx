@@ -31,7 +31,7 @@ export default function MultiBar() {
   return (
     <div className="pointer-events-none fixed inset-x-0 top-14 z-40 flex justify-center px-2">
       <div className="pointer-events-auto flex flex-wrap items-center gap-0.5 rounded-2xl bg-ink-900/92 p-1 shadow-xl ring-1 ring-white/10 backdrop-blur-md">
-        <span className="px-2 text-[11px] font-semibold text-glow">{list.length}{" "}{t("picked")}</span>
+        <span className="px-2 text-[11px] font-semibold text-glow">{t("{list} picked", { list: list.length })}</span>
         <button type="button" disabled={!canEdit} className={button} onClick={() => each((d) => ({ ...d, pinned: !allPinned }))}>
           {allPinned ? <PinOff /> : <Pin />} {allPinned ? t("unpin") : t("pin")}
         </button>

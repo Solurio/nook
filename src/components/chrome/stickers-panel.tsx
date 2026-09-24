@@ -183,7 +183,7 @@ export default function StickersPanel({
             {gifs.length === 0 && !loading ? (
               <div className="px-3 pt-6 text-center">
                 <p className="text-xs text-muted/70">
-                  {note ?? (term.trim() ? t("nothing turned up for that.") : t("nothing here yet."))}
+                  {(note && t(note)) ?? (term.trim() ? t("nothing turned up for that.") : t("nothing here yet."))}
                 </p>
               </div>
             ) : (
@@ -215,7 +215,7 @@ export default function StickersPanel({
           </div>
 
           <p className="border-t border-white/8 px-4 py-2 text-center text-[10px] leading-relaxed text-muted/50">
-            {gifs.length > 0 && note ? note : sources.join(" + ")}
+            {gifs.length > 0 && note ? t(note) : sources.join(" + ")}
           </p>
         </>
       )}

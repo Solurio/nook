@@ -300,7 +300,7 @@ export default function Buckshot({ item, state: raw }: { item: Item<"game">; sta
                 title={playing ? undefined : state.seats[chair] ? tx("stand up") : tx("sit here")}
               >
                 <span className={clsx("min-w-0 flex-1 truncate", chair === myChair ? "text-chalk" : "text-muted")}>
-                  {state.seats[chair] ?? <span className="text-muted/50">{tx("seat")}{" "}{index + 1}</span>}
+                  {state.seats[chair] ?? <span className="text-muted/50">{tx("seat {n}", { n: index + 1 })}</span>}
                   {(state.wins[chair] ?? 0) > 0 && <span className="ml-1 text-warm">{state.wins[chair]}</span>}
                 </span>
                 {state.cuffed.includes(chair) && <Link2 className="size-3 shrink-0 text-warm" aria-label={tx("in cuffs")} />}
@@ -324,8 +324,8 @@ export default function Buckshot({ item, state: raw }: { item: Item<"game">; sta
                         type="button"
                         disabled={!usable || busy}
                         onClick={() => tapGear(chair, gear)}
-                        title={`${GEAR_NAME[gear]}: ${GEAR_DOES[gear]}`}
-                        aria-label={GEAR_NAME[gear]}
+                        title={`${tx(GEAR_NAME[gear])}: ${tx(GEAR_DOES[gear])}`}
+                        aria-label={tx(GEAR_NAME[gear])}
                         className={clsx(
                           "grid size-7 place-items-center rounded-md transition [&_svg]:size-3.5",
                           picking?.gear === gear && chair === state.turn ? "bg-warm text-ink-950" : "bg-white/8 text-chalk",
@@ -373,21 +373,20 @@ export default function Buckshot({ item, state: raw }: { item: Item<"game">; sta
               <span className="text-muted">
                 <b className="text-[#f2a4b8]">{live}</b>{" "}{tx("live ·")}{" "}<b className="text-chalk">{blank}</b>{" "}{tx("blank")}</span>
             </div>
-            <p className="text-[10px] text-muted/70">{tx("the next one is live")}{" "}{odds}{tx("% of the time")}{state.inverted ? tx(" (inverted)") : ""}
-              {state.saw ? tx(" · sawn off") : ""}
+            <p className="text-[10px] text-muted/70">{tx("the next one is live {odds}% of the time{what}{what2}", { odds, what: state.inverted ? tx(" (inverted)") : "", what2: state.saw ? tx(" · sawn off") : "" })}
             </p>
             {knownNow && (
-              <p className="rounded-md bg-glow/15 px-2 py-0.5 text-[11px] text-glow">{tx("you saw it:")}{" "}{state.inverted ? tx(`${knownNow}, now ${flip(knownNow)}`) : knownNow}
+              <p className="rounded-md bg-glow/15 px-2 py-0.5 text-[11px] text-glow">{tx("you saw it: {what}", { what: state.inverted ? tx(`${knownNow}, now ${flip(knownNow)}`) : tx(knownNow) })}
               </p>
             )}
             {futures.length > 0 && (
               <p className="text-[10px] text-glow/80">
-                {futures.map((f) => `shell ${f.at - next + 1} is ${f.value}`).join(" · ")}
+                {futures.map((f) => tx(`shell ${f.at - next + 1} is ${f.value}`)).join(" · ")}
               </p>
             )}
           </>
         ) : state.phase === "over" && state.winner ? (
-          <p className="text-center text-sm font-semibold text-chalk">{label(state.winner)}{" "}{tx("walks away")}</p>
+          <p className="text-center text-sm font-semibold text-chalk">{tx("{winner} walks away", { winner: label(state.winner) })}</p>
         ) : (
           <p className="text-center text-[11px] text-muted/60">{tx("sit down, then load the gun -- empty chairs play from whoever loads")}</p>
         )}
@@ -425,7 +424,7 @@ export default function Buckshot({ item, state: raw }: { item: Item<"game">; sta
                 : needsLoad(state)
                   ? tx("empty. loading again...")
                   : tx(`${label(state.turn)}'s turn${myTurn ? " -- point it at someone" : ""}`)
-              : (state.log.at(-1) ?? "")}
+              : tx(state.log.at(-1) ?? "")}
           </p>
         )}
         {needsLoad(state) && !mine(state.turn) && canEdit && (
@@ -461,7 +460,7 @@ export default function Buckshot({ item, state: raw }: { item: Item<"game">; sta
               <p key={gear} className="flex items-start gap-2">
                 <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded bg-white/8 text-chalk [&_svg]:size-3">{GEAR_ICON[gear]}</span>
                 <span>
-                  <b>{GEAR_NAME[gear]}</b> -- {GEAR_DOES[gear]}
+                  <b>{tx(GEAR_NAME[gear])}</b> -- {tx(GEAR_DOES[gear])}
                 </span>
               </p>
             ))}
@@ -493,7 +492,7 @@ function Stepper({
       <button type="button" disabled={disabled || value <= min} onClick={() => onChange(-1)} aria-label={tx(`fewer ${label}`)} className="grid size-7 place-items-center rounded transition hover:bg-white/10 hover:text-chalk disabled:opacity-30">
         <Minus className="size-3" strokeWidth={2.6} />
       </button>
-      <span className="tabular-nums text-chalk">{value}</span> {label}
+      <span className="tabular-nums text-chalk">{value}</span> {tx(label)}
       <button type="button" disabled={disabled || value >= max} onClick={() => onChange(1)} aria-label={tx(`more ${label}`)} className="grid size-7 place-items-center rounded transition hover:bg-white/10 hover:text-chalk disabled:opacity-30">
         <Plus className="size-3" strokeWidth={2.6} />
       </button>

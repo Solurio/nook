@@ -82,7 +82,7 @@ export default function FilePanel({
     <Panel title={t("file")} onClose={onClose} className="top-2 left-12 w-72">
       {busy && (
         <p className="mb-2 flex items-center gap-1.5 rounded-lg bg-white/6 px-2 py-1.5 text-[11px] text-chalk">
-          <Loader2 className="size-3.5 animate-spin" /> {busy}
+          <Loader2 className="size-3.5 animate-spin" /> {t(busy)}
         </p>
       )}
 
@@ -148,8 +148,8 @@ export default function FilePanel({
             type="button"
             disabled={!canEdit}
             onClick={() => onPaper(null)}
-            aria-label="see-through"
-            title="see-through"
+            aria-label={t("see-through")}
+            title={t("see-through")}
             className={clsx("checker size-6 rounded ring-1 ring-white/20 disabled:opacity-40", paper === null && "ring-2 ring-chalk")}
           />
           <label className="relative size-6 cursor-pointer overflow-hidden rounded ring-1 ring-white/20" title={t("any colour")} style={{ background: paper ?? "transparent" }}>
@@ -166,7 +166,7 @@ export default function FilePanel({
 
       <Section title={t("history")}>
         <p className="mb-1 text-[10px] text-muted">
-          {opCount} {opCount === 1 ? t("thing") : t("things")}{" "}{t("done")}{mode === "item" ? t(" (kept in the board itself: run 0009 for more room)") : ""}.
+          {t("{opCount} {what} done{what2}.", { opCount, what: opCount === 1 ? t("thing") : t("things"), what2: mode === "item" ? t(" (kept in the board itself: run 0009 for more room)") : "" })}
         </p>
         <div className="grid grid-cols-1 gap-1">
           <Action onClick={onBake} icon={<Layers />} disabled={!canEdit || Boolean(busy) || opCount === 0}>{t("fold the history into pictures")}</Action>
@@ -336,7 +336,7 @@ function CanvasSection({
             ] as const
           ).map(([id, label]) => (
             <button key={id} type="button" onClick={() => setHow(id)} className={clsx("min-h-7 flex-1 rounded-md text-[10px]", how === id ? "bg-chalk text-ink-950" : "text-muted hover:text-chalk")}>
-              {label}
+              {t(label)}
             </button>
           ))}
         </div>
@@ -389,7 +389,7 @@ function CanvasSection({
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="mb-2.5">
-      <p className="mb-1 text-[9px] tracking-wide text-muted/60 uppercase">{title}</p>
+      <p className="mb-1 text-[9px] tracking-wide text-muted/60 uppercase">{t(title)}</p>
       {children}
     </div>
   );

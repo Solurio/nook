@@ -439,7 +439,7 @@ export default function Catan({ item, state: raw }: { item: Item<"game">; state:
               </span>
               <span className="min-w-0 flex-1 leading-tight text-chalk">
                 <span className="mr-1 inline-block size-2 rounded-full" style={{ background: PLAYER_COLOR[state.winner ?? turn]?.fill }} />
-                {prompt()}
+                {t(prompt())}
               </span>
             </div>
 
@@ -459,7 +459,7 @@ export default function Catan({ item, state: raw }: { item: Item<"game">; state:
                 return (
                   <div key={chair} className="flex flex-col gap-1 rounded-xl bg-[#e0655c]/10 p-1.5">
                     <span className="text-[#f2a4b8]">
-                      {label(chair)}{" "}{t("discards")}{" "}{owed} ({handSize(draft)}{" "}{t("chosen)")}</span>
+                      {t("{chair} discards {owed} ({draft} chosen)", { chair: label(chair), owed, draft: handSize(draft) })}</span>
                     <Counter value={draft} max={state.hands[chair]} onChange={(h) => setDiscards({ ...discards, [chair]: h })} />
                     <button
                       type="button"
@@ -505,7 +505,7 @@ export default function Catan({ item, state: raw }: { item: Item<"game">; state:
                       building === what ? "bg-warm/25 text-warm ring-1 ring-warm/60" : "bg-white/6 text-chalk",
                     )}
                   >
-                    {what} <Cost hand={cost} />
+                    {t(what)} <Cost hand={cost} />
                   </button>
                 ))}
                 <button
@@ -513,7 +513,7 @@ export default function Catan({ item, state: raw }: { item: Item<"game">; state:
                   disabled={busy || deckLeft <= 0 || !canPay(hand, COST.dev)}
                   onClick={() => void buyCard()}
                   className="flex min-h-9 flex-col items-start gap-0.5 rounded-lg bg-white/6 px-1.5 py-1 text-left text-chalk disabled:opacity-35"
-                >{t("card (")}{deckLeft}{" "}{t("left)")}{" "}<Cost hand={COST.dev} />
+                >{t("card ({deckLeft} left)", { deckLeft })}{" "}<Cost hand={COST.dev} />
                 </button>
               </div>
             )}
@@ -589,7 +589,7 @@ export default function Catan({ item, state: raw }: { item: Item<"game">; state:
             {/* An offer on the table, for everyone to see */}
             {playing && state.offer && (
               <div className="flex flex-col gap-1 rounded-xl bg-glow/10 p-1.5">
-                <span className="text-chalk">{label(state.offer.from)}{" "}{t("offers")}</span>
+                <span className="text-chalk">{t("{from} offers", { from: label(state.offer.from) })}</span>
                 <span className="flex items-center gap-1">
                   <Cost hand={state.offer.give} />
                   <span className="text-muted">{t("for")}</span>
@@ -606,7 +606,7 @@ export default function Catan({ item, state: raw }: { item: Item<"game">; state:
                         onClick={() => void move((s) => acceptTrade(s, c, label))}
                         className="min-h-8 rounded-lg bg-chalk px-2 font-semibold text-ink-950 disabled:opacity-35"
                       >
-                        {label(c)}{" "}{t("takes it")}</button>
+                        {t("{v} takes it", { v: label(c) })}</button>
                     ))}
                   {plays(state.offer.from) && (
                     <button type="button" disabled={busy} onClick={() => void move(cancelOffer)} className="min-h-8 rounded-lg px-2 text-muted hover:text-chalk">{t("withdraw")}</button>
@@ -634,10 +634,10 @@ export default function Catan({ item, state: raw }: { item: Item<"game">; state:
                       const kind = devKind(c);
                       const playable = !fresh && canPlayCard(c);
                       return (
-                        <span key={c} className="flex items-center gap-1.5" title={DEV_TEXT[kind]}>
+                        <span key={c} className="flex items-center gap-1.5" title={t(DEV_TEXT[kind])}>
                           {kind === "knight" ? <Swords className="size-3 text-glow" /> : <Star className="size-3 text-warm" />}
                           <span className={clsx("min-w-0 flex-1 truncate", fresh ? "text-muted" : "text-chalk")}>
-                            {DEV_NAME[kind]}
+                            {t(DEV_NAME[kind])}
                             {fresh && t(" (new)")}
                           </span>
                           {playable &&
@@ -681,7 +681,7 @@ export default function Catan({ item, state: raw }: { item: Item<"game">; state:
                 )}
               </div>
             )}
-            {!myTurn && playing && <p className="truncate text-[10px] text-muted/60">{state.log.at(-1)}</p>}
+            {!myTurn && playing && <p className="truncate text-[10px] text-muted/60">{t(state.log.at(-1) ?? "")}</p>}
           </div>
         </div>
       )}
@@ -699,12 +699,12 @@ export default function Catan({ item, state: raw }: { item: Item<"game">; state:
           <p>
             <b>{t("Trading")}</b>{t(": four of one kind to the bank for any one card; three at any harbour you have a town on; two at a harbour of that kind. Or offer the table a trade -- whoever takes it first gets it.")}</p>
           <p>
-            <b>{t("Points")}</b>{t(": settlement 1, city 2, the Longest Road (five or more) 2, the Largest Army (three knights or more) 2, and victory point cards 1 each, kept hidden. First to")}{" "}{WIN}{" "}{t("on their own turn wins.")}</p>
+            <b>{t("Points")}</b>{t(": settlement 1, city 2, the Longest Road (five or more) 2, the Largest Army (three knights or more) 2, and victory point cards 1 each, kept hidden. First to {win} on their own turn wins.", { win: WIN })}</p>
           <div className="space-y-1 border-t border-white/8 pt-2">
             <h4>{t("development cards")}</h4>
             {(["knight", "roads", "plenty", "monopoly", "vp"] as const).map((k) => (
               <p key={k}>
-                <b>{DEV_NAME[k]}</b> -- {DEV_TEXT[k]}
+                <b>{t(DEV_NAME[k])}</b> -- {t(DEV_TEXT[k])}
               </p>
             ))}
             <p>{t("One a turn, and never one you bought this turn. A knight can be played before you roll.")}</p>

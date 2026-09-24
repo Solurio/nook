@@ -2,6 +2,7 @@
 
 import { memo, useId } from "react";
 import type { CardBack, CardFace, DeckDef, TarotSuit } from "@/lib/table";
+import { t as tr } from "@/lib/i18n";
 
 /**
  * Cards drawn the way a printer would lay them out, in SVG so they stay crisp
@@ -477,7 +478,7 @@ function TarotFace({ face, theme }: { face: CardFace; theme: TarotTheme }) {
         fontSize={title.length > 18 ? 6 : title.length > 13 ? 7 : 8.5}
         fill={t.ink}
       >
-        {title.toUpperCase()}
+        {tr(title).toUpperCase()}
       </text>
     </>
   );

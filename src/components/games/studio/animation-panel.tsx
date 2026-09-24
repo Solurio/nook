@@ -134,7 +134,7 @@ export default function AnimationPanel({
               key={f.layer}
               type="button"
               onClick={() => onSelect(f.layer)}
-              title={name(f.layer)}
+              title={t(name(f.layer))}
               className={clsx("relative flex w-14 shrink-0 flex-col items-center gap-0.5 rounded-lg p-1", f.layer === current ? "bg-glow/20 ring-1 ring-glow/60" : "bg-white/5 hover:bg-white/9")}
             >
               <span className="grid size-12 place-items-center overflow-hidden rounded bg-[#f4f1ea]">

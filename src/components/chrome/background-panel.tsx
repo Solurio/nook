@@ -178,7 +178,7 @@ export default function BackgroundPanel() {
                         : "bg-white/6 text-muted hover:bg-white/10",
                     )}
                   >
-                    {fit}
+                    {t(fit)}
                   </button>
                 ))}
               </div>
@@ -213,7 +213,7 @@ export default function BackgroundPanel() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <h3 className="mb-2 text-[11px] font-medium tracking-wide text-muted uppercase">{title}</h3>
+      <h3 className="mb-2 text-[11px] font-medium tracking-wide text-muted uppercase">{t(title)}</h3>
       {children}
     </section>
   );
@@ -237,7 +237,7 @@ function Slider({
   return (
     <label className="block">
       <span className="mb-1 flex items-center justify-between text-[11px] text-muted">
-        {label}
+        {t(label)}
         <span className="tabular-nums opacity-70">{value}</span>
       </span>
       <input

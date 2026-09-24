@@ -311,7 +311,7 @@ export default function Bang({ item, state: raw }: { item: Item<"game">; state: 
         {playing && (
           <span className="flex items-center gap-1" title={tx("arrows left in the middle")}>
             <Quiver n={state.arrows} />
-            <span className="tabular-nums text-chalk">{state.arrows}</span>/{ARROWS}{" "}{tx("arrows")}</span>
+            <span className="tabular-nums text-chalk">{state.arrows}</span>{tx("/{arrows} arrows", { arrows: ARROWS })}</span>
         )}
         <button type="button" onClick={() => setManual(true)} className="ml-auto flex min-h-8 items-center gap-1 rounded-lg px-1.5 hover:bg-white/8 hover:text-chalk">
           <BookOpen className="size-3" />{" "}{tx("rules")}</button>
@@ -347,15 +347,15 @@ export default function Bang({ item, state: raw }: { item: Item<"game">; state: 
                 {role === "sheriff" && <Star className="size-3 shrink-0 fill-warm text-warm" />}
                 {p?.dead && <Skull className="size-3 shrink-0" />}
                 <span className={clsx("min-w-0 flex-1 truncate", chair === myChair ? "text-chalk" : "text-muted")}>
-                  {state.seats[chair] ?? <span className="text-muted/50">{tx("seat")}{" "}{index + 1}</span>}
+                  {state.seats[chair] ?? <span className="text-muted/50">{tx("seat {n}", { n: index + 1 })}</span>}
                 </span>
                 {(state.wins[chair] ?? 0) > 0 && <span className="text-warm">{state.wins[chair]}</span>}
               </button>
               {p && (
                 <>
-                  <p className="truncate text-[10px] text-glow/85" title={CHARACTERS[p.character].text}>
+                  <p className="truncate text-[10px] text-glow/85" title={tx(CHARACTERS[p.character].text)}>
                     {CHARACTERS[p.character].name}
-                    {role && role !== "sheriff" && <span className="text-muted"> · {ROLE_NAME[role]}</span>}
+                    {role && role !== "sheriff" && <span className="text-muted"> · {tx(ROLE_NAME[role])}</span>}
                   </p>
                   <div className="flex min-h-3 items-center gap-1.5">
                     <Bullets life={p.life} max={p.max} />
@@ -371,7 +371,7 @@ export default function Bang({ item, state: raw }: { item: Item<"game">; state: 
                         void write({ ...state, players: { ...state.players, [chair]: { ...p, bartArrows: !p.bartArrows } } });
                       }}
                       className={clsx("self-start rounded px-1 text-[9px]", p.bartArrows ? "bg-glow/20 text-glow" : "text-muted/60")}
-                    >{tx("arrows for wounds:")}{" "}{p.bartArrows ? tx("yes") : tx("no")}
+                    >{tx("arrows for wounds: {what}", { what: p.bartArrows ? tx("yes") : tx("no") })}
                     </button>
                   )}
                 </>
@@ -385,7 +385,7 @@ export default function Bang({ item, state: raw }: { item: Item<"game">; state: 
       <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center gap-2 overflow-y-auto rounded-xl bg-[radial-gradient(ellipse_at_center,#4a3322_0%,#2a1c14_70%,#1a120d_100%)] p-2 inset-ring inset-ring-white/8">
         {!playing ? (
           <div className="flex flex-col items-center gap-2 text-center">
-            {state.winner && <p className="text-sm font-semibold text-warm">{winnerText(state, label)}</p>}
+            {state.winner && <p className="text-sm font-semibold text-warm">{tx(winnerText(state, label))}</p>}
             <p className="max-w-72 text-[11px] text-muted/75">{tx("three to eight chairs. Empty chairs play from whoever deals; sit down to hold your own role.")}</p>
             <button type="button" disabled={!canEdit || busy} onClick={() => void deal()} className="min-h-10 rounded-xl bg-chalk px-4 text-[12px] font-semibold text-ink-950 disabled:opacity-40">
               {state.winner ? tx("deal again") : tx("deal")}
@@ -398,7 +398,7 @@ export default function Bang({ item, state: raw }: { item: Item<"game">; state: 
                 ? tx("turning over the dead...")
                 : state.step === "sid"
                   ? tx(`${label(state.turn)} gives someone a life`)
-                  : `${label(state.turn)} -- ${CHARACTERS[turnPlayer?.character ?? "paul"].name}${state.rolls ? ` · roll ${state.rolls} of ${maxRolls(state)}` : ""}`}
+                  : `${label(state.turn)} -- ${CHARACTERS[turnPlayer?.character ?? "paul"].name}${state.rolls ? ` · ${tx(`roll ${state.rolls} of ${maxRolls(state)}`)}` : ""}`}
               {state.exploded && <b className="ml-1 text-[#f2a4b8]">BOOM</b>}
             </p>
 
@@ -425,7 +425,7 @@ export default function Bang({ item, state: raw }: { item: Item<"game">; state: 
                               ? `${face === "beer" ? "for" : "at"} ${label(target)}${slab && slab.shot === i ? " x2" : ""}`
                               : undefined
                         }
-                        title={`${FACE_NAME[face]}: ${FACE_TEXT[face]}`}
+                        title={`${tx(FACE_NAME[face])}: ${tx(FACE_TEXT[face])}`}
                         onClick={
                           rerollable
                             ? () => setThrowing((t) => (t.includes(i) ? t.filter((x) => x !== i) : [...t, i]))
@@ -450,7 +450,7 @@ export default function Bang({ item, state: raw }: { item: Item<"game">; state: 
                       disabled={busy || picked.length === 0}
                       onClick={() => void throwDice()}
                       className="min-h-10 rounded-xl bg-chalk px-4 text-[12px] font-semibold text-ink-950 active:scale-95 disabled:opacity-40"
-                    >{tx("roll")}{" "}{picked.length || ""}{" "}{tx("again (")}{rollsLeft}{" "}{tx("left)")}</button>
+                    >{tx("roll {picked} again ({rollsLeft} left)", { picked: picked.length || "", rollsLeft })}</button>
                     <button type="button" disabled={busy} onClick={() => void keep()} className="min-h-10 rounded-xl bg-white/10 px-4 text-[12px] text-chalk">{tx("keep these")}</button>
                   </>
                 )}
@@ -520,7 +520,7 @@ export default function Bang({ item, state: raw }: { item: Item<"game">; state: 
             )}
 
             {myTurn && state.step === "sid" && <p className="text-[11px] text-warm">{tx("tap anyone -- yourself too -- to give them a life")}</p>}
-            {!myTurn && !state.unmask.length && <p className="text-center text-[10px] text-muted/60">{state.log.at(-1)}</p>}
+            {!myTurn && !state.unmask.length && <p className="text-center text-[10px] text-muted/60">{tx(state.log.at(-1) ?? "")}</p>}
           </>
         )}
       </div>
@@ -529,13 +529,12 @@ export default function Bang({ item, state: raw }: { item: Item<"game">; state: 
       {playing && (myThree || shownRoleChair || ownedRoles.length > 1) && (
         <div className="flex items-center gap-2 rounded-xl bg-white/4 px-2 py-1.5 text-[11px]">
           {myThree ? (
-            <span className="text-muted">{tx("you are the")}{" "}<b className="text-chalk">{ROLE_NAME[myThree]}</b>{" "}{tx("-- take out the")}{" "}{ROLE_NAME[THREE_TARGET[myThree] as Role]}
-              {state.freeForAll ? tx(", or just be the last one standing") : tx(" yourself")}
+            <span className="text-muted">{tx("you are the")}{" "}<b className="text-chalk">{tx(ROLE_NAME[myThree])}</b>{" "}{tx("-- take out the {Role}{what}", { Role: tx(ROLE_NAME[THREE_TARGET[myThree] as Role]), what: state.freeForAll ? tx(", or just be the last one standing") : tx(" yourself") })}
             </span>
           ) : shownRoleChair ? (
             <span className="text-muted">
-              {shownRoleChair === myChair ? tx("you are") : tx(`${label(shownRoleChair)} is`)}{" "}{tx("the")}{" "}
-              <b className="text-chalk">{ROLE_NAME[secretRole(shownRoleChair) as Role]}</b>: {ROLE_GOAL[secretRole(shownRoleChair) as Role]}
+              {tx("{what} the", { what: shownRoleChair === myChair ? tx("you are") : tx(`${label(shownRoleChair)} is`) })}{" "}
+              <b className="text-chalk">{tx(ROLE_NAME[secretRole(shownRoleChair) as Role])}</b>: {tx(ROLE_GOAL[secretRole(shownRoleChair) as Role])}
             </span>
           ) : (
             <span className="flex flex-wrap items-center gap-1 text-muted">{tx("pass the phone, then look:")}{ownedRoles.map((c) => (
@@ -547,7 +546,7 @@ export default function Bang({ item, state: raw }: { item: Item<"game">; state: 
                 >
                   {looking === c ? <EyeOff className="size-3" /> : <Eye className="size-3" />}
                   {label(c)}
-                  {looking === c && <b className="ml-1">{ROLE_NAME[secretRole(c) as Role]}</b>}
+                  {looking === c && <b className="ml-1">{tx(ROLE_NAME[secretRole(c) as Role])}</b>}
                 </button>
               ))}
             </span>
@@ -566,7 +565,7 @@ export default function Bang({ item, state: raw }: { item: Item<"game">; state: 
               <div key={f} className="flex items-center gap-2">
                 <BangDie face={f} size={22} />
                 <span>
-                  <b>{FACE_NAME[f]}</b> -- {FACE_TEXT[f]}
+                  <b>{tx(FACE_NAME[f])}</b> -- {tx(FACE_TEXT[f])}
                 </span>
               </div>
             ))}

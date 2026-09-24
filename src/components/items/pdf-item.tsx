@@ -83,7 +83,7 @@ function PdfSlot({ item }: { item: Item<"pdf"> }) {
     <div className="surface grain grid size-full place-items-center rounded-2xl p-4 text-center">
       <div className="flex flex-col items-center gap-2">
         <BookOpen className="size-8 text-glow/70" strokeWidth={1.6} />
-        <p className="text-[12px] text-muted">{t("a book, a menu, the rules, a character sheet -- up to")}{" "}{PDF_MAX_MB}MB</p>
+        <p className="text-[12px] text-muted">{t("a book, a menu, the rules, a character sheet -- up to {pdfMaxMb}MB", { pdfMaxMb: PDF_MAX_MB })}</p>
         <button
           type="button"
           disabled={!canEdit || busy}
@@ -303,7 +303,7 @@ function Reader({ item, data }: { item: Item<"pdf">; data: PdfData }) {
             }}
             className="ml-auto flex min-h-8 items-center gap-1 rounded-lg px-2 text-[10px] text-muted hover:bg-white/8 hover:text-chalk"
           >
-            <Trash2 className="size-3" />{" "}{t("clear")}{" "}{mode === "book" ? t("these pages") : t("this page")}
+            <Trash2 className="size-3" />{" "}{t("clear {what}", { what: mode === "book" ? t("these pages") : t("this page") })}
           </button>
         </div>
       )}
@@ -446,7 +446,7 @@ function Reader({ item, data }: { item: Item<"pdf">; data: PdfData }) {
         <Tool label={t("previous")} disabled={!canTurn(target, pages, mode, -1)} onClick={() => step(-1)}>
           <ChevronLeft />
         </Tool>
-        <PageInput key={`${label}:${pages}`} label={label} pages={pages} onGo={go} />
+        <PageInput key={`${label}:${pages}`} label={t(label)} pages={pages} onGo={go} />
         <Scrubber key={target} value={target} pages={pages} onGo={go} />
         <Tool label={t("next")} disabled={!canTurn(target, pages, mode, 1)} onClick={() => step(1)}>
           <ChevronRight />
@@ -472,8 +472,8 @@ function Tool({
   return (
     <button
       type="button"
-      aria-label={label}
-      title={label}
+      aria-label={t(label)}
+      title={t(label)}
       disabled={disabled}
       onClick={onClick}
       className={clsx(
@@ -510,7 +510,7 @@ function PageInput({ label, pages, onGo }: { label: string; pages: number; onGo:
         aria-label={t("page")}
         className="h-8 w-14 rounded-md bg-white/6 text-center text-[12px] text-chalk tabular-nums outline-none focus:bg-white/10"
       />
-      <span className="tabular-nums">{t("of")}{" "}{pages || "?"}</span>
+      <span className="tabular-nums">{t("of {pages}", { pages: pages || "?" })}</span>
     </form>
   );
 }
@@ -701,10 +701,10 @@ function ContentsPanel({
               {bookmarks.map((p) => (
                 <li key={p} className="flex items-center">
                   <button type="button" onClick={() => onGo(p)} className="flex min-h-8 flex-1 items-center gap-2 rounded-md px-1.5 text-left text-[11px] text-chalk hover:bg-white/8">
-                    <Bookmark className="size-3 fill-[#e0655c] text-[#e0655c]" />{" "}{t("page")}{" "}{p}
+                    <Bookmark className="size-3 fill-[#e0655c] text-[#e0655c]" />{" "}{t("page {v}", { v: p })}
                   </button>
                   {canEdit && (
-                    <button type="button" aria-label={`remove the bookmark on page ${p}`} onClick={() => onUnmark(p)} className="grid size-8 place-items-center text-muted/60 hover:text-chalk">
+                    <button type="button" aria-label={t(`remove the bookmark on page ${p}`)} onClick={() => onUnmark(p)} className="grid size-8 place-items-center text-muted/60 hover:text-chalk">
                       <X className="size-3" />
                     </button>
                   )}

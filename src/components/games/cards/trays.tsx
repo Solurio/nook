@@ -53,7 +53,7 @@ export function TrayButton({
       )}
     >
       {children}
-      <span className="whitespace-nowrap">{label}</span>
+      <span className="whitespace-nowrap">{t(label)}</span>
     </button>
   );
 }
@@ -109,7 +109,7 @@ export function HandActions({
   if (giving) {
     return (
       <>
-        <span className="shrink-0 px-1 text-[10px] text-muted/70">{t("give the")}{" "}{many}{" "}{t("to")}</span>
+        <span className="shrink-0 px-1 text-[10px] text-muted/70">{t("give the {many} to", { many: t(many) })}</span>
         {chairs.map((chair) => (
           <button
             key={chair}
@@ -132,7 +132,7 @@ export function HandActions({
 
   return (
     <>
-      <span className="shrink-0 px-1 text-[10px] text-glow">{count}{" "}{t("in hand picked")}</span>
+      <span className="shrink-0 px-1 text-[10px] text-glow">{t("{count} in hand picked", { count })}</span>
       <TrayButton label={t("play face up")} onClick={onFaceUp}>
         <Eye className="size-4" />
       </TrayButton>

@@ -595,8 +595,8 @@ function DockButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      title={label}
-      aria-label={label}
+      title={t(label)}
+      aria-label={t(label)}
       className={clsx(
         // 44px on touch, tighter once there is a mouse to aim with -- and 40px
         // on the narrowest phones, where 44 pushed both ends of the dock off
@@ -631,7 +631,7 @@ function GameOption({
         {icon}
       </span>
       <span className="min-w-0">
-        <span className="block truncate text-xs font-medium">{title}</span>
+        <span className="block truncate text-xs font-medium">{t(title)}</span>
         <span className="block truncate text-[11px] text-muted/70">{t(hint)}</span>
       </span>
     </button>

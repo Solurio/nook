@@ -270,7 +270,7 @@ export default function Monopoly({ item, state: raw }: { item: Item<"game">; sta
           {debt && (actor === debt.who || open) && (
             <>
               <p className="w-full text-[10px] text-amber-200">
-                {names(debt.who)}{" "}{tx("owes $")}{-state.players[debt.who].cash}. sell houses or mortgage to raise it.
+                {tx("{who} owes ${cash}. sell houses or mortgage to raise it.", { who: names(debt.who), cash: -state.players[debt.who].cash })}
               </p>
               <Act onClick={() => void save((fresh) => goBroke(fresh, debt.who, names))} danger>{tx("give up")}</Act>
             </>
@@ -279,7 +279,7 @@ export default function Monopoly({ item, state: raw }: { item: Item<"game">; sta
             <div className="flex w-full flex-col items-center gap-1 rounded-xl bg-white/6 p-1.5">
               <p className="text-[11px] text-chalk">
                 <Gavel className="mr-1 inline size-3.5" />
-                {BOARD[auction.at].name}: {auction.by ? tx(`$${auction.bid} from ${names(auction.by)}`) : tx("no bids yet")}
+                {short(BOARD[auction.at].name)}: {auction.by ? tx(`$${auction.bid} from ${names(auction.by)}`) : tx("no bids yet")}
               </p>
               {open && (
                 <select
@@ -290,7 +290,7 @@ export default function Monopoly({ item, state: raw }: { item: Item<"game">; sta
                   {inGame
                     .filter((c) => !state.players[c].bankrupt)
                     .map((c) => (
-                      <option key={c} value={c}>{tx("bidding as")}{" "}{names(c)}
+                      <option key={c} value={c}>{tx("bidding as {v}", { v: names(c) })}
                       </option>
                     ))}
                 </select>
@@ -312,7 +312,7 @@ export default function Monopoly({ item, state: raw }: { item: Item<"game">; sta
           )}
           {myTurn && pending?.kind === "buy" && (
             <>
-              <Act onClick={() => void save((fresh) => buy(fresh, names))} primary disabled={(state.players[state.turn]?.cash ?? 0) < (BOARD[pending.at] as { price: number }).price}>{tx("buy")}{" "}{short(BOARD[pending.at].name)}{" "}{tx("for $")}{(BOARD[pending.at] as { price: number }).price}
+              <Act onClick={() => void save((fresh) => buy(fresh, names))} primary disabled={(state.players[state.turn]?.cash ?? 0) < (BOARD[pending.at] as { price: number }).price}>{tx("buy {at} for ${price}", { at: short(BOARD[pending.at].name), price: (BOARD[pending.at] as { price: number }).price })}
               </Act>
               <Act onClick={() => void save((fresh) => decline(fresh, names))}>{tx("auction it")}</Act>
             </>
@@ -410,7 +410,7 @@ export default function Monopoly({ item, state: raw }: { item: Item<"game">; sta
                   d?.mortgaged && "opacity-55",
                 )}
                 style={{ gridRow: row + 1, gridColumn: col + 1 }}
-                title={s.name}
+                title={tx(s.name)}
               >
                 {band && (
                   <span
@@ -517,8 +517,7 @@ export default function Monopoly({ item, state: raw }: { item: Item<"game">; sta
 
       {state.phase !== "setup" && (
         <div className="flex items-center justify-between text-[9px] text-muted/70">
-          <span>{tx("houses left")}{" "}{housesLeft(state).houses}{" "}{tx("· hotels")}{" "}{housesLeft(state).hotels}
-            {state.jackpot ? tx(` · on Free Parking $${state.pot}`) : ""}
+          <span>{tx("houses left {houses} · hotels {hotels}{what}", { houses: housesLeft(state).houses, hotels: housesLeft(state).hotels, what: state.jackpot ? tx(` · on Free Parking $${state.pot}`) : "" })}
           </span>
           {canEdit && (
             <button type="button" onClick={() => void save((fresh) => ({ ...upgradeMonopoly({ version: 1 }), seats: fresh.seats, holders: fresh.holders, seatCount: fresh.seatCount, jackpot: fresh.jackpot }))} className="rounded px-1.5 hover:text-chalk">{tx("new game")}</button>
@@ -589,7 +588,7 @@ function Deed({
       <div className="w-full max-w-64 overflow-hidden rounded-xl bg-[#fbf8ef] text-[#1f1a14] shadow-2xl" onClick={(event) => event.stopPropagation()}>
         <div className="relative px-3 py-2 text-center" style={{ background: s.kind === "street" ? GROUP_COLOR[s.group] : "#e6e0cf" }}>
           <p className="text-[9px] tracking-widest uppercase opacity-70">{s.kind === "street" ? tx("title deed") : s.kind === "rail" ? tx("railroad") : s.kind === "utility" ? tx("utility") : ""}</p>
-          <p className="text-[14px] font-bold">{s.name}</p>
+          <p className="text-[14px] font-bold">{tx(s.name)}</p>
           <button type="button" onClick={onClose} aria-label={tx("close")} className="absolute top-1.5 right-1.5 grid size-6 place-items-center rounded-full bg-black/10">
             <X className="size-3.5" />
           </button>
@@ -608,8 +607,8 @@ function Deed({
           )}
           {s.kind === "rail" && [1, 2, 3, 4].map((n) => <Line key={n} label={tx(`${n} railroad${n > 1 ? "s" : ""} owned`)} value={[25, 50, 100, 200][n - 1]} />)}
           {s.kind === "utility" && <p className="text-[10px]">{tx("Four times the dice with one utility; ten times with both.")}</p>}
-          {s.kind === "tax" && <p>{tx("Pay $")}{s.amount}.</p>}
-          {!isOwnable(s) && s.kind !== "tax" && <p className="text-[10px] text-[#5a4f3f]">{describe(s)}</p>}
+          {s.kind === "tax" && <p>{tx("Pay ${amount}.", { amount: s.amount })}</p>}
+          {!isOwnable(s) && s.kind !== "tax" && <p className="text-[10px] text-[#5a4f3f]">{tx(describe(s))}</p>}
           {isOwnable(s) && (
             <>
               <Line label={tx("price")} value={s.price} />
@@ -624,14 +623,14 @@ function Deed({
           <div className="flex flex-wrap gap-1 border-t border-black/10 p-2">
             {s.kind === "street" && (
               <>
-                <DeedButton onClick={onBuild} disabled={Boolean(problem)} title={problem ?? ""}>
+                <DeedButton onClick={onBuild} disabled={Boolean(problem)} title={problem ? tx(problem) : ""}>
                   {d.houses === 4 ? tx("build a hotel") : tx("build a house")}
                 </DeedButton>
                 <DeedButton onClick={onSell} disabled={d.houses === 0}>{tx("sell a house")}</DeedButton>
               </>
             )}
             {d.mortgaged ? <DeedButton onClick={onUnmortgage}>{tx("lift the mortgage")}</DeedButton> : <DeedButton onClick={onMortgage}>{tx("mortgage")}</DeedButton>}
-            {problem && s.kind === "street" && <p className="w-full text-[9px] text-[#7a6a52]">{problem}</p>}
+            {problem && s.kind === "street" && <p className="w-full text-[9px] text-[#7a6a52]">{tx(problem)}</p>}
           </div>
         )}
       </div>
@@ -660,7 +659,7 @@ function describe(s: Space): string {
 function Line({ label, value }: { label: string; value: number }) {
   return (
     <p className="flex justify-between gap-2">
-      <span>{label}</span>
+      <span>{tx(label)}</span>
       <span className="font-semibold tabular-nums">${value}</span>
     </p>
   );
@@ -668,7 +667,7 @@ function Line({ label, value }: { label: string; value: number }) {
 
 function DeedButton({ children, onClick, disabled, title }: { children: React.ReactNode; onClick: () => void; disabled?: boolean; title?: string }) {
   return (
-    <button type="button" onClick={onClick} disabled={disabled} title={title} className="min-h-8 flex-1 rounded-lg bg-[#2a2118] px-2 text-[10px] font-medium text-[#f3ead7] disabled:opacity-30">
+    <button type="button" onClick={onClick} disabled={disabled} title={title && tx(title)} className="min-h-8 flex-1 rounded-lg bg-[#2a2118] px-2 text-[10px] font-medium text-[#f3ead7] disabled:opacity-30">
       {children}
     </button>
   );
@@ -676,11 +675,11 @@ function DeedButton({ children, onClick, disabled, title }: { children: React.Re
 
 function TradeView({ trade, names, canAnswer, onAnswer }: { trade: Trade; names: (c: Chair) => string; canAnswer: boolean; onAnswer: (yes: boolean) => void }) {
   const list = (side: Trade["give"]) =>
-    [side.cash ? `$${side.cash}` : "", ...side.squares.map((at) => short(BOARD[at].name)), side.free ? `${side.free} jail card${side.free > 1 ? "s" : ""}` : ""].filter(Boolean).join(", ") || "nothing";
+    [side.cash ? `$${side.cash}` : "", ...side.squares.map((at) => short(BOARD[at].name)), side.free ? tx(`${side.free} jail card${side.free > 1 ? "s" : ""}`) : ""].filter(Boolean).join(", ") || tx("nothing");
   return (
     <div className="w-full max-w-64 rounded-xl bg-white/8 p-1.5 text-[10px] text-chalk">
       <p>
-        {names(trade.from)}{" "}{tx("offers")}{" "}{names(trade.to)} <b>{list(trade.give)}</b>{" "}{tx("for")}{" "}<b>{list(trade.get)}</b>
+        {tx("{from} offers {to}", { from: names(trade.from), to: names(trade.to) })}{" "}<b>{list(trade.give)}</b>{" "}{tx("for")}{" "}<b>{list(trade.get)}</b>
       </p>
       {canAnswer && (
         <div className="mt-1 flex justify-center gap-1">
@@ -763,7 +762,7 @@ function TradeColumn({
   const toggle = (at: number) => set({ ...side, squares: side.squares.includes(at) ? side.squares.filter((x) => x !== at) : [...side.squares, at] });
   return (
     <div className="min-w-0 flex-1">
-      <p className="mb-1 truncate text-[10px] text-muted">{names(who)}{" "}{tx("gives")}</p>
+      <p className="mb-1 truncate text-[10px] text-muted">{tx("{who} gives", { who: names(who) })}</p>
       <label className="mb-1 flex items-center gap-1 text-[10px] text-muted">
         $
         <input

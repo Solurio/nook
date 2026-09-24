@@ -413,7 +413,7 @@ export default function MediaItem({
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-xs font-medium">{track.title}</p>
-            <p className="truncate text-[11px] text-muted">{tx("added by")}{" "}{track.addedBy}</p>
+            <p className="truncate text-[11px] text-muted">{tx("added by {addedBy}", { addedBy: track.addedBy })}</p>
           </div>
         </div>
       )}
@@ -667,8 +667,8 @@ function IconButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      aria-label={label}
-      title={label}
+      aria-label={tx(label)}
+      title={tx(label)}
       className={clsx(
         "grid size-7 shrink-0 place-items-center rounded-lg transition disabled:opacity-35",
         active ? "bg-glow/25 text-glow" : "text-muted hover:bg-white/8 hover:text-chalk",

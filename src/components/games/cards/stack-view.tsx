@@ -161,7 +161,7 @@ export default function StackView({
       )}
       {(stack.label || ownerName) && size > 0 && (
         <span className="absolute top-full left-1/2 mt-1 -translate-x-1/2 rounded bg-black/35 px-1.5 py-px text-[9px] whitespace-nowrap text-white/75">
-          {stack.label ? pileName(stack.label) : `${ownerName}'s`}
+          {stack.label ? pileName(stack.label) : t(`${ownerName}'s`)}
         </span>
       )}
       {selected && (

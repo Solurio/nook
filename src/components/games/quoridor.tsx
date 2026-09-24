@@ -198,7 +198,7 @@ export default function Quoridor({ item, state: raw }: { item: Item<"game">; sta
               onClick={() => void write(newGame(n, state))}
               className={clsx("min-h-7 rounded-md px-2 tabular-nums", state.players === n ? "bg-white/12 text-chalk" : "text-muted disabled:opacity-40")}
             >
-              {n}{" "}{tx("players")}</button>
+              {tx("{n} players", { n })}</button>
           ))}
         </span>
         {chairs.map((chair) => {

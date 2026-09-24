@@ -176,7 +176,7 @@ export default function ColorPanel({
                   />
                 ) : (
                   <button type="button" onClick={() => own && setEditing(p.id)} className="min-w-0 flex-1 truncate text-left text-[10px] text-muted">
-                    {p.name}
+                    {t(p.name)}
                   </button>
                 )}
                 {own && canEdit && (

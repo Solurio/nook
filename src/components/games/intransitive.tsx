@@ -19,6 +19,7 @@ import {
 } from "@/lib/intransitive";
 import GameTable from "./table";
 import type { IntransitiveState, Item } from "@/lib/types";
+import { t } from "@/lib/i18n";
 
 const SIDES = ["blue", "red"] as const;
 const TINT: Record<Side, string> = { blue: "#6aa9e0", red: "#e0655c" };
@@ -134,8 +135,9 @@ export default function Intransitive({
               onClick={() => onSquare(i)}
               disabled={!canEdit || over}
               aria-label={
-                (cell ? `${cell.side} ${SHAPE_NAME[cell.shape]} on ` : "") +
-                `${String.fromCharCode(97 + (i % SIZE))}${SIZE - Math.floor(i / SIZE)}`
+                cell
+                  ? t(`${t(`${cell.side} ${SHAPE_NAME[cell.shape]}`)} on ${String.fromCharCode(97 + (i % SIZE))}${SIZE - Math.floor(i / SIZE)}`)
+                  : `${String.fromCharCode(97 + (i % SIZE))}${SIZE - Math.floor(i / SIZE)}`
               }
               className={clsx(
                 "relative grid touch-manipulation place-items-center transition",
@@ -154,7 +156,7 @@ export default function Intransitive({
                     background: "#2b2540",
                     boxShadow: `inset 0 0 0 2px ${TINT[cell.side]}`,
                   }}
-                  title={`${cell.side} ${SHAPE_NAME[cell.shape]}`}
+                  title={t(`${cell.side} ${SHAPE_NAME[cell.shape]}`)}
                 >
                   <RpsIcon shape={cell.shape} className="size-[80%]" ink={TINT[cell.side]} />
                 </span>

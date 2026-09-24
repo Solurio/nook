@@ -2,6 +2,7 @@
 
 import clsx from "clsx";
 import type { Sides } from "@/lib/dice";
+import { t } from "@/lib/i18n";
 
 /** Where the pips go on a d6, on a 3x3 grid. */
 const PIPS: Record<number, Array<[number, number]>> = {
@@ -113,7 +114,7 @@ export default function DieFace({
           "--die-edge": "color-mix(in oklab, var(--die) 55%, #100d16)",
         } as React.CSSProperties
       }
-      title={`d${sides === "F" ? "F" : sides}: ${label || "blank"}${kept ? "" : " (dropped)"}`}
+      title={`d${sides === "F" ? "F" : sides}: ${label || t("blank")}${kept ? "" : ` (${t("dropped")})`}`}
     >
       <svg viewBox="0 0 44 44" className="size-full drop-shadow-[0_2px_2px_rgba(0,0,0,0.45)]" aria-hidden>
         {shape}

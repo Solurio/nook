@@ -187,6 +187,17 @@ export default function Canvas() {
     if (!node) return;
 
     const onWheel = (event: WheelEvent) => {
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      const zooming = event.ctrlKey || event.metaKey;
+      if (!zooming && target) {
+        // Over a game, a document, a shared browser or tab, the wheel is the
+        // item's: its lists and pages scroll, and the room stays where it is.
+        const frame = target.closest<HTMLElement>("[data-item-id]");
+        if (frame?.dataset.wheel === "own") return;
+        // Over anything else, something inside that can still scroll gets
+        // the wheel first -- a long note -- and only then the room moves.
+        if (frame && scrollsFurther(target, frame, event.deltaX, event.deltaY)) return;
+      }
       event.preventDefault();
       const rect = node.getBoundingClientRect();
 
@@ -626,7 +637,7 @@ export default function Canvas() {
           className="surface animate-drift-in pointer-events-auto absolute top-16 left-1/2 z-40 flex min-h-9 w-max max-w-[calc(100vw-1.5rem)] -translate-x-1/2 items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-medium sm:top-28"
         >
           <span className="size-1.5 rounded-full bg-glow" />
-          {tool === "draw" ? t("drawing") : t("erasing")}{" "}{t("— tap here to stop")}</button>
+          {t("{what} — tap here to stop", { what: tool === "draw" ? t("drawing") : t("erasing") })}</button>
       )}
 
       {reaction && tool === "select" && (
@@ -641,6 +652,20 @@ export default function Canvas() {
       {dropping && <DropVeil />}
     </div>
   );
+}
+
+/** Whether something between `from` and `stop` can scroll further the way the wheel is turning. */
+function scrollsFurther(from: HTMLElement, stop: HTMLElement, dx: number, dy: number): boolean {
+  for (let el: HTMLElement | null = from; el && el !== stop.parentElement; el = el.parentElement) {
+    const style = getComputedStyle(el);
+    if (dy && /(auto|scroll)/.test(style.overflowY) && el.scrollHeight > el.clientHeight + 1) {
+      if ((dy < 0 && el.scrollTop > 0) || (dy > 0 && el.scrollTop + el.clientHeight < el.scrollHeight - 1)) return true;
+    }
+    if (dx && /(auto|scroll)/.test(style.overflowX) && el.scrollWidth > el.clientWidth + 1) {
+      if ((dx < 0 && el.scrollLeft > 0) || (dx > 0 && el.scrollLeft + el.clientWidth < el.scrollWidth - 1)) return true;
+    }
+  }
+  return false;
 }
 
 /**

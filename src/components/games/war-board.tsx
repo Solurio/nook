@@ -126,7 +126,7 @@ export default function WarBoard({
               strokeWidth={image ? 3 : 0}
               paintOrder="stroke"
             >
-              {(info?.name ?? c).toUpperCase()} +{info?.bonus ?? 0}
+              {tx(info?.name ?? c).toUpperCase()} +{info?.bonus ?? 0}
             </text>
           );
         })}
@@ -184,7 +184,7 @@ export default function WarBoard({
             key={t}
             onClick={() => onTap(t)}
             style={{ cursor: active ? "pointer" : "default" }}
-            aria-label={`${name}: ${armiesOn(state, t)} ${armiesOn(state, t) === 1 ? "army" : "armies"}`}
+            aria-label={tx(`${name}: ${armiesOn(state, t)} ${armiesOn(state, t) === 1 ? "army" : "armies"}`)}
           >
             {shape ? (
               <>
@@ -252,7 +252,7 @@ export default function WarBoard({
               )}
               {world.labels && (
                 <text y={badge + 14} textAnchor="middle" fontSize={10} fill="#f4efe6" fillOpacity={0.85} stroke="#0c1826" strokeWidth={3} paintOrder="stroke">
-                  {name}
+                  {tx(name)}
                 </text>
               )}
             </g>

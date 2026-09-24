@@ -87,7 +87,7 @@ function Waters({
     <div className={clsx("flex flex-col items-center", dim && "opacity-80")}>
       <p className="mb-1 flex items-center gap-1.5 text-[11px] text-muted">
         <span className="size-2 rounded-full" style={{ background: tint }} />
-        {title}
+        {t(title)}
       </p>
       <div
         className="grid select-none"
@@ -441,7 +441,7 @@ export default function Battleship({ item, state: raw }: { item: Item<"game">; s
               onClick={() => setShownFor(showing)}
               className="flex min-h-12 flex-col items-center justify-center gap-1 rounded-2xl bg-white/8 px-5 py-3 text-[12px] text-chalk ring-1 ring-white/12"
             >
-              <Anchor className="size-5 text-glow" />{t("pass it to")}{" "}{label((phase === "firing" ? firingFor : placingFor) ?? "a")}
+              <Anchor className="size-5 text-glow" />{t("pass it to {placingFor}", { placingFor: label((phase === "firing" ? firingFor : placingFor) ?? "a") })}
               <span className="text-[10px] text-muted">{t("tap when it is in their hands")}</span>
             </button>
           </div>
@@ -534,7 +534,7 @@ export default function Battleship({ item, state: raw }: { item: Item<"game">; s
         {CHAIRS.map((c) =>
           state.sunk[c].length > 0 ? (
             <span key={c} className="rounded-md bg-white/5 px-1.5 py-0.5 text-[10px] text-muted">
-              <span style={{ color: TINT[c] }}>{label(c)}</span>{" "}{t("lost:")}{" "}{state.sunk[c].map((s) => shipName(s.ship)).join(", ")}
+              <span style={{ color: TINT[c] }}>{label(c)}</span>{" "}{t("lost: {ship}", { ship: state.sunk[c].map((s) => t(shipName(s.ship))).join(", ") })}
             </span>
           ) : null,
         )}
