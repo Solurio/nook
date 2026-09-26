@@ -11,6 +11,8 @@ import { COLORS, COLOR_HEX, parse, type Color } from "@/lib/uno";
  * anyone's logo.
  */
 
+const DRAW_LABEL: Record<string, string> = { "+": "+2", "+4": "+4", W4: "+4", W6: "+6", W10: "+10", WR: "+4" };
+
 function Symbol({ value, color, size }: { value: string; color: string; size: "big" | "small" }) {
   const big = size === "big";
   const stroke = big ? 7 : 4.5;
@@ -32,22 +34,81 @@ function Symbol({ value, color, size }: { value: string; color: string; size: "b
       );
     }
     case "+":
+    case "+4":
     case "W4":
+    case "W6":
+    case "W10":
+    case "WR": {
+      const label = DRAW_LABEL[value];
+      const wild = value.startsWith("W");
+      const long = label.length > 2;
       return (
-        <text
-          y={big ? 13 : 7}
-          textAnchor="middle"
-          fontFamily="'Arial Black', Arial, sans-serif"
-          fontWeight="900"
-          fontStyle="italic"
-          fontSize={big ? 36 : 20}
-          fill={color}
-          stroke={value === "W4" ? "#1b1a22" : "none"}
-          strokeWidth={value === "W4" ? 1.5 : 0}
-        >
-          {value === "+" ? "+2" : "+4"}
+        <g>
+          <text
+            y={big ? (value === "WR" ? 4 : 13) : 7}
+            textAnchor="middle"
+            fontFamily="'Arial Black', Arial, sans-serif"
+            fontWeight="900"
+            fontStyle="italic"
+            fontSize={big ? (long ? 30 : 36) : long ? 15 : 20}
+            fill={color}
+            stroke={wild ? "#1b1a22" : "none"}
+            strokeWidth={wild ? 1.5 : 0}
+            paintOrder="stroke"
+          >
+            {label}
+          </text>
+          {value === "WR" && big && (
+            <g transform="translate(0 26) scale(0.42)" fill={color} stroke="#1b1a22" strokeWidth={3} paintOrder="stroke">
+              <path d="M-18 4 L-18 -8 C-18 -16 -12 -20 -4 -20 L6 -20 L6 -28 L20 -14 L6 0 L6 -8 L-4 -8 C-6 -8 -6 -7 -6 -6 L-6 4 Z" />
+              <path d="M18 -4 L18 8 C18 16 12 20 4 20 L-6 20 L-6 28 L-20 14 L-6 0 L-6 8 L4 8 C6 8 6 7 6 6 L6 -4 Z" />
+            </g>
+          )}
+        </g>
+      );
+    }
+    case "SA": {
+      // Two skips overlapping: everybody misses a go.
+      const r = big ? 15 : 8;
+      const off = big ? 8 : 4.5;
+      return (
+        <g fill="none" stroke={color} strokeWidth={big ? 5 : 3} strokeLinecap="round">
+          {[-off, off].map((dx) => (
+            <g key={dx} transform={`translate(${dx} ${dx * 0.6})`}>
+              <circle r={r} />
+              <path d={`M${-r * 0.65} ${r * 0.65} L${r * 0.65} ${-r * 0.65}`} />
+            </g>
+          ))}
+        </g>
+      );
+    }
+    case "DA": {
+      // A fan of cards all going at once.
+      const w = big ? 16 : 9;
+      const h = big ? 24 : 13;
+      return (
+        <g fill={color} stroke="#f7f4ee" strokeWidth={big ? 1.6 : 1}>
+          {[-24, 0, 24].map((a) => (
+            <rect key={a} x={-w / 2} y={-h / 2} width={w} height={h} rx={2} transform={`rotate(${a}) translate(0 ${big ? -4 : -2})`} />
+          ))}
+        </g>
+      );
+    }
+    case "WC":
+      return (
+        <text y={big ? 14 : 7} textAnchor="middle" fontFamily="'Arial Black', Arial, sans-serif" fontWeight="900" fontSize={big ? 40 : 20} fill={color} stroke="#1b1a22" strokeWidth={1.5} paintOrder="stroke">
+          ?
         </text>
       );
+    case "WS": {
+      const s = big ? 1 : 0.5;
+      return (
+        <g transform={`scale(${s})`} fill={color} stroke="#1b1a22" strokeWidth={2} paintOrder="stroke">
+          <path d="M-20 -8 L10 -8 L10 -16 L24 -4 L10 8 L10 0 L-20 0 Z" />
+          <path d="M20 8 L-10 8 L-10 0 L-24 12 L-10 24 L-10 16 L20 16 Z" transform="translate(0 -4)" />
+        </g>
+      );
+    }
     case "W":
       return null;
     default:
@@ -134,19 +195,15 @@ function UnoCard({
         {wild ? <Quarters rx={32} ry={50} /> : <ellipse rx="32" ry="50" fill="#f7f4ee" />}
       </g>
       <g transform="translate(50 75)">
-        {wild && value === "W4" ? (
-          <Symbol value="W4" color="#f7f4ee" size="big" />
-        ) : (
-          <Symbol value={value} color={ink} size="big" />
-        )}
+        <Symbol value={value} color={wild ? "#f7f4ee" : ink} size="big" />
       </g>
 
       {[false, true].map((flip) => (
         <g key={String(flip)} transform={flip ? "rotate(180 50 75)" : undefined}>
           <g transform="translate(19 22)">
             {wild ? (
-              value === "W4" ? (
-                <Symbol value="W4" color="#f7f4ee" size="small" />
+              value !== "W" ? (
+                <Symbol value={value} color="#f7f4ee" size="small" />
               ) : (
                 <g transform="rotate(-28)">
                   <Quarters rx={7} ry={10} />

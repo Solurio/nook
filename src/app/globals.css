@@ -269,6 +269,16 @@ body.is-room {
   }
 }
 
+/* A turn's clock running down: starts from however much was left. */
+@keyframes uno-clock {
+  from {
+    transform: scaleX(var(--from, 1));
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
 @keyframes wall-down {
   from {
     opacity: 0;
