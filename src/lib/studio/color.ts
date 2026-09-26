@@ -86,3 +86,71 @@ export const BUILT_IN_PALETTES: Palette[] = [
   { id: "pastel", name: "pastel", colors: ["#ffd1dc", "#ffe5b4", "#fff5ba", "#d4f0c0", "#c1e7e3", "#c6dbf0", "#d9ccf5", "#f5d0f0"] },
   { id: "earth", name: "earth", colors: ["#3b2f2f", "#6b4f3a", "#8c6d46", "#a68a64", "#c2b280", "#6b8e23", "#556b2f", "#2f4f4f", "#708090"] },
 ];
+
+// ---------------------------------------------------------------------------
+// The triangle picker: pure hue at one corner, white and black at the other
+// two, turning with the hue round the ring. A colour is a blend of the three
+// corners, and in HSV terms that blend is simply
+//   hue share = s * v, white share = (1 - s) * v, black share = 1 - v.
+// ---------------------------------------------------------------------------
+
+export type Point = [number, number];
+
+/** The triangle's corners, pure hue first, for a hue in degrees (0 at the top, going clockwise). */
+export function triangleCorners(h: number, cx: number, cy: number, r: number): [Point, Point, Point] {
+  const at = (deg: number): Point => {
+    const a = (deg * Math.PI) / 180;
+    return [cx + r * Math.sin(a), cy - r * Math.cos(a)];
+  };
+  return [at(h), at(h + 120), at(h + 240)];
+}
+
+/** Where a saturation and value sit in the triangle. */
+export function svToTriangle(s: number, v: number, [hue, white, black]: [Point, Point, Point]): Point {
+  const a = s * v;
+  const b = (1 - s) * v;
+  const c = 1 - v;
+  return [a * hue[0] + b * white[0] + c * black[0], a * hue[1] + b * white[1] + c * black[1]];
+}
+
+/** The blend of the three corners at a point, each share at least 0; a point outside lands on the nearest edge. */
+export function triangleWeights(x: number, y: number, [p1, p2, p3]: [Point, Point, Point]): [number, number, number] {
+  const det = (p2[1] - p3[1]) * (p1[0] - p3[0]) + (p3[0] - p2[0]) * (p1[1] - p3[1]);
+  let a = ((p2[1] - p3[1]) * (x - p3[0]) + (p3[0] - p2[0]) * (y - p3[1])) / det;
+  let b = ((p3[1] - p1[1]) * (x - p3[0]) + (p1[0] - p3[0]) * (y - p3[1])) / det;
+  let c = 1 - a - b;
+  if (a >= 0 && b >= 0 && c >= 0) return [a, b, c];
+  // Outside: the closest point on whichever edge is nearest.
+  const onEdge = (u: Point, w: Point): { d: number; t: number } => {
+    const dx = w[0] - u[0];
+    const dy = w[1] - u[1];
+    const t = clamp(((x - u[0]) * dx + (y - u[1]) * dy) / (dx * dx + dy * dy || 1), 0, 1);
+    return { d: Math.hypot(u[0] + t * dx - x, u[1] + t * dy - y), t };
+  };
+  const e12 = onEdge(p1, p2);
+  const e23 = onEdge(p2, p3);
+  const e31 = onEdge(p3, p1);
+  if (e12.d <= e23.d && e12.d <= e31.d) [a, b, c] = [1 - e12.t, e12.t, 0];
+  else if (e23.d <= e31.d) [a, b, c] = [0, 1 - e23.t, e23.t];
+  else [a, b, c] = [e31.t, 0, 1 - e31.t];
+  return [a, b, c];
+}
+
+/** The saturation and value a point in the triangle stands for. */
+export function triangleToSv(x: number, y: number, corners: [Point, Point, Point]): { s: number; v: number } {
+  const [a, b] = triangleWeights(x, y, corners);
+  const v = clamp(a + b, 0, 1);
+  return { s: v > 0.0001 ? clamp(a / v, 0, 1) : 0, v };
+}
+
+/** Colours that sit well with this one, by where they are round the wheel. */
+export function harmonies(hsv: HSV): Array<{ name: string; colors: string[] }> {
+  const turn = (deg: number) => hsvToHex({ ...hsv, h: (hsv.h + deg + 360) % 360 });
+  return [
+    { name: "opposite", colors: [turn(180)] },
+    { name: "either side", colors: [turn(-30), turn(30)] },
+    { name: "three ways", colors: [turn(120), turn(240)] },
+    { name: "split opposite", colors: [turn(150), turn(210)] },
+    { name: "four ways", colors: [turn(90), turn(180), turn(270)] },
+  ];
+}

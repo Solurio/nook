@@ -1,14 +1,22 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import clsx from "clsx";
-import { ArrowLeftRight, Plus, Trash2 } from "lucide-react";
-import { BUILT_IN_PALETTES, hexToHsv, hexToRgb, hsvToHex, parseHex, type HSV, type Palette } from "@/lib/studio/color";
+import { ArrowLeftRight, Circle, Plus, SlidersHorizontal, Square, Trash2, Triangle } from "lucide-react";
+import { BUILT_IN_PALETTES, harmonies, hexToHsv, hexToRgb, hsvToHex, parseHex, type HSV, type Palette } from "@/lib/studio/color";
 import { Panel } from "./widgets";
+import { Box, Sliders, Wheel, readPickerMode, savePickerMode, type PickerMode } from "./color-pickers";
 import { t } from "@/lib/i18n";
 
+const PICKERS: Array<{ id: PickerMode; name: string; icon: React.ReactNode }> = [
+  { id: "square", name: "ring and square", icon: <Circle className="size-3.5" /> },
+  { id: "triangle", name: "ring and triangle", icon: <Triangle className="size-3.5" /> },
+  { id: "box", name: "big square", icon: <Square className="size-3.5" /> },
+  { id: "sliders", name: "sliders", icon: <SlidersHorizontal className="size-3.5" /> },
+];
+
 /**
- * The colour: a wheel for the hue, a square for how strong and how light,
+ * The colour: a wheel for the hue, a square (or a triangle) for how strong and how light,
  * the hex for when you know exactly, a second colour to swap to, the last few
  * used, and palettes -- the built-in ones and the table's own.
  */
@@ -34,79 +42,47 @@ export default function ColorPanel({
   onClose: () => void;
 }) {
   const [hsv, setHsv] = useState<HSV>(() => hexToHsv(color));
-  const shown = hsvToHex(hsv) === color ? hsv : hexToHsv(color);
-  const ring = useRef<HTMLDivElement>(null);
-  const square = useRef<HTMLDivElement>(null);
+  // A grey has no hue of its own: keep the one the wheel was on.
+  const fromHex = hexToHsv(color);
+  const shown = hsvToHex(hsv) === color ? hsv : { ...fromHex, h: fromHex.s < 0.001 || fromHex.v < 0.001 ? hsv.h : fromHex.h };
   const [editing, setEditing] = useState<string | null>(null);
+  const [mode, setMode] = useState<PickerMode>(readPickerMode);
 
   const set = (next: HSV) => {
     setHsv(next);
     onColor(hsvToHex(next));
   };
 
-  const dragRing = (event: React.PointerEvent) => {
-    const box = ring.current?.getBoundingClientRect();
-    if (!box) return;
-    const a = Math.atan2(event.clientY - (box.top + box.height / 2), event.clientX - (box.left + box.width / 2));
-    set({ ...shown, h: ((a * 180) / Math.PI + 90 + 360) % 360 });
-  };
-  const dragSquare = (event: React.PointerEvent) => {
-    const box = square.current?.getBoundingClientRect();
-    if (!box) return;
-    const s = Math.max(0, Math.min(1, (event.clientX - box.left) / box.width));
-    const v = Math.max(0, Math.min(1, 1 - (event.clientY - box.top) / box.height));
-    set({ ...shown, s, v });
-  };
-  const grab = (event: React.PointerEvent) => {
-    event.stopPropagation();
-    (event.currentTarget as Element).setPointerCapture?.(event.pointerId);
-  };
-
   const { r, g, b } = hexToRgb(color);
-  const hueColor = hsvToHex({ h: shown.h, s: 1, v: 1 });
   const all = [...BUILT_IN_PALETTES, ...palettes];
 
   return (
     <Panel title={t("colour")} onClose={onClose} className="top-2 right-2 w-64">
-      <div className="relative mx-auto size-48">
-        <div
-          ref={ring}
-          onPointerDown={(event) => {
-            grab(event);
-            dragRing(event);
-          }}
-          onPointerMove={(event) => event.buttons && dragRing(event)}
-          className="absolute inset-0 cursor-pointer touch-none rounded-full"
-          style={{
-            background: "conic-gradient(red, yellow, lime, cyan, blue, magenta, red)",
-            WebkitMask: "radial-gradient(circle, transparent 62%, black 63%)",
-            mask: "radial-gradient(circle, transparent 62%, black 63%)",
-          }}
-        />
-        <span
-          className="pointer-events-none absolute size-3.5 -translate-1/2 rounded-full border-2 border-white shadow"
-          style={{
-            left: `${50 + 40.5 * Math.sin((shown.h * Math.PI) / 180)}%`,
-            top: `${50 - 40.5 * Math.cos((shown.h * Math.PI) / 180)}%`,
-            background: hueColor,
-          }}
-        />
-        <div
-          ref={square}
-          onPointerDown={(event) => {
-            grab(event);
-            dragSquare(event);
-          }}
-          onPointerMove={(event) => event.buttons && dragSquare(event)}
-          className="absolute top-1/2 left-1/2 size-[42%] -translate-1/2 cursor-crosshair touch-none rounded"
-          style={{ background: `linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, ${hueColor})` }}
-        >
-          <span
-            className="pointer-events-none absolute size-3 -translate-1/2 rounded-full border-2 border-white shadow"
-            style={{ left: `${shown.s * 100}%`, top: `${(1 - shown.v) * 100}%`, background: color }}
-          />
-        </div>
+      <div className="mb-2 flex gap-0.5 rounded-lg bg-white/5 p-0.5">
+        {PICKERS.map((m) => (
+          <button
+            key={m.id}
+            type="button"
+            onClick={() => {
+              setMode(m.id);
+              savePickerMode(m.id);
+            }}
+            title={t(m.name)}
+            aria-label={t(m.name)}
+            className={clsx("grid h-7 flex-1 place-items-center rounded-md transition", mode === m.id ? "bg-white/14 text-chalk" : "text-muted hover:text-chalk")}
+          >
+            {m.icon}
+          </button>
+        ))}
       </div>
+
+      {mode === "square" || mode === "triangle" ? (
+        <Wheel hsv={shown} color={color} inner={mode} onChange={set} />
+      ) : mode === "box" ? (
+        <Box hsv={shown} color={color} onChange={set} />
+      ) : (
+        <Sliders hsv={shown} color={color} onChange={set} onColor={onColor} />
+      )}
 
       <div className="mt-2 flex items-center gap-2">
         <span className="relative h-9 w-12 shrink-0">
@@ -142,6 +118,19 @@ export default function ColorPanel({
           </div>
         </div>
       )}
+
+      <div className="mt-2">
+        <p className="mb-1 text-[9px] tracking-wide text-muted/60 uppercase">{t("goes well with")}</p>
+        <div className="flex flex-wrap gap-x-1.5 gap-y-1">
+          {harmonies(shown).map((h) => (
+            <span key={h.name} className="flex items-center gap-0.5 rounded-md bg-white/4 p-0.5" title={t(h.name)}>
+              {h.colors.map((c, i) => (
+                <button key={`${c}-${i}`} type="button" onClick={() => onColor(c)} className="size-4.5 rounded-sm ring-1 ring-white/15" style={{ background: c }} aria-label={`${t(h.name)}: ${c}`} />
+              ))}
+            </span>
+          ))}
+        </div>
+      </div>
 
       <div className="mt-2 space-y-1.5">
         <div className="flex items-center gap-1">

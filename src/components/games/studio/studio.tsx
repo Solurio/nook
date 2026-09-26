@@ -13,6 +13,7 @@ import {
   Eraser,
   FingerprintPattern,
   FlipHorizontal,
+  Grid3x3,
   Hand,
   Layers,
   Maximize2,
@@ -63,6 +64,9 @@ import { firealpacaBrushes } from "@/lib/studio/firealpaca-pack";
 import { readImported, writeImported } from "@/lib/studio/brush-import";
 import { currentFrame, emptyAnimation, frameDelay, shownLayers, tidyAnimation, type AnimationState } from "@/lib/studio/animation";
 import { IconButton, RailSlider, Watched, watched } from "./widgets";
+import GuidesMenu from "./guides-menu";
+import { activePoints, assistDirection, guideLines, moveVanishing, onLine, readGuides, saveGuides, type Guides, type Pt } from "@/lib/studio/guides";
+import { snapShape } from "@/lib/studio/quickshape";
 import { t as tx } from "@/lib/i18n";
 
 const PAPER = "#faf7f0";
@@ -159,7 +163,25 @@ function docFor(state: DoodleState, item: Item<"game">): StudioDoc {
 type Gesture =
   | { kind: "pan"; id: number; sx: number; sy: number; view: View }
   | { kind: "pinch"; a: number; b: number; d0: number; a0: number; view: View; doc: [number, number]; at: number; moved: boolean }
-  | { kind: "stroke"; id: number; op: StrokeOp; smooth: [number, number]; done: number; paths: number; incremental: boolean; sent: number; live: LiveStroke | null }
+  | {
+      kind: "stroke";
+      id: number;
+      op: StrokeOp;
+      smooth: [number, number];
+      done: number;
+      paths: number;
+      incremental: boolean;
+      sent: number;
+      live: LiveStroke | null;
+      /** Where it started, and the guide line it locked to, with the assist on. */
+      origin: Pt;
+      dir: Pt | null;
+      /** Held still at the end: tidied into a line (whose end still follows) or a shape. */
+      snapped?: "line" | "shape";
+      /** Where the pointer last came to rest, and the timer waiting to tidy the stroke. */
+      rest?: { at: [number, number]; timer: ReturnType<typeof setTimeout> };
+    }
+  | { kind: "guide"; id: number; index: 0 | 1 }
   | { kind: "drag"; id: number; tool: "gradient" | "shape" | "rect" | "ellipse"; mode: SelectOp["mode"]; x0: number; y0: number; x1: number; y1: number; opId: string }
   | { kind: "lasso"; id: number; mode: SelectOp["mode"]; points: number[] }
   | { kind: "warp"; id: number; handle: "move" | "rotate" | [number, number]; start: [number, number]; warp0: Warp; angle0: number };
@@ -243,6 +265,12 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
   const [filterPreview, setFilterPreview] = useState<FilterChoice | null>(null);
   const [textDraft, setTextDraft] = useState<{ x: number; y: number; sx: number; sy: number; zoom: number } | null>(null);
   const [text, setText] = useState("");
+  const [guides, setGuidesState] = useState<Guides>(() => readGuides(item.id, docW, docH));
+  const [guidesOpen, setGuidesOpen] = useState(false);
+  const setGuides = (next: Guides) => {
+    setGuidesState(next);
+    saveGuides(item.id, next);
+  };
 
   const active = layers.find((l) => l.id === activeState) ?? layers[layers.length - 1];
   const anim = useMemo(() => tidyAnimation(state.animation, layers), [state.animation, layers]);
@@ -472,6 +500,33 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
     dirtyRef.current = true;
   };
 
+  /** A stroke whose points changed wholesale: laid again from nothing on a clean copy of its layer. */
+  const restartLive = (g: Extract<Gesture, { kind: "stroke" }>) => {
+    const layer = g.op.layer as string;
+    g.live = studio.beginLive(g.op, layer);
+    const work = docCanvas(workRef);
+    const ctx = work.getContext("2d");
+    ctx?.clearRect(0, 0, work.width, work.height);
+    ctx?.drawImage(studio.canvasOf(layer), 0, 0);
+    markChanged(null);
+    needPrepare.current = true;
+    requestDraw();
+  };
+
+  /** Held still at the end of a stroke: a clean line, circle or shape, if it was meant to be one. */
+  const tidy = (g: Extract<Gesture, { kind: "stroke" }>) => {
+    if (gestureRef.current !== g || g.snapped || !g.live) return;
+    const snapped = snapShape(g.op.points, viewRef.current?.zoom ?? 1);
+    if (!snapped) return;
+    const pressures = g.op.pressures ?? [];
+    const middle = [...pressures].sort((a, b) => a - b)[Math.floor(pressures.length / 2)] ?? 1;
+    g.op.points = snapped.points;
+    g.op.pressures = Array.from({ length: snapped.points.length / 2 }, () => middle);
+    g.snapped = snapped.kind === "line" ? "line" : "shape";
+    restartLive(g);
+    if (g.op.spec?.mode === "paint") broadcastStroke(item.id, { ...g.op, by, points: g.op.points.slice(), pressures: g.op.pressures.slice() });
+  };
+
   const clearPreview = () => {
     if (previewKind.current !== "gesture") return;
     previewRef.current = null;
@@ -555,6 +610,24 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
       ctx.drawImage(pic, 0, 0);
       if (overlayUsed.current && overlayRef.current) ctx.drawImage(overlayRef.current, 0, 0);
 
+      // Guides: a grid, thirds, perspective lines. Thin at any zoom.
+      const lines = guideLines(guides, docW, docH);
+      if (lines.length) {
+        ctx.save();
+        ctx.lineWidth = 1 / z;
+        for (const strong of [false, true]) {
+          ctx.strokeStyle = strong ? "rgba(90,150,255,0.55)" : "rgba(90,150,255,0.22)";
+          ctx.beginPath();
+          for (const l of lines) {
+            if (l.strong !== strong) continue;
+            ctx.moveTo(l.line[0], l.line[1]);
+            ctx.lineTo(l.line[2], l.line[3]);
+          }
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
       // Mirror lines, while symmetry is on.
       if (isBrushTool(tool) && options.symmetry !== "none") {
         ctx.save();
@@ -623,6 +696,20 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
 
       // Screen space from here: handles and the brush ring keep their size at any zoom.
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (guidesOpen) {
+        for (const vp of activePoints(guides, docW)) {
+          const [hx, hy] = applyMat(m, vp[0], vp[1]);
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(hx, hy, 9, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(90,150,255,0.9)";
+          ctx.fill();
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = "#fff";
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
       const session = warpRef.current;
       if (session) {
         const corners = warpCorners(session.box, session.warp).map(([x, y]) => applyMat(m, x, y));
@@ -666,6 +753,11 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
       }
     };
   });
+
+  // The guides changed: the screen shows them.
+  useEffect(() => {
+    requestDraw();
+  }, [guides, guidesOpen]);
 
   // Wide enough for docks, or a tablet, or a phone: from the board's own width, not the window's.
   useEffect(() => {
@@ -970,6 +1062,18 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
     if (event.button !== 0 && event.pointerType === "mouse") return;
     const [x, y] = toDoc(view, sx, sy);
 
+    if (guidesOpen && guides.perspective > 0) {
+      const m = viewMatrix(view);
+      const hit = activePoints(guides, docW).findIndex((vp) => {
+        const [hx, hy] = applyMat(m, vp[0], vp[1]);
+        return Math.hypot(hx - sx, hy - sy) < 18;
+      });
+      if (hit >= 0) {
+        gestureRef.current = { kind: "guide", id: event.pointerId, index: hit as 0 | 1 };
+        return;
+      }
+    }
+
     if (tool === "picker" || (tool === "brush" && event.altKey)) {
       const picked = studio.pick(displayed(), x, y, paper);
       if (picked) setColor(picked);
@@ -1002,7 +1106,7 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
         ctx?.clearRect(0, 0, work.width, work.height);
         ctx?.drawImage(studio.canvasOf(active.id), 0, 0);
       }
-      gestureRef.current = { kind: "stroke", id: event.pointerId, op, smooth: [x, y], done: 0, paths: mirrored([0, 0], op.sym, docW, docH).length, incremental, sent: 0, live };
+      gestureRef.current = { kind: "stroke", id: event.pointerId, op, smooth: [x, y], done: 0, paths: mirrored([0, 0], op.sym, docW, docH).length, incremental, sent: 0, live, origin: [x, y], dir: null };
       if (event.pointerType === "touch" && s.mode === "paint") {
         const id = event.pointerId;
         cancelHold();
@@ -1163,16 +1267,45 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
     }
     const [x, y] = toDoc(view, sx, sy);
 
+    if (g.kind === "guide") {
+      setGuides(moveVanishing(guides, g.index, [x, y], docW));
+      requestDraw();
+      return;
+    }
     if (g.kind === "stroke") {
+      if (g.snapped === "shape") return;
+      if (g.snapped === "line") {
+        // A tidied line: its far end still follows the pointer.
+        const pts = g.op.points;
+        pts[pts.length - 2] = x;
+        pts[pts.length - 1] = y;
+        restartLive(g);
+        return;
+      }
       const native = event.nativeEvent;
       const samples = typeof native.getCoalescedEvents === "function" ? native.getCoalescedEvents() : [];
       const list = samples.length ? samples : [native];
       for (const e of list) {
         const [ex, ey] = local(e);
         const p = toDoc(view, ex, ey);
-        g.smooth = stabilize(g.smooth, p, options.stabilizer);
-        g.op.points.push(g.smooth[0], g.smooth[1]);
+        if (guides.assist) {
+          // Once it has gone far enough to tell which way, it runs along that guide.
+          if (!g.dir && Math.hypot(p[0] - g.origin[0], p[1] - g.origin[1]) * view.zoom > 10) g.dir = assistDirection(guides, g.origin, p, docW);
+          if (!g.dir) continue;
+          const [px, py] = onLine(g.origin, g.dir, p);
+          g.op.points.push(px, py);
+        } else {
+          g.smooth = stabilize(g.smooth, p, options.stabilizer);
+          g.op.points.push(g.smooth[0], g.smooth[1]);
+        }
         g.op.pressures?.push(pressureOf(e));
+      }
+      if (guides.quickShape && g.live && !guides.assist) {
+        const rest = g.rest;
+        if (!rest || Math.hypot(sx - rest.at[0], sy - rest.at[1]) > 4) {
+          if (rest) clearTimeout(rest.timer);
+          g.rest = { at: [sx, sy], timer: setTimeout(() => tidy(g), 650) };
+        }
       }
       needPrepare.current = true;
       requestDraw();
@@ -1252,10 +1385,12 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
     if (g.id !== event.pointerId) return;
     gestureRef.current = null;
     const view = viewRef.current;
+    if (g.kind === "guide") return;
 
     if (g.kind === "stroke") {
+      if (g.rest) clearTimeout(g.rest.timer);
       const op = g.op;
-      if (view && event.type === "pointerup") {
+      if (view && event.type === "pointerup" && !g.snapped) {
         const [x, y] = toDoc(view, ...local(event));
         const n = op.points.length;
         if (Math.hypot(x - op.points[n - 2], y - op.points[n - 1]) > 0.5) {
@@ -2082,6 +2217,9 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
           </IconButton>
         </>
       )}
+      <IconButton label={tx("guides and drawing help")} onClick={() => setGuidesOpen((v) => !v)} active={guidesOpen || guides.grid > 0 || guides.thirds || guides.perspective > 0 || guides.assist}>
+        <Grid3x3 />
+      </IconButton>
       <IconButton
         label={tx("mirror the view (the picture stays as it is)")}
         onClick={() => {
@@ -2240,6 +2378,8 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
           </div>
         </div>
       )}
+
+      {guidesOpen && <GuidesMenu guides={guides} onChange={setGuides} onClose={() => setGuidesOpen(false)} />}
 
       {mySel && canEdit && (
         <div
