@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import {
+  Search,
   Asterisk,
   Club,
   Bomb,
@@ -69,6 +70,9 @@ const EmojiPicker = dynamic(() => import("./emoji-picker"));
 const StickersPanel = dynamic(() => import("./stickers-panel"));
 
 type GameGroup = "table" | "secrets" | "boards";
+
+/** For matching what someone types: lower case, accents off. */
+const fold = (text: string) => text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
 const GROUP_TITLE: Record<GameGroup, string> = {
   table: "on the table",
@@ -476,6 +480,18 @@ function AddSheet({
     { icon: <MonitorPlay className="size-5" strokeWidth={2} />, label: "shared browser", run: () => onAdd("cobrowse") },
   ];
 
+  const [query, setQuery] = useState("");
+  const scroller = useRef<HTMLDivElement>(null);
+  const q = fold(query);
+  const hit = (...words: string[]) => !q || words.some((w) => fold(w).includes(q) || fold(t(w)).includes(q));
+  const shownThings = things.filter((thing) => hit(thing.label));
+  const shownGroups = GROUPS.map((g) => ({ ...g, games: g.games.filter((game) => hit(game.title, game.hint)) })).filter((g) => g.games.length > 0);
+  const jump = (id: string) => {
+    const box = scroller.current;
+    const target = box?.querySelector<HTMLElement>(`[data-section="${id}"]`);
+    if (box && target) box.scrollTo({ top: target.offsetTop - 132, behavior: "smooth" });
+  };
+
 
   return (
     <div className="pointer-events-auto fixed inset-0 z-60 flex flex-col justify-end sm:hidden">
@@ -486,31 +502,66 @@ function AddSheet({
         className="absolute inset-0 bg-ink-950/55"
       />
 
-      <div className="surface-raised animate-drift-in relative max-h-[78dvh] overflow-y-auto rounded-t-3xl px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl">
-        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
-
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold">{t("add to the room")}</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={t("close")}
-            className="grid size-9 place-items-center rounded-xl text-muted transition hover:bg-white/8 hover:text-chalk"
-          >
-            <X className="size-4" strokeWidth={2.4} />
-          </button>
+      <div ref={scroller} className="surface-raised animate-drift-in relative max-h-[82dvh] overflow-y-auto overscroll-contain rounded-t-3xl px-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl">
+        {/* Stays at the top while the tiles scroll under it. */}
+        <div className="sticky top-0 z-10 -mx-4 mb-3 bg-ink-700 px-4 pt-3 pb-2.5 shadow-[0_8px_12px_-10px_rgba(0,0,0,0.6)]">
+          <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
+          <div className="mb-2.5 flex items-center justify-between">
+            <h2 className="text-sm font-semibold">{t("add to the room")}</h2>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label={t("close")}
+              className="grid size-9 place-items-center rounded-xl text-muted transition hover:bg-white/8 hover:text-chalk"
+            >
+              <X className="size-4" strokeWidth={2.4} />
+            </button>
+          </div>
+          <label className="flex h-10 items-center gap-2 rounded-xl bg-white/7 px-3 ring-1 ring-white/10 focus-within:ring-glow/60">
+            <Search className="size-4 shrink-0 text-muted" strokeWidth={2.2} />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder={t("find a game or a thing")}
+              enterKeyHint="search"
+              className="min-w-0 flex-1 bg-transparent text-sm text-chalk outline-none placeholder:text-muted/60"
+            />
+            {query && (
+              <button type="button" onClick={() => setQuery("")} aria-label={t("clear")} className="grid size-6 place-items-center rounded-md text-muted">
+                <X className="size-3.5" strokeWidth={2.4} />
+              </button>
+            )}
+          </label>
+          {!query && (
+            <div className="no-scrollbar -mx-4 mt-2.5 flex gap-1.5 overflow-x-auto px-4">
+              {[{ id: "things", title: "things" }, ...GROUPS.map((g) => ({ id: g.group, title: g.title }))].map((chip) => (
+                <button
+                  key={chip.id}
+                  type="button"
+                  onClick={() => jump(chip.id)}
+                  className="h-8 shrink-0 rounded-full bg-white/7 px-3 text-xs whitespace-nowrap text-chalk/85 transition active:bg-white/12"
+                >
+                  {t(chip.title)}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          {things.map((thing) => (
+        {query && shownThings.length === 0 && shownGroups.length === 0 && (
+          <p className="py-8 text-center text-sm text-muted">{t("nothing called that")}</p>
+        )}
+
+        <div data-section="things" className="grid grid-cols-2 gap-2">
+          {shownThings.map((thing) => (
             <SheetTile key={thing.label} disabled={!canEdit} onClick={thing.run} icon={thing.icon}>
               {t(thing.label)}
             </SheetTile>
           ))}
         </div>
 
-        {GROUPS.map(({ group, title, games }) => (
-          <div key={group}>
+        {shownGroups.map(({ group, title, games }) => (
+          <div key={group} data-section={group}>
             <h2 className="mt-5 mb-3 text-sm font-semibold">{t(title)}</h2>
             <div className="grid grid-cols-2 gap-2">
               {games.map((game) => (
@@ -532,10 +583,14 @@ function AddSheet({
           </div>
         ))}
 
-        <h2 className="mt-5 mb-3 text-sm font-semibold">{t("view")}</h2>
-        <div className="grid grid-cols-2 gap-2">
-          <SheetTile onClick={onFit} icon={<Maximize2 className="size-5" strokeWidth={2} />}>{t("fit everything")}</SheetTile>
-        </div>
+        {!query && (
+          <>
+            <h2 className="mt-5 mb-3 text-sm font-semibold">{t("view")}</h2>
+            <div className="grid grid-cols-2 gap-2">
+              <SheetTile onClick={onFit} icon={<Maximize2 className="size-5" strokeWidth={2} />}>{t("fit everything")}</SheetTile>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

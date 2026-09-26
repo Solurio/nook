@@ -573,7 +573,7 @@ export default function Uno({ item, state: raw }: { item: Item<"game">; state: u
   const pickedCards = picking ? [...picking.with.map((i) => pickOptions[i]).filter(Boolean), picking.card] : [];
 
   return (
-    <div className="surface grain relative flex size-full flex-col gap-2 overflow-hidden rounded-2xl p-2.5">
+    <div className="surface grain @container relative flex size-full flex-col gap-2 overflow-hidden rounded-2xl p-2.5">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted/70">
         <span className="flex items-center gap-0.5">
           <button type="button" disabled={!canEdit || state.seatCount <= MIN_SEATS} onClick={() => resize(-1)} aria-label={t("one chair fewer")} className="grid size-7 place-items-center rounded disabled:opacity-30">
@@ -656,17 +656,17 @@ export default function Uno({ item, state: raw }: { item: Item<"game">; state: u
               title={rules.forcePlay && legal.size > 0 ? t("you have something to play") : t("draw a card")}
               className="relative transition active:scale-95 disabled:cursor-default"
             >
-              <UnoCard card={null} down width={60} />
+              <UnoCard card={null} down width={60} className="h-auto w-[clamp(60px,14cqw,110px)]" />
               <span className="absolute -right-2 -bottom-2 rounded-full bg-ink-950/85 px-1.5 text-[10px] text-chalk tabular-nums ring-1 ring-white/20">{drawLeft}</span>
             </button>
             <div className="relative">
               {state.discard[1] && (
                 <div className="absolute top-1 left-1.5 rotate-[8deg] opacity-70">
-                  <UnoCard card={state.discard[1]} width={76} />
+                  <UnoCard card={state.discard[1]} width={76} className="h-auto w-[clamp(76px,17cqw,136px)]" />
                 </div>
               )}
               <div className="relative -rotate-2">
-                <UnoCard card={top ?? null} width={76} called={state.color} />
+                <UnoCard card={top ?? null} width={76} called={state.color} className="h-auto w-[clamp(76px,17cqw,136px)]" />
               </div>
               {pending && !pending.roulette && pending.count > 0 && (
                 <span className="absolute -top-3 -right-4 rotate-6 rounded-lg bg-[#d63a3a] px-2 py-0.5 text-[15px] font-black text-white shadow-lg ring-2 ring-white/70">
@@ -794,7 +794,7 @@ export default function Uno({ item, state: raw }: { item: Item<"game">; state: u
                   )}
                   aria-label={t(describe(card, null))}
                 >
-                  <UnoCard card={card} width={52} />
+                  <UnoCard card={card} width={52} className="h-auto w-[clamp(52px,11cqw,92px)]" />
                   {cut && <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-warm px-1.5 text-[9px] font-bold whitespace-nowrap text-ink-950">{t("cut in!")}</span>}
                 </button>
               );

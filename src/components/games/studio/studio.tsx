@@ -614,6 +614,10 @@ export default function StudioBoard({ item, state }: { item: Item<"game">; state
       const lines = guideLines(guides, docW, docH);
       if (lines.length) {
         ctx.save();
+        // On the picture only: off its edge the lines are just noise.
+        ctx.beginPath();
+        ctx.rect(0, 0, docW, docH);
+        ctx.clip();
         ctx.lineWidth = 1 / z;
         for (const strong of [false, true]) {
           ctx.strokeStyle = strong ? "rgba(90,150,255,0.55)" : "rgba(90,150,255,0.22)";

@@ -41,7 +41,7 @@ function Card({ card, width, down, fresh }: { card: string | null; width: number
   const read = card ? readCard(card) : null;
   return (
     <div className={clsx(fresh && "animate-drift-in")}>
-      <PlayingCard face={read && !down ? { kind: "standard", rank: read.rank, suit: read.suit } : null} deck={null} down={down || !read} width={width} />
+      <PlayingCard face={read && !down ? { kind: "standard", rank: read.rank, suit: read.suit } : null} deck={null} down={down || !read} width={width} className="h-auto w-[clamp(54px,13cqw,104px)]" />
     </div>
   );
 }
@@ -191,7 +191,7 @@ export default function TwentyOne({ item, state: raw }: { item: Item<"game">; st
             : t("{turn} to play", { turn: label(state.turn) });
 
   return (
-    <div className="surface grain relative flex size-full flex-col gap-2 overflow-hidden rounded-2xl p-2.5">
+    <div className="surface grain @container relative flex size-full flex-col gap-2 overflow-hidden rounded-2xl p-2.5">
       <div className="flex items-center gap-1.5">
         {SEATS.map((s) => (
           <button

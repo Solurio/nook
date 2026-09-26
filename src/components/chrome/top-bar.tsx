@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import clsx from "clsx";
 import {
@@ -268,7 +269,9 @@ function MoreSheet({
   onLock: () => void;
   onClose: () => void;
 }) {
-  return (
+  // On the page itself, not inside the top bar: the bar is its own layer, and
+  // a sheet inside it sat under the dock however high its own z-index.
+  return createPortal(
     <div className="pointer-events-auto fixed inset-0 z-60 flex flex-col justify-end sm:hidden">
       <button
         type="button"
@@ -325,6 +328,7 @@ function MoreSheet({
         >
           <DoorOpen className="size-5 shrink-0" strokeWidth={2} />{t("back to the front door")}</Link>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

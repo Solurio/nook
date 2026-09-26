@@ -63,8 +63,11 @@ export function usePaintOps({
         setRows((data ?? []) as Row[]);
         setMode("table");
       });
+    // A name of its own for each mount: the same board shown twice at once (the
+    // room and full screen) would otherwise be handed one channel, already
+    // subscribed, and adding to it then throws.
     const channel = db
-      .channel(`paint:${itemId}`)
+      .channel(`paint:${itemId}:${Math.random().toString(36).slice(2, 10)}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "paint_ops", filter: `item_id=eq.${itemId}` }, (payload) => {
         const row = payload.new as Row;
         setRows((current) => (current.some((r) => r.id === row.id) ? current.map((r) => (r.id === row.id ? row : r)) : [...current, row]));
