@@ -170,7 +170,9 @@ export type GameKind =
   | "reversi"
   | "pool"
   | "battleship"
-  | "monopoly";
+  | "monopoly"
+  | "chinese"
+  | "twentyone";
 
 export type GameData =
   | { game: "tictactoe"; state: TicTacToeState }
@@ -200,7 +202,9 @@ export type GameData =
   | { game: "reversi"; state: import("./reversi").ReversiState }
   | { game: "pool"; state: import("./pool").PoolState }
   | { game: "battleship"; state: import("./battleship").BattleshipState }
-  | { game: "monopoly"; state: import("./monopoly").MonopolyState };
+  | { game: "monopoly"; state: import("./monopoly").MonopolyState }
+  | { game: "chinese"; state: import("./chinese").ChineseState }
+  | { game: "twentyone"; state: import("./twentyone").TwentyOneState };
 
 export interface ChessState {
   /** 64 cells, index = row*8+col, row 0 is black's back rank. */

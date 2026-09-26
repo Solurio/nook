@@ -40,6 +40,8 @@ const Reversi = dynamic(() => import("@/components/games/reversi"), { loading: O
 const Pool = dynamic(() => import("@/components/games/pool"), { loading: Opening });
 const Battleship = dynamic(() => import("@/components/games/battleship"), { loading: Opening });
 const Monopoly = dynamic(() => import("@/components/games/monopoly"), { loading: Opening });
+const Chinese = dynamic(() => import("@/components/games/chinese"), { loading: Opening });
+const TwentyOne = dynamic(() => import("@/components/games/twentyone"), { loading: Opening });
 
 export default function GameItem({ item }: { item: Item<"game"> }) {
   switch (item.data.game) {
@@ -99,6 +101,10 @@ export default function GameItem({ item }: { item: Item<"game"> }) {
       return <Monopoly item={item} state={item.data.state} />;
     case "reversi":
       return <Reversi item={item} state={item.data.state} />;
+    case "chinese":
+      return <Chinese item={item} state={item.data.state} />;
+    case "twentyone":
+      return <TwentyOne item={item} state={item.data.state} />;
     default:
       return null;
   }

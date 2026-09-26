@@ -84,6 +84,8 @@ const GAME_SIZE: Record<GameKind, { width: number; height: number }> = {
   pool: { width: 640, height: 440 },
   battleship: { width: 640, height: 520 },
   monopoly: { width: 720, height: 780 },
+  chinese: { width: 440, height: 500 },
+  twentyone: { width: 460, height: 440 },
 };
 
 /** A slight tilt on drop makes a wall of items feel arranged rather than gridded. */

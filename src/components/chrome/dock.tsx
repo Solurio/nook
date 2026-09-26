@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import {
+  Asterisk,
+  Club,
   Bomb,
   BrickWall,
   BookOpen,
@@ -111,12 +113,14 @@ const GAMES: Array<{
   { kind: "cah", group: "secrets", title: "cards against humanity", hint: "ours, yours, or both", icon: <Quote /> },
   { kind: "bang", group: "secrets", title: "BANG!", hint: "the dice game: a sheriff, outlaws, arrows", icon: <Star /> },
   { kind: "buckshot", group: "secrets", title: "buckshot roulette", hint: "live or blank, and nobody knows", icon: <Crosshair /> },
+  { kind: "twentyone", group: "secrets", title: "twenty-one", hint: "two players, one card hidden, chips down", icon: <Club /> },
   { kind: "dominoes", group: "secrets", title: "dominoes", hint: "double six, teams optional", icon: <GripVertical /> },
   { kind: "catan", group: "secrets", title: "catan", hint: "build, trade, and mind the robber", icon: <Hexagon /> },
   { kind: "quoridor", group: "boards", title: "quoridor (bloqueio)", hint: "cross first, wall everyone else in", icon: <BrickWall /> },
   { kind: "war", group: "boards", title: "WAR", hint: "42 territories, a secret objective", icon: <Earth /> },
   { kind: "chess", group: "boards", title: "chess", hint: "check, mate, castling", icon: <Crown /> },
   { kind: "reversi", group: "boards", title: "reversi", hint: "close a line, flip it over", icon: <CircleDot /> },
+  { kind: "chinese", group: "boards", title: "chinese checkers", hint: "the star, for two, three, four or six", icon: <Asterisk /> },
   { kind: "pool", group: "table", title: "pool", hint: "eight ball, nine ball, or a free table", icon: <Circle /> },
   { kind: "battleship", group: "boards", title: "battleship", hint: "two fleets, hidden, and the guns take turns", icon: <Anchor /> },
   { kind: "monopoly", group: "table", title: "monopoly", hint: "buy the streets, build, bleed them dry", icon: <Landmark /> },
