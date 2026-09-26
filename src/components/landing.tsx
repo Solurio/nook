@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, DoorOpen, Loader2, Sparkles, X } from "lucide-react";
+import { ArrowRight, DoorOpen, Loader2, X } from "lucide-react";
 import { hasSupabaseConfig } from "@/lib/supabase/config";
 import { generateSlug, normalizeSlugInput, slugifyName, withSuffix } from "@/lib/slug";
 import {
@@ -126,8 +126,8 @@ export default function Landing() {
 
         <div className="flex flex-1 flex-col justify-center py-16">
           <div className="max-w-2xl">
-            <p className="mb-5 inline-flex items-center gap-1.5 rounded-full bg-white/5 px-3 py-1 text-xs text-muted ring-1 ring-white/10">
-              <Sparkles className="size-3 text-warm" strokeWidth={2.2} />{t("rooms that stay put")}</p>
+            {/* Written in the margin, the way you would on a note. */}
+            <p className="mb-3 -rotate-2 font-hand text-2xl leading-none text-warm/90">{t("rooms that stay put")}</p>
 
             <h1 className="text-5xl leading-[1.05] font-semibold tracking-tight text-balance sm:text-6xl">{t("A little room on the internet,")}<br />
               <span className="text-glow">{t("shared with people you like.")}</span>

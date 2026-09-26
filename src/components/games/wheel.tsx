@@ -404,9 +404,11 @@ function SliceList({
                 disabled={!canEdit}
                 onClick={() => setPicking(picking === slice.id ? null : slice.id)}
                 aria-label={t("change colour")}
-                className="mt-0.5 size-3.5 shrink-0 rounded-full ring-1 ring-white/25 disabled:cursor-default"
-                style={{ background: slice.color }}
-              />
+                // The dot stays small; the finger gets a bigger target round it.
+                className="-m-1.5 grid size-6.5 shrink-0 place-items-center rounded-full disabled:cursor-default pointer-coarse:-m-2 pointer-coarse:size-8"
+              >
+                <span className="size-3.5 rounded-full ring-1 ring-white/25" style={{ background: slice.color }} />
+              </button>
               <span className="min-w-0 flex-1 text-[11px] leading-snug break-words text-chalk">
                 {t(slice.label) || <span className="text-muted/50">{t("unnamed")}</span>}
                 {slice.weight > 1 && <span className="ml-1 text-muted/70">×{slice.weight}</span>}
@@ -419,7 +421,7 @@ function SliceList({
                   type="button"
                   onClick={() => onRemove(slice.id)}
                   aria-label={t("remove {name}", { name: t(slice.label) })}
-                  className="shrink-0 text-muted/40 transition hover:text-chalk focus-visible:text-chalk"
+                  className="-my-1 grid size-6 shrink-0 place-items-center rounded-md text-muted/40 transition hover:text-chalk focus-visible:text-chalk pointer-coarse:-my-1.5 pointer-coarse:size-8"
                 >
                   <X className="size-3" />
                 </button>

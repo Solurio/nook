@@ -234,8 +234,8 @@ export default function TwentyOne({ item, state: raw }: { item: Item<"game">; st
             const sum = total(cards);
             const winner = state.phase === "done" && state.result?.winner === s;
             return (
-              <div key={s} className={clsx("flex items-center gap-2", row === 0 && "flex-row-reverse sm:flex-row")}>
-                <div className="flex min-w-0 flex-1 items-end gap-1 overflow-x-auto pb-1">
+              <div key={s} className="flex items-center justify-center gap-3">
+                <div className={clsx("flex min-w-0 flex-wrap items-end justify-center gap-1", row === 0 && "order-2 sm:order-none")}>
                   <Card card={known} down={!known} width={54} />
                   {ups.map((c, i) => (
                     <Card key={`${c}-${i}`} card={c} width={54} fresh={i === ups.length - 1 && i > 0} />

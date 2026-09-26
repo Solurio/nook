@@ -1130,6 +1130,7 @@ const es: Record<string, string> = {
   "find": "buscar",
   "find a brush": "buscar un pincel",
   "find a deck": "buscar un mazo",
+  "find a game": "busca un juego",
   "find a game or a thing": "busca un juego o una cosa",
   "find in the document...": "buscar en el documento...",
   "find one of {total}": "buscar uno de {total}",

@@ -373,30 +373,7 @@ export default function Dock() {
             <Gamepad2 className="size-4.5" strokeWidth={2} />
           </DockButton>
 
-          {gamesOpen && (
-            <div className="surface-raised animate-drift-in absolute right-1.5 bottom-full mb-2 max-h-[min(34rem,calc(100dvh-7rem))] w-[26rem] max-w-[90vw] overflow-y-auto overscroll-contain rounded-2xl p-2 shadow-2xl">
-              {GROUPS.map(({ group, title, games }) => (
-                <div key={group} className="mb-1 last:mb-0">
-                  <p className="px-2.5 pt-1 pb-0.5 text-[10px] tracking-wide text-muted/60 uppercase">{t(title)}</p>
-                  <div className="grid grid-cols-2 gap-1">
-                    {games.map((game) => (
-                      <GameOption
-                        key={game.title}
-                        icon={game.icon}
-                        title={t(game.title)}
-                        hint={t(game.hint)}
-                        onClick={() =>
-                          game.kind === "token" || game.kind === "grid"
-                            ? add(game.kind)
-                            : add("game", game.kind, game.setup?.())
-                        }
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          {gamesOpen && <GamesMenu onPick={(game) => (game.kind === "token" || game.kind === "grid" ? add(game.kind) : add("game", game.kind, game.setup?.()))} onClose={() => setGamesOpen(false)} />}
         </div>
 
         {/* Reactions */}
@@ -444,6 +421,46 @@ export default function Dock() {
           }}
         />
       )}
+    </div>
+  );
+}
+
+/** The games, grouped, with a search field on top: typing narrows them, Enter takes the first. */
+function GamesMenu({ onPick, onClose }: { onPick: (game: (typeof GAMES)[number]) => void; onClose: () => void }) {
+  const [query, setQuery] = useState("");
+  const q = fold(query);
+  const matches = (game: (typeof GAMES)[number]) => !q || [game.title, game.hint].some((w) => fold(w).includes(q) || fold(t(w)).includes(q));
+  const groups = GROUPS.map((g) => ({ ...g, games: g.games.filter(matches) })).filter((g) => g.games.length > 0);
+  return (
+    <div className="surface-raised animate-drift-in absolute right-1.5 bottom-full mb-2 flex max-h-[min(36rem,calc(100dvh-7rem))] w-[26rem] max-w-[90vw] flex-col overflow-hidden rounded-2xl shadow-2xl">
+      <label className="m-2 mb-1 flex h-9 shrink-0 items-center gap-2 rounded-xl bg-white/6 px-2.5 ring-1 ring-white/8 focus-within:ring-glow/50">
+        <Search className="size-3.5 shrink-0 text-muted" strokeWidth={2.2} />
+        <input
+          autoFocus
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          onKeyDown={(event) => {
+            event.stopPropagation();
+            if (event.key === "Escape") onClose();
+            if (event.key === "Enter" && groups[0]?.games[0]) onPick(groups[0].games[0]);
+          }}
+          placeholder={t("find a game")}
+          className="min-w-0 flex-1 bg-transparent text-[13px] text-chalk outline-none placeholder:text-muted/60"
+        />
+      </label>
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 pt-1">
+        {groups.length === 0 && <p className="py-6 text-center text-[12px] text-muted">{t("nothing called that")}</p>}
+        {groups.map(({ group, title, games }) => (
+          <div key={group} className="mb-1 last:mb-0">
+            <p className="px-2.5 pt-1 pb-0.5 text-[10px] tracking-wide text-muted/60 uppercase">{t(title)}</p>
+            <div className="grid grid-cols-2 gap-1">
+              {games.map((game) => (
+                <GameOption key={game.title} icon={game.icon} title={t(game.title)} hint={t(game.hint)} onClick={() => onPick(game)} />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

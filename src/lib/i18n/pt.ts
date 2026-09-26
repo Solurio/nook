@@ -1133,6 +1133,7 @@ const pt: Record<string, string> = {
   "find": "buscar",
   "find a brush": "achar um pincel",
   "find a deck": "achar um baralho",
+  "find a game": "procure um jogo",
   "find a game or a thing": "procure um jogo ou uma coisa",
   "find in the document...": "buscar no documento...",
   "find one of {total}": "buscar um de {total}",
