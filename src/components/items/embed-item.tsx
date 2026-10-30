@@ -7,6 +7,7 @@ import { useRoomStore } from "@/state/room-store";
 import { blocksFraming, resolveLink, withParent } from "@/lib/embeds";
 import type { Item } from "@/lib/types";
 import { t } from "@/lib/i18n";
+import { webUrl } from "@/lib/safe-url";
 
 /**
  * A window onto another page that the whole room shares. The address is part of
@@ -162,7 +163,7 @@ export default function EmbedItem({
               <RotateCw className="size-3.5" strokeWidth={2.2} />
             </button>
             <a
-              href={url}
+              href={webUrl(url) ?? undefined}
               target="_blank"
               rel="noopener noreferrer"
               aria-label={t("open in a new tab")}
@@ -182,7 +183,7 @@ export default function EmbedItem({
               <span className="text-chalk">{safeHost(url)}</span>{" "}{t("will not open inside another page (the site blocks it). Open it in a new tab, or use the")}{" "}
               <span className="text-chalk">{t("shared browser")}</span>{" "}{t("to watch it together.")}</p>
             <a
-              href={url}
+              href={webUrl(url) ?? undefined}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 rounded-lg bg-white/8 px-2.5 py-1 text-[11px] text-chalk transition hover:bg-white/12"
@@ -193,7 +194,7 @@ export default function EmbedItem({
       ) : (
         <iframe
           key={`${url}#${reloadKey}`}
-          src={withParent(url)}
+          src={webUrl(url) ? withParent(url) : "about:blank"}
           title={title ?? safeHost(url)}
           className="min-h-0 flex-1 bg-white"
           sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-presentation"

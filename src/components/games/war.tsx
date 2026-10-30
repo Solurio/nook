@@ -277,7 +277,13 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
   // Attacking, marching in, moving, and the card at the end
   // ---------------------------------------------------------------------------
 
-  /** A fallen player's cards go to whoever took them out: up to five, blind; the rest to the discards. */
+  /**
+   * A fallen player's cards go to whoever took them out: up to five, blind;
+   * the rest to the discards. Only a hand's own holder can take cards out of
+   * it, so the device holding the fallen hand hands them over -- which with
+   * one phone round the table is the same device, and otherwise is the fallen
+   * player's, still watching.
+   */
   const inherit = async (victim: string, heir: string) => {
     if (!me) return;
     const piles = latest().piles;
@@ -289,13 +295,29 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
         p_to: handSlot(heir),
         p_count: take,
         p_random: true,
-        p_to_owner: holders[heir] ?? me.userId,
+        p_to_owner: holders[heir] ?? piles?.[objectiveSlot(heir)]?.owner ?? me.userId,
       });
     }
     if (discard) {
       await pile("pile_move", { p_item: item.id, p_from: handSlot(victim), p_to: DISCARD_PILE, p_count: discard, p_random: true });
     }
   };
+
+  const handedOver = useRef(new Set<string>());
+  const owedHands = state.out
+    .filter((victim) => state.killedBy[victim] && sizeOf(state.piles, handSlot(victim)) > 0 && state.piles?.[handSlot(victim)]?.owner === me?.userId)
+    .join(",");
+  useEffect(() => {
+    if (!owedHands || !canEdit) return;
+    for (const victim of owedHands.split(",")) {
+      const key = `${state.round}:${victim}`;
+      if (handedOver.current.has(key)) continue;
+      handedOver.current.add(key);
+      void inherit(victim, state.killedBy[victim]);
+    }
+    // The hand-over runs once per fallen hand; inherit reads the latest state itself.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [owedHands, canEdit]);
 
   const fire = (allIn: boolean) =>
     run(async () => {
@@ -304,7 +326,6 @@ export default function War({ item, state: raw }: { item: Item<"game">; state: u
       const next = attack(now, sel.from, sel.to, dice, randomBelow, label, allIn);
       if (next === now) return;
       await write(next);
-      for (const victim of next.out.filter((c) => !now.out.includes(c))) await inherit(victim, now.turn);
     });
 
   const marchIn = (n: number) =>

@@ -1,0 +1,38 @@
+# Every push and pull request: types, lint, the test suite (which runs the
+# database migrations and their row level security in a real Postgres), a
+# check that no dependency the site ships has a known hole, and a build.
+# Cloudflare deploys on its own; this is what says whether it should have.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # The version Cloudflare Pages builds with.
+          node-version: 22.16.0
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - name: Known vulnerabilities in what ships
+        run: npm audit --omit=dev --audit-level=high
+      - run: npm run build
+      - name: The security headers were written
+        run: grep -q "Content-Security-Policy" out/_headers

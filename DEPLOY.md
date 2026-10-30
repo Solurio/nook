@@ -11,7 +11,14 @@ ends up embedded in the JavaScript either way), and what protects the data is
 RLS, not keeping that key quiet.
 
 Before anything else, run the database migrations (see the README). Without the
-`strokes` table from migration `0002`, drawing on the room doesn't save.
+`strokes` table from migration `0002`, drawing on the room doesn't save, and
+without `0010_security.sql` anyone with the public key can read every room --
+see [SECURITY.md](SECURITY.md).
+
+The build also writes `out/_headers` (`scripts/security-headers.mjs`, run as
+`postbuild`): the content security policy and caching rules Cloudflare Pages
+applies to every page. To try the exported site with those headers before it
+ships: `npm run build && npm run serve:static`.
 
 ## Option A: Cloudflare Pages (recommended)
 

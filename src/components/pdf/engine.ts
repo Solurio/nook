@@ -20,6 +20,16 @@ function pdfjs(): Promise<PdfJs> {
   return library;
 }
 
+/**
+ * Fetches the library and its worker ahead of time, so the first PDF opened
+ * in a room does not wait for either. The worker goes into the HTTP cache,
+ * where pdf.js will find it.
+ */
+export async function warmUp(): Promise<void> {
+  await pdfjs();
+  await fetch("/pdf.worker.min.mjs", { priority: "low" } as RequestInit).catch(() => undefined);
+}
+
 const documents = new Map<string, Promise<PDFDocumentProxy>>();
 
 /** A file that went up in parts, fetched and joined back into one. */
@@ -38,6 +48,13 @@ async function joined(parts: string[]): Promise<Uint8Array> {
     at += piece.length;
   }
   return out;
+}
+
+/** A rectangle in the page's own units, in the viewport's: its two corners, each turned. */
+function toViewport(view: { convertToViewportPoint: (x: number, y: number) => number[] }, [x1, y1, x2, y2]: number[]): [number, number, number, number] {
+  const [ax, ay] = view.convertToViewportPoint(x1, y1);
+  const [bx, by] = view.convertToViewportPoint(x2, y2);
+  return [ax, ay, bx, by];
 }
 
 /** Opens a document once, however many screens and items ask for it. */
@@ -139,7 +156,7 @@ export function pageWords(url: string, doc: PDFDocumentProxy, n: number): Promis
         if (!("str" in piece) || !piece.str.trim()) continue;
         const [, , , d, e, f] = piece.transform as number[];
         const height = Math.abs(d) || piece.height || 10;
-        const [x1, y1, x2, y2] = view.convertToViewportRectangle([e, f, e + piece.width, f + height]);
+        const [x1, y1, x2, y2] = toViewport(view, [e, f, e + piece.width, f + height]);
         runs.push({
           str: piece.str,
           x: Math.min(x1, x2) / view.width,
@@ -204,7 +221,7 @@ export function pageLinks(url: string, doc: PDFDocumentProxy, n: number): Promis
       const out: PageLink[] = [];
       for (const note of annotations) {
         if (note.subtype !== "Link" || !note.rect) continue;
-        const [x1, y1, x2, y2] = view.convertToViewportRectangle(note.rect);
+        const [x1, y1, x2, y2] = toViewport(view, note.rect);
         const box = {
           x: Math.min(x1, x2) / view.width,
           y: Math.min(y1, y2) / view.height,

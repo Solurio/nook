@@ -19,6 +19,7 @@ import {
   saveLocalIdentity,
 } from "@/lib/identity";
 import { newId } from "@/lib/slug";
+import { rasterizeSvg } from "@/lib/image-upload";
 import { useThrottled } from "@/lib/use-throttled";
 import { keepItemFlags, relayer, type ItemDraft, type Layering } from "@/lib/items";
 import { explainPileError, keepTableState, type PileFn } from "@/lib/piles";
@@ -240,13 +241,21 @@ export function RoomProvider({
         identityRef.current = identity;
         store.getState().setMe(identity);
 
-        const { data: roomRow, error: roomError } = await supabase
-          .from("rooms")
-          .select("*")
-          .eq("slug", slug)
-          .maybeSingle();
+        // The link is the key: opening a room by it is what makes you one of
+        // the people who may read it. Until the database has join_room (the
+        // 0010 migration), the room is still read straight off the table.
+        let roomRow: Room | null = null;
+        const joined = await supabase.rpc("join_room", { p_slug: slug });
+        if (!joined.error) {
+          roomRow = ((joined.data as Room[] | null) ?? [])[0] ?? null;
+        } else if (joined.error.code === "PGRST202" || /join_room/.test(joined.error.message)) {
+          const { data, error: roomError } = await supabase.from("rooms").select("*").eq("slug", slug).maybeSingle();
+          if (roomError) throw roomError;
+          roomRow = data as Room | null;
+        } else {
+          throw joined.error;
+        }
 
-        if (roomError) throw roomError;
         if (!roomRow) throw new Error("That nook does not exist (or was taken down).");
         if (cancelled) return;
 
@@ -814,7 +823,18 @@ export function RoomProvider({
         return null;
       }
 
-      const extension = file.name.includes(".") ? file.name.split(".").pop() : "bin";
+      // The bucket takes no SVG (it can carry script); the picture goes up as a PNG.
+      if (file.type === "image/svg+xml" || /\.svg$/i.test(file.name)) {
+        try {
+          file = await rasterizeSvg(file);
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "that drawing could not be read");
+          return null;
+        }
+      }
+
+      // Only a plain extension makes it into the path.
+      const extension = (file.name.includes(".") ? file.name.split(".").pop() ?? "" : "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8) || "bin";
       const path = `${roomId}/${newId()}.${extension}`;
 
       const { error: uploadError } = await supabase.storage
@@ -956,8 +976,12 @@ export function RoomProvider({
       try {
         const res = await fetch("/api/cobrowse", {
           method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ url, token: session?.access_token }),
+          headers: {
+            "content-type": "application/json",
+            ...(session?.access_token ? { authorization: `Bearer ${session.access_token}` } : {}),
+          },
+          // Which room it is for: the function checks you are in it.
+          body: JSON.stringify({ url, room: roomIdRef.current }),
         });
         const data = (await res.json().catch(() => ({}))) as {
           embedUrl?: string;
@@ -984,15 +1008,22 @@ export function RoomProvider({
     [supabase],
   );
 
-  const stopCobrowse = useCallback(async (sessionId: string) => {
-    try {
-      await fetch(`/api/cobrowse?session_id=${encodeURIComponent(sessionId)}`, {
-        method: "DELETE",
-      });
-    } catch {
-      // The offline timeout will reap the session even if this never lands.
-    }
-  }, []);
+  const stopCobrowse = useCallback(
+    async (sessionId: string) => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      try {
+        await fetch(`/api/cobrowse?session_id=${encodeURIComponent(sessionId)}`, {
+          method: "DELETE",
+          headers: session?.access_token ? { authorization: `Bearer ${session.access_token}` } : {},
+        });
+      } catch {
+        // The offline timeout will reap the session even if this never lands.
+      }
+    },
+    [supabase],
+  );
 
   const sendSignal = useCallback(
     (signal: Signal) => {

@@ -310,8 +310,12 @@ test("cards are drawn blind into your hand, traded in the open, and taken from t
     run(b, "select public.pile_move(p_item => $1, p_from => $2, p_to => $3, p_cards => $4::jsonb)", [itemId, handSlot("s0"), DISCARD_PILE, JSON.stringify(hand)]),
   );
 
-  // s1 falls to s0: their cards come over blind.
-  await run(a, "select public.pile_move(p_item => $1, p_from => $2, p_to => $3, p_count => 3, p_random => true)", [itemId, handSlot("s1"), handSlot("s0")]);
+  // s1 falls to s0: their cards come over blind, passed by the fallen hand's own holder.
+  await assert.rejects(
+    run(a, "select public.pile_move(p_item => $1, p_from => $2, p_to => $3, p_count => 3, p_random => true)", [itemId, handSlot("s1"), handSlot("s0")]),
+    "nobody reaches into another's hand",
+  );
+  await run(b, "select public.pile_move(p_item => $1, p_from => $2, p_to => $3, p_count => 3, p_random => true)", [itemId, handSlot("s1"), handSlot("s0")]);
   const { rows: after } = await run(a, "select cards from public.secrets where item_id = $1 and slot = $2", [itemId, handSlot("s0")]);
   assert.equal((after as Array<{ cards: string[] }>)[0].cards.length, 3);
   const { rows: meta } = await db.query<{ data: { state: { piles: Record<string, { size: number }> } } }>("select data from public.items where id = $1", [itemId]);

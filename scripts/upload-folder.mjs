@@ -3,8 +3,8 @@
 //   node scripts/upload-folder.mjs <folder> <prefix>
 //
 // e.g. the FireAlpaca brush pictures to brushes/firealpaca/. Reads the
-// project's address and public key from .env.local and signs in anonymously,
-// as the site does. Files already there are left alone.
+// project's address from .env.local and uploads with the service key (see
+// below). Files already there are left alone.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -23,9 +23,16 @@ const env = Object.fromEntries(
     .filter((line) => /^\w+=/.test(line))
     .map((line) => [line.slice(0, line.indexOf("=")), line.slice(line.indexOf("=") + 1).trim()]),
 );
-const supabase = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY, { auth: { persistSession: false } });
-const { error: signInError } = await supabase.auth.signInAnonymously();
-if (signInError) throw signInError;
+// Since the 0010 migration a visitor can only upload into a room's own
+// folder, so filling shared folders (brushes, music) needs the project's
+// service key. Put SUPABASE_SERVICE_ROLE_KEY in .env.local for the run --
+// it must never be committed or given to the site.
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
+if (!serviceKey) {
+  console.error("needs SUPABASE_SERVICE_ROLE_KEY (Supabase -> Project Settings -> API), in the environment or .env.local");
+  process.exit(1);
+}
+const supabase = createClient(env.NEXT_PUBLIC_SUPABASE_URL, serviceKey, { auth: { persistSession: false } });
 
 const bucket = supabase.storage.from("decorations");
 const { data: there } = await bucket.list(prefix.replace(/\/$/, ""), { limit: 1000 });

@@ -1,0 +1,16 @@
+# Weekly pull requests for outdated dependencies, grouped so they arrive as
+# one to review rather than twenty. Security updates come straight away.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      everything:
+        patterns: ["*"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

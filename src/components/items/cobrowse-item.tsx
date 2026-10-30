@@ -7,6 +7,7 @@ import { useRoom } from "@/realtime/room-provider";
 import { useRoomStore } from "@/state/room-store";
 import type { Item } from "@/lib/types";
 import { t } from "@/lib/i18n";
+import { webUrl } from "@/lib/safe-url";
 
 /**
  * A live shared browser. Everyone in the room loads the same Hyperbeam embed and
@@ -133,7 +134,7 @@ export default function CobrowseItem({
         </div>
 
         <iframe
-          src={data.embedUrl}
+          src={hyperbeamUrl(data.embedUrl) ?? "about:blank"}
           title={data.url}
           className="min-h-0 flex-1 bg-black"
           allow="autoplay; fullscreen; clipboard-read; clipboard-write; microphone; camera"
@@ -196,7 +197,7 @@ export default function CobrowseItem({
           </p>
           {data.url && (
             <a
-              href={data.url}
+              href={webUrl(data.url) ?? undefined}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-glow hover:underline"
@@ -207,4 +208,12 @@ export default function CobrowseItem({
       )}
     </div>
   );
+}
+
+/** The shared browser only ever shows a Hyperbeam page: the address is in shared state, which anyone in the room can write. */
+function hyperbeamUrl(raw: unknown): string | null {
+  const url = webUrl(raw);
+  if (!url) return null;
+  const host = new URL(url).hostname;
+  return url.startsWith("https:") && (host === "hyperbeam.com" || host.endsWith(".hyperbeam.com") || host.endsWith(".hyperbeam.dev")) ? url : null;
 }

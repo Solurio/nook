@@ -48,6 +48,7 @@ import PageView from "@/components/pdf/page-view";
 import { PDF_MAX_MB, uploadPdf } from "@/components/pdf/upload";
 import type { InkTool } from "@/components/pdf/ink-layer";
 import { t } from "@/lib/i18n";
+import { webUrl } from "@/lib/safe-url";
 
 /**
  * A PDF on the table. Open as a book -- the cover alone, then spreads, the
@@ -666,7 +667,7 @@ function ContentsPanel({
   const entry = (e: OutlineEntry, depth: number, key: string): React.ReactNode => (
     <li key={key}>
       {e.url ? (
-        <a href={e.url} target="_blank" rel="noopener noreferrer nofollow" className="block truncate rounded-md px-1.5 py-1 text-[11px] text-muted hover:bg-white/8 hover:text-chalk" style={{ paddingLeft: 6 + depth * 12 }}>
+        <a href={webUrl(e.url) ?? undefined} target="_blank" rel="noopener noreferrer nofollow" className="block truncate rounded-md px-1.5 py-1 text-[11px] text-muted hover:bg-white/8 hover:text-chalk" style={{ paddingLeft: 6 + depth * 12 }}>
           {e.title}
         </a>
       ) : (

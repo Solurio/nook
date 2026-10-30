@@ -298,18 +298,30 @@ test("taking off the top of somebody's hand is refused", async () => {
   );
 });
 
-test("a random steal takes a card blind, and only the thief sees what", async () => {
+test("a random draw out of somebody else's hand is refused: that would be a look at their cards", async () => {
   const itemId = await dealt();
-  const out = await call(bob, "pile_move", {
+  await assert.rejects(
+    call(bob, "pile_move", {
+      p_item: itemId,
+      p_from: "hand:s0",
+      p_to: "hand:s1",
+      p_random: true,
+    }),
+    /not yours/,
+  );
+  assert.equal((await read(alice, itemId))["hand:s0"].length, 7);
+});
+
+test("a hand's owner can pass cards out of it blind, into another's hand", async () => {
+  const itemId = await dealt();
+  const out = await call(alice, "pile_move", {
     p_item: itemId,
     p_from: "hand:s0",
     p_to: "hand:s1",
     p_random: true,
   });
-  const stolen = (out.rows[0] as { out: unknown[] }).out;
-  assert.equal(stolen.length, 1);
+  assert.equal((out.rows[0] as { out: unknown }).out, null, "alice is told nothing new");
   assert.equal((await read(alice, itemId))["hand:s0"].length, 6);
-  assert.ok((await read(bob, itemId))["hand:s1"].includes(stolen[0]));
 });
 
 test("moving blind into a pile nobody owns tells the mover nothing", async () => {

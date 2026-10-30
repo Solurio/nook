@@ -36,6 +36,10 @@ const SCAFFOLD = `
     bucket_id text, name text, owner uuid
   );
   alter table storage.objects enable row level security;
+  -- Supabase's own: the folders of an object's path.
+  create function storage.foldername(name text) returns text[]
+    language sql immutable
+    as $$ select (string_to_array(name, '/'))[1:array_length(string_to_array(name, '/'), 1) - 1] $$;
 
   create publication supabase_realtime;
 `;
@@ -45,6 +49,10 @@ const GRANTS = `
   grant usage on schema public, auth to anon, authenticated;
   grant execute on function auth.uid() to anon, authenticated;
   grant select, insert, update, delete on all tables in schema public to anon, authenticated;
+  grant usage on schema storage to anon, authenticated;
+  grant select, insert, update, delete on storage.objects to anon, authenticated;
+  -- The security migration takes reading away from visitors without a session.
+  revoke select on public.rooms, public.items, public.messages, public.strokes, public.paint_ops from anon;
 `;
 
 export async function freshDatabase(): Promise<PGlite> {
@@ -97,5 +105,7 @@ export async function tableFor(db: PGlite, ownerId: string, game = "cards") {
      values ($1, 'game', $2::jsonb) returning id`,
     [room.rows[0].id, JSON.stringify({ game, state: {} })],
   );
+  // Everyone signed up so far has opened the room's link, as the players at a table have.
+  await db.query("insert into public.room_members (room_id, user_id) select $1, id from auth.users on conflict do nothing", [room.rows[0].id]);
   return { roomId: room.rows[0].id, itemId: item.rows[0].id };
 }

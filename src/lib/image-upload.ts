@@ -95,3 +95,29 @@ export async function prepareImage(file: File): Promise<PrepareResult> {
   const name = file.name.replace(/\.[^.]+$/, "") || "photo";
   return { file: new File([blob], `${name}.jpg`, { type: "image/jpeg" }) };
 }
+
+/**
+ * An SVG drawn into a PNG. SVG can carry script, so the bucket does not take
+ * it; the picture itself survives as pixels, transparency and all.
+ */
+export async function rasterizeSvg(file: File): Promise<File> {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = new Image();
+    img.decoding = "async";
+    img.src = url;
+    await img.decode();
+    // An SVG with no size of its own reports 0; give it a sensible one.
+    const { width, height } = fitWithin(img.naturalWidth || 1024, img.naturalHeight || 1024);
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    canvas.getContext("2d")?.drawImage(img, 0, 0, width, height);
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+    if (!blob) throw new Error("that drawing could not be turned into a picture");
+    const name = file.name.replace(/\.[^.]+$/, "") || "drawing";
+    return new File([blob], `${name}.png`, { type: "image/png" });
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
