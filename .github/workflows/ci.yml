@@ -30,7 +30,11 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
-      - run: npm test
+      - name: Tests
+        run: npm test
+        env:
+          # Node 22 runs the TypeScript tests only with type stripping switched on.
+          NODE_OPTIONS: --experimental-strip-types
       - name: Known vulnerabilities in what ships
         run: npm audit --omit=dev --audit-level=high
       - run: npm run build
