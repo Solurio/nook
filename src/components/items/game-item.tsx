@@ -1,47 +1,47 @@
 "use client";
 
-import dynamic from "next/dynamic";
+import { preloadable } from "@/lib/preload";
 import type { Item } from "@/lib/types";
 import { t } from "@/lib/i18n";
 
-// Each game is fetched the first time one is on the table, not with the room:
-// a room with a chess board has no business downloading Monopoly's deck, the
-// studio or Catan's island. What loads is small, and shows while it does.
+// Each game is its own file, so a room opens without downloading every game
+// first. They come down afterwards, while the room is idle (lib/preload), so
+// putting one on the table draws it at once; until then, a small placeholder.
 
 function Opening() {
   return <div className="surface grain grid size-full place-items-center rounded-2xl text-[11px] text-muted">{t("opening the game...")}</div>;
 }
 
-const TicTacToe = dynamic(() => import("@/components/games/tic-tac-toe"), { loading: Opening });
-const ConnectFour = dynamic(() => import("@/components/games/connect-four"), { loading: Opening });
-const Doodle = dynamic(() => import("@/components/games/doodle"), { loading: Opening });
-const Chess = dynamic(() => import("@/components/games/chess"), { loading: Opening });
-const Checkers = dynamic(() => import("@/components/games/checkers"), { loading: Opening });
-const Intransitive = dynamic(() => import("@/components/games/intransitive"), { loading: Opening });
-const CardTable = dynamic(() => import("@/components/games/cards/card-table"), { loading: Opening });
-const Dominoes = dynamic(() => import("@/components/games/dominoes"), { loading: Opening });
-const Codenames = dynamic(() => import("@/components/games/codenames"), { loading: Opening });
-const Coup = dynamic(() => import("@/components/games/coup"), { loading: Opening });
-const Spyfall = dynamic(() => import("@/components/games/spyfall"), { loading: Opening });
-const Resistance = dynamic(() => import("@/components/games/resistance"), { loading: Opening });
-const Uno = dynamic(() => import("@/components/games/uno"), { loading: Opening });
-const Dice = dynamic(() => import("@/components/games/dice"), { loading: Opening });
-const Coin = dynamic(() => import("@/components/games/coin"), { loading: Opening });
-const Wheel = dynamic(() => import("@/components/games/wheel"), { loading: Opening });
-const Buckshot = dynamic(() => import("@/components/games/buckshot"), { loading: Opening });
-const Rps = dynamic(() => import("@/components/games/rps"), { loading: Opening });
-const Bang = dynamic(() => import("@/components/games/bang"), { loading: Opening });
-const Bomb = dynamic(() => import("@/components/games/bomb"), { loading: Opening });
-const War = dynamic(() => import("@/components/games/war"), { loading: Opening });
-const Cah = dynamic(() => import("@/components/games/cah"), { loading: Opening });
-const Quoridor = dynamic(() => import("@/components/games/quoridor"), { loading: Opening });
-const Catan = dynamic(() => import("@/components/games/catan"), { loading: Opening });
-const Reversi = dynamic(() => import("@/components/games/reversi"), { loading: Opening });
-const Pool = dynamic(() => import("@/components/games/pool"), { loading: Opening });
-const Battleship = dynamic(() => import("@/components/games/battleship"), { loading: Opening });
-const Monopoly = dynamic(() => import("@/components/games/monopoly"), { loading: Opening });
-const Chinese = dynamic(() => import("@/components/games/chinese"), { loading: Opening });
-const TwentyOne = dynamic(() => import("@/components/games/twentyone"), { loading: Opening });
+const TicTacToe = preloadable(() => import("@/components/games/tic-tac-toe"), Opening);
+const ConnectFour = preloadable(() => import("@/components/games/connect-four"), Opening);
+const Doodle = preloadable(() => import("@/components/games/doodle"), Opening);
+const Chess = preloadable(() => import("@/components/games/chess"), Opening);
+const Checkers = preloadable(() => import("@/components/games/checkers"), Opening);
+const Intransitive = preloadable(() => import("@/components/games/intransitive"), Opening);
+const CardTable = preloadable(() => import("@/components/games/cards/card-table"), Opening);
+const Dominoes = preloadable(() => import("@/components/games/dominoes"), Opening);
+const Codenames = preloadable(() => import("@/components/games/codenames"), Opening);
+const Coup = preloadable(() => import("@/components/games/coup"), Opening);
+const Spyfall = preloadable(() => import("@/components/games/spyfall"), Opening);
+const Resistance = preloadable(() => import("@/components/games/resistance"), Opening);
+const Uno = preloadable(() => import("@/components/games/uno"), Opening);
+const Dice = preloadable(() => import("@/components/games/dice"), Opening);
+const Coin = preloadable(() => import("@/components/games/coin"), Opening);
+const Wheel = preloadable(() => import("@/components/games/wheel"), Opening);
+const Buckshot = preloadable(() => import("@/components/games/buckshot"), Opening);
+const Rps = preloadable(() => import("@/components/games/rps"), Opening);
+const Bang = preloadable(() => import("@/components/games/bang"), Opening);
+const Bomb = preloadable(() => import("@/components/games/bomb"), Opening);
+const War = preloadable(() => import("@/components/games/war"), Opening);
+const Cah = preloadable(() => import("@/components/games/cah"), Opening);
+const Quoridor = preloadable(() => import("@/components/games/quoridor"), Opening);
+const Catan = preloadable(() => import("@/components/games/catan"), Opening);
+const Reversi = preloadable(() => import("@/components/games/reversi"), Opening);
+const Pool = preloadable(() => import("@/components/games/pool"), Opening);
+const Battleship = preloadable(() => import("@/components/games/battleship"), Opening);
+const Monopoly = preloadable(() => import("@/components/games/monopoly"), Opening);
+const Chinese = preloadable(() => import("@/components/games/chinese"), Opening);
+const TwentyOne = preloadable(() => import("@/components/games/twentyone"), Opening);
 
 export default function GameItem({ item }: { item: Item<"game"> }) {
   switch (item.data.game) {

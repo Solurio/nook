@@ -1,6 +1,6 @@
 "use client";
 
-import dynamic from "next/dynamic";
+import { preloadable } from "@/lib/preload";
 import type { AnyItem, Item } from "@/lib/types";
 import ImageItem from "./image-item";
 import NoteItem from "./note-item";
@@ -12,14 +12,15 @@ function Loading() {
   return <div className="size-full rounded-2xl bg-white/4" />;
 }
 
-// Players, documents, shared browsers and the games are fetched when a room has one.
-const MediaItem = dynamic(() => import("./media-item"), { loading: Loading });
-const EmbedItem = dynamic(() => import("./embed-item"), { loading: Loading });
-const GameItem = dynamic(() => import("./game-item"), { loading: Loading });
-const CobrowseItem = dynamic(() => import("./cobrowse-item"), { loading: Loading });
-const ScreencastItem = dynamic(() => import("./screencast-item"), { loading: Loading });
-const PdfItem = dynamic(() => import("./pdf-item"), { loading: Loading });
-const GridItem = dynamic(() => import("./grid-item"), { loading: Loading });
+// Players, documents, shared browsers and the games: their own files, fetched
+// in the background once the room is open, or straight away when one is needed.
+const MediaItem = preloadable(() => import("./media-item"), Loading);
+const EmbedItem = preloadable(() => import("./embed-item"), Loading);
+const GameItem = preloadable(() => import("./game-item"), Loading);
+const CobrowseItem = preloadable(() => import("./cobrowse-item"), Loading);
+const ScreencastItem = preloadable(() => import("./screencast-item"), Loading);
+const PdfItem = preloadable(() => import("./pdf-item"), Loading);
+const GridItem = preloadable(() => import("./grid-item"), Loading);
 
 export default function ItemRenderer({
   item,

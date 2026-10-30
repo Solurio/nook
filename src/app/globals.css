@@ -74,6 +74,20 @@ body.is-room {
       0 18px 44px -22px rgb(0 0 0 / 0.85);
   }
 
+  /* Inside the room, everything moves and scales together: a blur behind
+     each item, or grain blended into it, would be worked out again on every
+     frame of a pan or a pinch. Touch devices and smaller screens skip both
+     there; the panels round the edge keep theirs. */
+  @media (pointer: coarse), (max-width: 1024px) {
+    .world .surface {
+      background: color-mix(in oklab, var(--color-ink-800) 96%, transparent);
+      backdrop-filter: none;
+    }
+    .world .grain::after {
+      display: none;
+    }
+  }
+
   .surface-raised {
     background: color-mix(in oklab, var(--color-ink-700) 92%, transparent);
     border: 1px solid color-mix(in oklab, white 11%, transparent);

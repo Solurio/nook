@@ -676,7 +676,7 @@ function scrollsFurther(from: HTMLElement, stop: HTMLElement, dx: number, dy: nu
 function World({ children }: { children: React.ReactNode }) {
   const viewport = useRoomStore((s) => s.viewport);
   return (
-    <div className="absolute top-0 left-0 origin-top-left" style={{ transform: `translate3d(${viewport.x}px, ${viewport.y}px, 0) scale(${viewport.scale})` }}>
+    <div className="world absolute top-0 left-0 origin-top-left" style={{ transform: `translate3d(${viewport.x}px, ${viewport.y}px, 0) scale(${viewport.scale})` }}>
       {children}
     </div>
   );

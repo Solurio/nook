@@ -124,7 +124,7 @@ function DeskStrip({ item, readOnly }: { item: AnyItem; readOnly: boolean }) {
 
   if (readOnly) {
     return (
-      <div className="pointer-events-none absolute inset-x-0 top-16 z-40 hidden justify-center px-3 sm:flex">
+      <div className="pointer-events-none absolute inset-x-0 top-16 z-40 hidden justify-center px-3 lg:flex">
         <div className="surface pointer-events-auto flex items-center gap-1 rounded-2xl p-1.5">
           <Action label={t("open it full screen")} onClick={() => focus(item.id)}>
             <Maximize2 className="size-4" strokeWidth={2.2} />
@@ -136,7 +136,7 @@ function DeskStrip({ item, readOnly }: { item: AnyItem; readOnly: boolean }) {
   }
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-16 z-40 hidden justify-center px-3 sm:flex">
+    <div className="pointer-events-none absolute inset-x-0 top-16 z-40 hidden justify-center px-3 lg:flex">
       <div className="surface pointer-events-auto flex max-w-[calc(100vw-1.5rem)] items-center gap-1 overflow-x-auto rounded-2xl p-1.5">
         {!pinned && item.kind === "note" && (
           <>
@@ -229,8 +229,8 @@ function ThumbBar({ item, readOnly }: { item: AnyItem; readOnly: boolean }) {
     item.kind === "note" || item.kind === "text" || item.kind === "image" || item.kind === "token" || item.kind === "grid";
 
   return (
-    <div className="animate-drift-in pointer-events-none absolute inset-x-0 bottom-[5.25rem] z-40 px-2 sm:hidden">
-      <div className="surface pointer-events-auto rounded-2xl px-2 py-2">
+    <div className="animate-drift-in pointer-events-none absolute inset-x-0 bottom-[5.25rem] z-40 px-2 lg:hidden">
+      <div className="surface pointer-events-auto rounded-2xl px-2 py-2 sm:mx-auto sm:max-w-xl">
         <div className="mb-1.5 flex items-center gap-2 px-1">
           <span className="min-w-0 truncate text-[11px] font-medium text-muted">
             {item.kind === "game" ? t(gameTitle((item.data as { game: string }).game)) : t(KIND_NAME[item.kind])}

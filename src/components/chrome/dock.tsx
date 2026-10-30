@@ -63,11 +63,11 @@ import { emptyTable } from "@/lib/table";
 import { radioMedia } from "@/lib/radio";
 import BrushPopover from "./brush-popover";
 import { t } from "@/lib/i18n";
-import dynamic from "next/dynamic";
+import { preloadable } from "@/lib/preload";
 
 // The emoji list and the gif search are only wanted once someone opens them.
-const EmojiPicker = dynamic(() => import("./emoji-picker"));
-const StickersPanel = dynamic(() => import("./stickers-panel"));
+const EmojiPicker = preloadable(() => import("./emoji-picker"));
+const StickersPanel = preloadable(() => import("./stickers-panel"));
 
 type GameGroup = "table" | "secrets" | "boards";
 
@@ -240,7 +240,7 @@ export default function Dock() {
       <div className="pointer-events-auto flex items-end gap-1.5 sm:gap-2">
         {/* Zoom. Hidden on a phone, where pinching does the same job and the
             room is better off with the width. */}
-        <div className="surface hidden items-center gap-0.5 rounded-2xl p-1.5 sm:flex">
+        <div className="surface hidden items-center gap-0.5 rounded-2xl p-1.5 lg:flex">
           <DockButton
             label={t("zoom out")}
             onClick={() => zoomAt(0.85, window.innerWidth / 2, window.innerHeight / 2)}
@@ -296,7 +296,7 @@ export default function Dock() {
             were sliding off both edges of the screen unreachable. Getting lost
             in a big room is the one thing you cannot pinch your way out of, so
             the way back sits here rather than three taps into a sheet. */}
-        <div className="surface flex items-center gap-0.5 rounded-2xl p-1.5 sm:hidden">
+        <div className="surface flex items-center gap-0.5 rounded-2xl p-1.5 lg:hidden">
           <DockButton label={t("fit everything")} onClick={fitEverything}>
             <Maximize2 className="size-5" strokeWidth={2.2} />
           </DockButton>
@@ -315,7 +315,7 @@ export default function Dock() {
         </div>
 
         {/* Add things */}
-        <div className="surface relative hidden items-center gap-0.5 rounded-2xl p-1.5 sm:flex">
+        <div className="surface relative hidden items-center gap-0.5 rounded-2xl p-1.5 lg:flex">
           <DockButton label={t("pin a picture")} disabled={!canEdit} onClick={() => add("image")}>
             <ImagePlus className="size-4.5" strokeWidth={2} />
           </DockButton>
@@ -511,7 +511,7 @@ function AddSheet({
 
 
   return (
-    <div className="pointer-events-auto fixed inset-0 z-60 flex flex-col justify-end sm:hidden">
+    <div className="pointer-events-auto fixed inset-0 z-60 flex flex-col justify-end lg:hidden">
       <button
         type="button"
         aria-label={t("close")}
@@ -519,7 +519,7 @@ function AddSheet({
         className="absolute inset-0 bg-ink-950/55"
       />
 
-      <div ref={scroller} className="surface-raised animate-drift-in relative max-h-[82dvh] overflow-y-auto overscroll-contain rounded-t-3xl px-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl">
+      <div ref={scroller} className="surface-raised animate-drift-in relative max-h-[82dvh] overflow-y-auto overscroll-contain rounded-t-3xl px-4 sm:mx-auto sm:w-full sm:max-w-2xl pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl">
         {/* Stays at the top while the tiles scroll under it. */}
         <div className="sticky top-0 z-10 -mx-4 mb-3 bg-ink-700 px-4 pt-3 pb-2.5 shadow-[0_8px_12px_-10px_rgba(0,0,0,0.6)]">
           <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
@@ -569,7 +569,7 @@ function AddSheet({
           <p className="py-8 text-center text-sm text-muted">{t("nothing called that")}</p>
         )}
 
-        <div data-section="things" className="grid grid-cols-2 gap-2">
+        <div data-section="things" className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {shownThings.map((thing) => (
             <SheetTile key={thing.label} disabled={!canEdit} onClick={thing.run} icon={thing.icon}>
               {t(thing.label)}
@@ -580,7 +580,7 @@ function AddSheet({
         {shownGroups.map(({ group, title, games }) => (
           <div key={group} data-section={group}>
             <h2 className="mt-5 mb-3 text-sm font-semibold">{t(title)}</h2>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {games.map((game) => (
                 <SheetTile
                   key={game.title}
@@ -603,7 +603,7 @@ function AddSheet({
         {!query && (
           <>
             <h2 className="mt-5 mb-3 text-sm font-semibold">{t("view")}</h2>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               <SheetTile onClick={onFit} icon={<Maximize2 className="size-5" strokeWidth={2} />}>{t("fit everything")}</SheetTile>
             </div>
           </>
@@ -677,7 +677,8 @@ function DockButton({
         // 44px on touch, tighter once there is a mouse to aim with -- and 40px
         // on the narrowest phones, where 44 pushed both ends of the dock off
         // the screen.
-        "grid size-10 place-items-center rounded-xl transition select-none disabled:opacity-35 disabled:hover:bg-transparent min-[360px]:size-11 sm:size-9",
+        // A finger-sized target on touch screens, whatever their width; a mouse's on a desk.
+        "grid size-10 place-items-center rounded-xl transition select-none disabled:opacity-35 disabled:hover:bg-transparent min-[360px]:size-11 lg:size-9 lg:pointer-coarse:size-10",
         active ? "bg-glow/22 text-glow" : "text-muted hover:bg-white/8 hover:text-chalk",
       )}
     >

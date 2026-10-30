@@ -2,7 +2,7 @@
 
 import { BUNDLED_CSS } from "@/lib/fonts";
 import { useEffect } from "react";
-import dynamic from "next/dynamic";
+import { preloadAll, preloadLater, preloadable } from "@/lib/preload";
 import Link from "next/link";
 import { Loader2, X } from "lucide-react";
 import { hasSupabaseConfig } from "@/lib/supabase/client";
@@ -21,9 +21,12 @@ import { t as tx } from "@/lib/i18n";
 import { Localized } from "@/components/localized";
 
 // Opened now and then, so fetched when first opened rather than with the room.
-const ChatPanel = dynamic(() => import("@/components/chrome/chat-panel"));
-const BackgroundPanel = dynamic(() => import("@/components/chrome/background-panel"));
-const PeersPanel = dynamic(() => import("@/components/chrome/peers-panel"));
+const ChatPanel = preloadable(() => import("@/components/chrome/chat-panel"));
+const BackgroundPanel = preloadable(() => import("@/components/chrome/background-panel"));
+const PeersPanel = preloadable(() => import("@/components/chrome/peers-panel"));
+
+// The PDF reader is the biggest thing a room can need; it goes last.
+preloadLater(() => import("@/components/pdf/engine").then((engine) => engine.warmUp()));
 
 export default function RoomShell({
   slug,
@@ -79,6 +82,13 @@ function RoomBody() {
   const { status, error, joined } = useRoom();
   const panel = useRoomStore((s) => s.panel);
   const chromeHidden = useRoomStore((s) => s.chromeHidden);
+
+  // Once the room is up, everything it could show comes down in the
+  // background, so a game put on the table, or a panel opened, is already here.
+  const live = status !== "loading" && status !== "error";
+  useEffect(() => {
+    if (live) preloadAll();
+  }, [live]);
 
   if (status === "error") {
     return (
