@@ -324,3 +324,22 @@ test("hydrateItems keeps only rows the wall can place", () => {
 
   assert.deepEqual(Object.keys(useRoomStore.getState().items), ["ok"]);
 });
+
+test("a chat draft goes when it is sent, when it goes quiet, or when its writer leaves", () => {
+  const store = useRoomStore.getState();
+  const draft = (text: string, at: number) => ({ name: "ana", tint: "#fff", text, hidden: false, at });
+  store.setTyping("ana", draft("hel", 1));
+  store.setTyping("bo", draft("hi", 1));
+  useRoomStore.getState().appendMessage({ id: "m1", room_id: "r", author_id: "ana", author_name: "ana", author_tint: "#fff", body: "hello", created_at: new Date().toISOString() } as never);
+  assert.deepEqual(Object.keys(useRoomStore.getState().typing), ["bo"], "sent: the draft is the message now");
+
+  useRoomStore.getState().setTyping("bo", draft("hi there", 2));
+  useRoomStore.getState().expireTyping("bo", 1);
+  assert.ok(useRoomStore.getState().typing.bo, "a newer draft outlives the old timer");
+  useRoomStore.getState().expireTyping("bo", 2);
+  assert.equal(useRoomStore.getState().typing.bo, undefined);
+
+  useRoomStore.getState().setTyping("cy", draft("so", 3));
+  useRoomStore.getState().syncPeers([{ userId: "dee", name: "dee", tint: "#000", joinedAt: 0 }]);
+  assert.deepEqual(useRoomStore.getState().typing, {}, "gone from the room, gone from the chat");
+});

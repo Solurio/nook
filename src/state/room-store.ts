@@ -12,6 +12,7 @@ import type {
   Stroke,
   Tool,
   TransformPatch,
+  Typing,
 } from "@/lib/types";
 
 export interface Brush {
@@ -83,6 +84,8 @@ interface RoomState {
   strokes: Record<string, Stroke>;
   /** In-flight ink from peers, keyed by author so each has one active line. */
   liveInk: Record<string, InkDraft>;
+  /** What others are typing into the chat right now, by author. */
+  typing: Record<string, Typing>;
 
   selectedId: string | null;
   /** More than one thing picked at once, on a computer: Shift-click, Shift-drag a box, or Ctrl+A. */
@@ -135,6 +138,9 @@ interface RoomState {
   upsertStroke: (stroke: Stroke) => void;
   removeStroke: (id: string) => void;
   setLiveInk: (userId: string, draft: InkDraft | null) => void;
+  setTyping: (userId: string, typing: Typing | null) => void;
+  /** Drops a draft that has not changed since `at`: they stopped, or left without saying. */
+  expireTyping: (userId: string, at: number) => void;
 
   setTool: (tool: Tool) => void;
   setBrush: (patch: Partial<Brush>) => void;
@@ -175,6 +181,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
 
   strokes: {},
   liveInk: {},
+  typing: {},
 
   selectedId: null,
   picked: [],
@@ -293,7 +300,12 @@ export const useRoomStore = create<RoomState>((set, get) => ({
       const mine = s.me?.userId === message.author_id;
       const unreadChat =
         s.panel === "chat" || mine ? s.unreadChat : s.unreadChat + 1;
-      return { messages, unreadChat };
+      // Sent: what they were typing is now the message itself.
+      const author = message.author_id;
+      if (!author || !(author in s.typing)) return { messages, unreadChat };
+      const typing = { ...s.typing };
+      delete typing[author];
+      return { messages, unreadChat, typing };
     }),
 
   hydrateStrokes: (strokes) =>
@@ -321,6 +333,23 @@ export const useRoomStore = create<RoomState>((set, get) => ({
       if (draft) liveInk[userId] = draft;
       else delete liveInk[userId];
       return { liveInk };
+    }),
+
+  setTyping: (userId, entry) =>
+    set((s) => {
+      if (!entry && !(userId in s.typing)) return {};
+      const typing = { ...s.typing };
+      if (entry) typing[userId] = entry;
+      else delete typing[userId];
+      return { typing };
+    }),
+
+  expireTyping: (userId, at) =>
+    set((s) => {
+      if (s.typing[userId]?.at !== at) return {};
+      const typing = { ...s.typing };
+      delete typing[userId];
+      return { typing };
     }),
 
   setTool: (tool) =>
@@ -357,7 +386,12 @@ export const useRoomStore = create<RoomState>((set, get) => ({
         const previous = s.peers[peer.userId];
         next[peer.userId] = previous?.cursor ? { ...peer, cursor: previous.cursor } : peer;
       }
-      return { peers: next };
+      // Somebody who left is not typing any more.
+      const gone = Object.keys(s.typing).filter((id) => !next[id]);
+      if (gone.length === 0) return { peers: next };
+      const typing = { ...s.typing };
+      for (const id of gone) delete typing[id];
+      return { peers: next, typing };
     }),
 
   setPeerCursor: (userId, cursor) =>

@@ -475,6 +475,17 @@ export interface Stroke {
 }
 
 /** In-flight stroke shared over broadcast before it is committed. */
+/** What someone is typing into the chat, before they send it. */
+export interface Typing {
+  name: string;
+  tint: string;
+  /** The words so far; empty when they would rather only show that they are typing. */
+  text: string;
+  hidden: boolean;
+  /** When it last changed, on the receiving clock. */
+  at: number;
+}
+
 export interface InkDraft {
   id: string;
   userId: string;

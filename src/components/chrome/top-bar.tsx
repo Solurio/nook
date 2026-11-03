@@ -29,6 +29,7 @@ export default function TopBar() {
   const panel = useRoomStore((s) => s.panel);
   const setPanel = useRoomStore((s) => s.setPanel);
   const unread = useRoomStore((s) => s.unreadChat);
+  const someoneTyping = useRoomStore((s) => Object.keys(s.typing).length > 0);
   const connection = useRoomStore((s) => s.connection);
 
   const [editingName, setEditingName] = useState(false);
@@ -122,6 +123,9 @@ export default function TopBar() {
             <span className="absolute -top-0.5 -right-0.5 grid min-w-4 place-items-center rounded-full bg-warm px-1 text-[10px] font-bold text-ink-950">
               {unread > 9 ? "9+" : unread}
             </span>
+          )}
+          {unread === 0 && someoneTyping && panel !== "chat" && (
+            <span className="absolute top-0.5 right-0.5 size-2 animate-pulse rounded-full bg-glow" title={t("someone is typing")} />
           )}
         </button>
 

@@ -105,6 +105,11 @@ interface RoomApi {
   createStroke: (color: string, size: number, points: number[]) => Promise<void>;
   eraseStroke: (id: string) => Promise<void>;
   broadcastInk: (draft: InkDraft | null) => void;
+  /**
+   * What you are typing into the chat, as you type it; null once it is sent
+   * or cleared. With `hidden` the others only see that you are typing.
+   */
+  broadcastTyping: (text: string | null, hidden?: boolean) => void;
 
   startCobrowse: (url: string) => Promise<CobrowseResult>;
   stopCobrowse: (sessionId: string) => Promise<void>;
@@ -135,6 +140,12 @@ export function useRoom(): RoomApi {
 const CURSOR_INTERVAL_MS = 120;
 const TRANSFORM_INTERVAL_MS = 70;
 const INK_INTERVAL_MS = 90;
+/** Chat drafts go out at most this often; the last one always goes. */
+const TYPING_INTERVAL_MS = 160;
+/** A draft nobody has touched for this long is taken down. */
+const TYPING_STALE_MS = 9000;
+/** Only the end of a long draft is sent: it is the part being written. */
+const TYPING_TAIL = 280;
 const PING_LIFETIME_MS = 1800;
 
 /** Matches the storage bucket's own limit, so the message beats the error. */
@@ -360,6 +371,29 @@ export function RoomProvider({
               draft: InkDraft | null;
             };
             store.getState().setLiveInk(from, draft);
+          })
+          .on("broadcast", { event: "typing" }, ({ payload }) => {
+            const { userId: from, name, tint, text, hidden } = payload as {
+              userId: string;
+              name: string;
+              tint: string;
+              text: string | null;
+              hidden?: boolean;
+            };
+            if (typeof from !== "string") return;
+            if (typeof text !== "string") {
+              store.getState().setTyping(from, null);
+              return;
+            }
+            const at = Date.now();
+            store.getState().setTyping(from, {
+              name: String(name ?? "").slice(0, 40),
+              tint: String(tint ?? ""),
+              text: hidden ? "" : text.slice(-TYPING_TAIL),
+              hidden: Boolean(hidden),
+              at,
+            });
+            setTimeout(() => store.getState().expireTyping(from, at), TYPING_STALE_MS);
           })
           .on("broadcast", { event: "rtc" }, ({ payload }) => {
             const signal = payload as Signal;
@@ -925,6 +959,34 @@ export function RoomProvider({
     [supabase, store],
   );
 
+  const typingLast = useRef(0);
+  const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const typingSent = useRef<string | null>(null);
+  const broadcastTyping = useCallback(
+    (text: string | null, hidden = false) => {
+      const identity = identityRef.current;
+      if (!identity) return;
+      const value = text && text.trim() ? text.slice(-TYPING_TAIL) : null;
+      const send = (v: string | null) => {
+        typingSent.current = v;
+        typingLast.current = Date.now();
+        ephemeral("typing", { userId: identity.userId, name: identity.name, tint: identity.tint, text: hidden && v !== null ? "" : v, hidden });
+      };
+      if (typingTimer.current) clearTimeout(typingTimer.current);
+      typingTimer.current = null;
+      // Stopping goes at once; so does nothing new to say.
+      if (value === null) {
+        if (typingSent.current !== null) send(null);
+        return;
+      }
+      if (hidden && typingSent.current !== null && Date.now() - typingLast.current < TYPING_STALE_MS / 3) return;
+      const wait = TYPING_INTERVAL_MS - (Date.now() - typingLast.current);
+      if (wait <= 0) send(value);
+      else typingTimer.current = setTimeout(() => send(value), wait);
+    },
+    [ephemeral],
+  );
+
   const inkLast = useRef(0);
   const inkTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inkPending = useRef<InkDraft | null>(null);
@@ -1072,6 +1134,7 @@ export function RoomProvider({
     createStroke,
     eraseStroke,
     broadcastInk,
+    broadcastTyping,
     startCobrowse,
     stopCobrowse,
     sendSignal,
