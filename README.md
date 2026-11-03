@@ -141,8 +141,9 @@ it, and it all stays where you dropped it.
     keyboard shortcuts (B, E, G, M, W, V, ctrl+Z and so on).
 - **Decorating.** A solid colour, a gradient, or your own image, either
   stretched or tiled, with a dimmer.
-- **Chat**, named cursors for everyone online, and reactions that float up the
-  screen.
+- **Chat**, where what people type shows up as they type it (or only that they
+  are typing, for anyone who would rather), named cursors for everyone online,
+  and reactions that float up the screen.
 
 When someone opens the link they pick a nickname and a colour first, then walk
 in. The nickname is remembered for next time.
@@ -420,13 +421,17 @@ in [COBROWSE.md](COBROWSE.md). Without a key the rest of the app is unaffected.
 
 ## Next
 
-An inventory for pieces, typing shown live to the table, and a proper undo.
+An inventory for pieces.
 
 ## Things left out
 
 - Two strokes drawn at the same instant (board or wall): last save wins. With
   three people that's rare and cheap to live with.
-- No history and no undo that crosses sessions. Once it's gone, it's gone.
+- Undo covers what you did in this visit, and only that: adding, removing,
+  moving, restacking, editing a note or text, a line drawn or rubbed out
+  (Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y, or the arrows in the dock). Games keep
+  their own time and are left out; one removed by mistake comes back, but as a
+  new game if it had hidden cards. Close the tab and the history goes with it.
 - Sites sending `X-Frame-Options: DENY` won't open in the iframe window. Nothing
   can be done about that from the client side, which is why every embed has a
   button to open it in a new tab.

@@ -40,6 +40,8 @@ import {
   Moon,
   MapPin,
   MousePointer2,
+  Redo2,
+  Undo2,
   Music4,
   Pencil,
   Plus,
@@ -150,7 +152,7 @@ const GROUPS = (Object.keys(GROUP_TITLE) as GameGroup[]).map((group) => ({
 }));
 
 export default function Dock() {
-  const { createItem, canEdit, sendPing } = useRoom();
+  const { createItem, canEdit, sendPing, undo, redo, history } = useRoom();
   const viewport = useRoomStore((s) => s.viewport);
   const zoomAt = useRoomStore((s) => s.zoomAt);
   const setViewport = useRoomStore((s) => s.setViewport);
@@ -291,6 +293,23 @@ export default function Dock() {
             onClick={() => setTool(tool === "erase" ? "select" : "erase")}
           >
             <Eraser className="size-4.5" strokeWidth={2} />
+          </DockButton>
+          {/* On a phone these only turn up once there is something to take back. */}
+          <DockButton
+            label={history.undo ? t("undo {what}", { what: t(history.undo) }) : t("nothing to undo")}
+            disabled={!canEdit || !history.undo}
+            onClick={() => void undo()}
+            className={clsx(!history.undo && "max-lg:hidden")}
+          >
+            <Undo2 className="size-4.5" strokeWidth={2} />
+          </DockButton>
+          <DockButton
+            label={history.redo ? t("redo {what}", { what: t(history.redo) }) : t("nothing to redo")}
+            disabled={!canEdit || !history.redo}
+            onClick={() => void redo()}
+            className={clsx(!history.redo && "max-lg:hidden")}
+          >
+            <Redo2 className="size-4.5" strokeWidth={2} />
           </DockButton>
 
           {(tool === "draw" || tool === "erase") && <BrushPopover />}
@@ -661,6 +680,7 @@ function DockButton({
   disabled,
   active,
   ref,
+  className,
 }: {
   children: React.ReactNode;
   label: string;
@@ -668,6 +688,7 @@ function DockButton({
   disabled?: boolean;
   active?: boolean;
   ref?: React.Ref<HTMLButtonElement>;
+  className?: string;
 }) {
   return (
     <button
@@ -684,6 +705,7 @@ function DockButton({
         // A finger-sized target on touch screens, whatever their width; a mouse's on a desk.
         "grid size-10 place-items-center rounded-xl transition select-none disabled:opacity-35 disabled:hover:bg-transparent min-[360px]:size-11 lg:size-9 lg:pointer-coarse:size-10",
         active ? "bg-glow/22 text-glow" : "text-muted hover:bg-white/8 hover:text-chalk",
+        className,
       )}
     >
       {children}

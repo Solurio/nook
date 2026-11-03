@@ -22,7 +22,9 @@ import { newId } from "@/lib/slug";
 import { rasterizeSvg } from "@/lib/image-upload";
 import { useThrottled } from "@/lib/use-throttled";
 import { keepItemFlags, relayer, type ItemDraft, type Layering } from "@/lib/items";
-import { explainPileError, keepTableState, type PileFn } from "@/lib/piles";
+import { explainPileError, keepTableState, TABLE_KEYS, type PileFn } from "@/lib/piles";
+import { UNDOABLE_DATA, boxOf, describe, inverse, record, sameBox, type Box, type Op, type Step } from "@/lib/history";
+import { startingGame } from "@/lib/game-start";
 import { useRoomStore, viewportForItems } from "@/state/room-store";
 import type {
   AnyItem,
@@ -85,6 +87,12 @@ interface RoomApi {
   readPiles: (itemId: string) => Promise<Record<string, unknown[]>>;
   /** Move an item through the stack: to the front, the back, or one step either way. */
   restack: (id: string, where: Layering) => Promise<void>;
+
+  /** Takes back the last thing you did in the room this visit, for everyone. */
+  undo: () => Promise<void>;
+  redo: () => Promise<void>;
+  /** What undo and redo would take back or put back, in a few words; empty when there is nothing. */
+  history: { undo: string; redo: string };
 
   updateBackground: (background: Background) => Promise<void>;
   renameRoom: (name: string) => Promise<void>;
@@ -301,6 +309,7 @@ export function RoomProvider({
 
         const loadedItems = (itemsResult.data ?? []) as AnyItem[];
         store.getState().hydrateItems(loadedItems);
+        for (const loaded of loadedItems) committed.current.set(loaded.id, boxOf(loaded));
         store
           .getState()
           .hydrateMessages(((messagesResult.data ?? []) as Message[]).slice().reverse());
@@ -406,6 +415,7 @@ export function RoomProvider({
               if (payload.eventType === "DELETE") {
                 const old = payload.old as { id?: string };
                 if (old?.id) {
+                  committed.current.delete(old.id);
                   store.getState().removeItem(old.id);
                   setLiveStrokes((current) => {
                     if (!(old.id! in current)) return current;
@@ -418,6 +428,7 @@ export function RoomProvider({
               }
               const item = payload.new as AnyItem;
               store.getState().upsertItem(item);
+              committed.current.set(item.id, boxOf(item));
               // The committed row now contains these strokes; drop the local echo.
               if (item.kind === "game") {
                 setLiveStrokes((current) =>
@@ -548,6 +559,139 @@ export function RoomProvider({
   // postgres_changes do the fan-out, so late joiners never miss anything.
   // -------------------------------------------------------------------------
 
+  // -------------------------------------------------------------------------
+  // Undo (lib/history.ts). Recorded here, where every change is written, and
+  // taken back by writing the opposite the ordinary way.
+  // -------------------------------------------------------------------------
+
+  /** Where each item last was in the database: a move's "before". */
+  const committed = useRef(new Map<string, Box>());
+  const past = useRef<Step[]>([]);
+  const future = useRef<Step[]>([]);
+  const replaying = useRef(false);
+  const [history, setHistory] = useState({ undo: "", redo: "" });
+  const showHistory = useCallback(() => {
+    // What is waiting to be redone is kept as its undoing; it is named for what it did.
+    const next = future.current.at(-1);
+    setHistory({ undo: describe(past.current.at(-1)), redo: next ? describe(inverse(next)) : "" });
+  }, []);
+
+  const remember = useCallback((item: AnyItem) => {
+    committed.current.set(item.id, boxOf(item));
+  }, []);
+
+  const note = useCallback(
+    (op: Op) => {
+      if (replaying.current) return;
+      past.current = record(past.current, op, Date.now());
+      future.current = [];
+      showHistory();
+    },
+    [showHistory],
+  );
+
+  /**
+   * An item as it can be put back. A game that kept hidden cards comes back
+   * as a new game: the cards went with it and cannot be dealt again as they were.
+   */
+  const restorable = useCallback(async (item: AnyItem) => {
+    const row: Record<string, unknown> = { ...item };
+    delete row.created_at;
+    delete row.updated_at;
+    if (item.kind === "game") {
+      const data = item.data as { game?: string; state?: Record<string, unknown> };
+      const state = data.state ?? {};
+      const kept = Object.keys(TABLE_KEYS).some((key) => state[key] && typeof state[key] === "object" && Object.keys(state[key] as object).length > 0);
+      if (kept && data.game) {
+        const fresh = await startingGame(data.game as never);
+        row.data = { ...item.data, ...fresh };
+      }
+    }
+    return row;
+  }, []);
+
+  const apply = useCallback(
+    async (op: Op): Promise<boolean> => {
+      const live = store.getState();
+      switch (op.kind) {
+        case "create": {
+          if (live.items[op.item.id]) return true;
+          const { data, error: insertError } = await supabase.from("items").insert(await restorable(op.item)).select().single();
+          if (insertError || !data) return false;
+          store.getState().upsertItem(data as AnyItem);
+          remember(data as AnyItem);
+          return true;
+        }
+        case "delete": {
+          if (!live.items[op.item.id]) return true;
+          store.getState().removeItem(op.item.id);
+          committed.current.delete(op.item.id);
+          const { error: deleteError } = await supabase.from("items").delete().eq("id", op.item.id);
+          return !deleteError;
+        }
+        case "move": {
+          const item = live.items[op.id];
+          if (!item) return false;
+          store.getState().upsertItem({ ...item, ...op.after });
+          committed.current.set(op.id, op.after);
+          const { error: updateError } = await supabase.from("items").update(op.after).eq("id", op.id);
+          return !updateError;
+        }
+        case "data": {
+          if (!live.items[op.id]) return false;
+          store.getState().patchItemData(op.id, op.after as Record<string, unknown>);
+          const { error: updateError } = await supabase.from("items").update({ data: op.after }).eq("id", op.id);
+          return !updateError;
+        }
+        case "stack": {
+          const item = live.items[op.id];
+          if (!item) return false;
+          store.getState().upsertItem({ ...item, z: op.after });
+          const { error: updateError } = await supabase.from("items").update({ z: op.after }).eq("id", op.id);
+          return !updateError;
+        }
+        case "ink": {
+          if (live.strokes[op.stroke.id]) return true;
+          const { id, room_id, color, size, points, created_by } = op.stroke;
+          const { data, error: insertError } = await supabase.from("strokes").insert({ id, room_id, color, size, points, created_by }).select().single();
+          if (insertError || !data) return false;
+          store.getState().upsertStroke(data as Stroke);
+          return true;
+        }
+        case "rub": {
+          if (!live.strokes[op.stroke.id]) return true;
+          store.getState().removeStroke(op.stroke.id);
+          const { error: deleteError } = await supabase.from("strokes").delete().eq("id", op.stroke.id);
+          return !deleteError;
+        }
+      }
+    },
+    [supabase, store, restorable, remember],
+  );
+
+  const replay = useCallback(
+    async (from: { current: Step[] }, to: { current: Step[] }) => {
+      const step = from.current.at(-1);
+      if (!step || replaying.current) return;
+      from.current = from.current.slice(0, -1);
+      const back = inverse(step);
+      replaying.current = true;
+      let missed = 0;
+      try {
+        for (const op of back.ops) if (!(await apply(op))) missed += 1;
+      } finally {
+        replaying.current = false;
+      }
+      to.current = [...to.current, back];
+      showHistory();
+      if (missed) setError("Some of that had already been changed or removed by someone else.");
+    },
+    [apply, showHistory],
+  );
+
+  const undo = useCallback(() => replay(past, future), [replay]);
+  const redo = useCallback(() => replay(future, past), [replay]);
+
   const createItem = useCallback(
     async (draft: ItemDraft): Promise<AnyItem | null> => {
       const roomId = roomIdRef.current;
@@ -568,9 +712,11 @@ export function RoomProvider({
       const item = data as AnyItem;
       store.getState().upsertItem(item);
       store.getState().select(item.id);
+      remember(item);
+      note({ kind: "create", item });
       return item;
     },
-    [supabase, store],
+    [supabase, store, remember, note],
   );
 
   const clearError = useCallback(() => setError(null), []);
@@ -614,15 +760,22 @@ export function RoomProvider({
 
   const deleteItem = useCallback(
     async (id: string) => {
+      const gone = store.getState().items[id];
       store.getState().removeItem(id);
+      committed.current.delete(id);
+      if (gone) note({ kind: "delete", item: gone });
       const { error: deleteError } = await supabase.from("items").delete().eq("id", id);
       if (deleteError) setError(deleteError.message);
     },
-    [supabase, store],
+    [supabase, store, note],
   );
 
   const commitTransform = useCallback(
     async (patch: TransformPatch) => {
+      const after = boxOf(patch);
+      const before = committed.current.get(patch.id);
+      committed.current.set(patch.id, after);
+      if (before && !sameBox(before, after)) note({ kind: "move", id: patch.id, before, after });
       const { error: updateError } = await supabase
         .from("items")
         .update({
@@ -635,13 +788,17 @@ export function RoomProvider({
         .eq("id", patch.id);
       if (updateError) setError(updateError.message);
     },
-    [supabase],
+    [supabase, note],
   );
 
   const updateData = useCallback(
     async <K extends ItemKind>(id: string, sent: ItemDataMap[K]) => {
       // A pin or a link the save knows nothing about stays where it was.
-      const data = keepItemFlags(store.getState().items[id]?.data, sent);
+      const was = store.getState().items[id];
+      const data = keepItemFlags(was?.data, sent);
+      if (was && UNDOABLE_DATA.has(was.kind) && JSON.stringify(was.data) !== JSON.stringify(data)) {
+        note({ kind: "data", id, before: was.data, after: data });
+      }
       // Pile sizes and whatever has been turned over belong to the database,
       // which keeps them whatever a save says (see 0006_tabletop.sql). Kept
       // here too, so they do not blink out until the saved row comes back.
@@ -652,7 +809,7 @@ export function RoomProvider({
       const { error: updateError } = await supabase.from("items").update({ data }).eq("id", id);
       if (updateError) setError(updateError.message);
     },
-    [supabase, store],
+    [supabase, store, note],
   );
 
   /**
@@ -758,7 +915,9 @@ export function RoomProvider({
       // Show it straight away; the rows catch up.
       for (const move of moves) {
         const live = store.getState().items[move.id];
-        if (live) store.getState().upsertItem({ ...live, z: move.z });
+        if (!live) continue;
+        note({ kind: "stack", id: move.id, before: live.z, after: move.z });
+        store.getState().upsertItem({ ...live, z: move.z });
       }
 
       const results = await Promise.all(
@@ -767,7 +926,7 @@ export function RoomProvider({
       const failed = results.find((result) => result.error);
       if (failed?.error) setError(failed.error.message);
     },
-    [supabase, store],
+    [supabase, store, note],
   );
 
   const updateBackground = useCallback(
@@ -945,18 +1104,21 @@ export function RoomProvider({
         return;
       }
       store.getState().upsertStroke(data as Stroke);
+      note({ kind: "ink", stroke: data as Stroke });
     },
-    [supabase, store],
+    [supabase, store, note],
   );
 
   const eraseStroke = useCallback(
     async (id: string) => {
-      if (!store.getState().strokes[id]) return;
+      const stroke = store.getState().strokes[id];
+      if (!stroke) return;
+      note({ kind: "rub", stroke });
       store.getState().removeStroke(id);
       const { error: deleteError } = await supabase.from("strokes").delete().eq("id", id);
       if (deleteError) setError(deleteError.message);
     },
-    [supabase, store],
+    [supabase, store, note],
   );
 
   const typingLast = useRef(0);
@@ -1121,6 +1283,9 @@ export function RoomProvider({
     pile,
     readPiles,
     restack,
+    undo,
+    redo,
+    history,
     updateBackground,
     renameRoom,
     setLocked,

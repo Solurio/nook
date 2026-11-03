@@ -474,7 +474,6 @@ export interface Stroke {
   created_at: string;
 }
 
-/** In-flight stroke shared over broadcast before it is committed. */
 /** What someone is typing into the chat, before they send it. */
 export interface Typing {
   name: string;
@@ -486,6 +485,7 @@ export interface Typing {
   at: number;
 }
 
+/** In-flight stroke shared over broadcast before it is committed. */
 export interface InkDraft {
   id: string;
   userId: string;

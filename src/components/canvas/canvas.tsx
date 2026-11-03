@@ -66,7 +66,7 @@ export default function Canvas() {
   const zoomAt = useRoomStore((s) => s.zoomAt);
   const pinchTo = useRoomStore((s) => s.pinch);
 
-  const { moveCursor, createItem, deleteItem, duplicateItem, uploadFile, canEdit, sendPing, setNotice } =
+  const { moveCursor, createItem, deleteItem, duplicateItem, uploadFile, canEdit, sendPing, setNotice, undo, redo } =
     useRoom();
 
   const [dropping, setDropping] = useState(false);
@@ -335,6 +335,18 @@ export default function Canvas() {
       const id = useRoomStore.getState().selectedId;
       const picked = useRoomStore.getState().picked;
 
+      // Undo and redo for the room. Something with focus inside an item -- a
+      // drawing, a document -- keeps these keys for itself.
+      const letter = event.key.toLowerCase();
+      if ((event.metaKey || event.ctrlKey) && (letter === "z" || letter === "y") && canEdit) {
+        const busyItem = document.activeElement instanceof HTMLElement && document.activeElement.closest("[data-item-id]");
+        if (busyItem) return;
+        event.preventDefault();
+        if (letter === "y" || event.shiftKey) void redo();
+        else void undo();
+        return;
+      }
+
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "a") {
         event.preventDefault();
         useRoomStore.getState().setPicked(Object.keys(useRoomStore.getState().items));
@@ -397,7 +409,7 @@ export default function Canvas() {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, [canEdit, deleteItem, duplicateItem]);
+  }, [canEdit, deleteItem, duplicateItem, undo, redo]);
 
   // ---------------------------------------------------------------------------
   // Dropping and pasting things into the room
