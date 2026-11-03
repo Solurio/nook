@@ -38,6 +38,8 @@ export interface Step {
 export const HISTORY_LIMIT = 100;
 /** Things recorded this close together are one step: a group dragged, a pile removed. */
 export const SAME_STEP_MS = 400;
+/** Edits to different things this close together came from one action. */
+export const SAME_TICK_MS = 40;
 /** Edits to the same note this close together are one step, so a sentence undoes as a sentence. */
 export const TYPING_STEP_MS = 2500;
 
@@ -90,6 +92,10 @@ export function record(past: Step[], op: Op, now: number): Step[] {
       const first = last.ops[0] as Extract<Op, { kind: "data" }>;
       return [...past.slice(0, -1), { ops: [{ ...first, after: op.after }], at: now }];
     }
+  }
+  if (last && op.kind === "data" && now - last.at < SAME_TICK_MS && last.ops.every((o) => o.kind === "data" && o.id !== op.id)) {
+    // Two things changed by one action -- something handed from one piece to another.
+    return [...past.slice(0, -1), { ops: [...last.ops, op], at: now }];
   }
   if (last && op.kind === "move") {
     // The same thing moved again within the moment: one move.

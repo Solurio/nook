@@ -97,7 +97,8 @@ it, and it all stays where you dropped it.
   as wide as their chance of coming up, which lands on the same spot on every
   screen and can make winners sit out. **Pieces** and **grids** (squares or
   hexes, over a map if you like): a piece let go over a grid settles into its
-  cell. A grid **measures** in feet or metres -- however much ground a square
+  cell, and carries an **inventory** -- a sword, thirty gold, a key -- that
+  everyone sees and anyone can hand from one piece to another. A grid **measures** in feet or metres -- however much ground a square
   stands for -- and holds **areas** for everyone to see: circles, cones, cubes
   and lines, the way a tabletop RPG needs them.
 - **Tying things together.** Tie any item to any other from its bar, a map to its
@@ -418,10 +419,6 @@ in [COBROWSE.md](COBROWSE.md). Without a key the rest of the app is unaffected.
   that holds it. If that device is gone when it is needed, the role stays hidden.
   The same goes for a WAR objective: only the screen holding it can tell it has
   been reached.
-
-## Next
-
-An inventory for pieces.
 
 ## Things left out
 

@@ -50,7 +50,7 @@ test("typing into the same note undoes as one edit, from where it started", () =
   assert.deepEqual(past[0].ops[0], { kind: "data", id: "n", before: { body: "" }, after: { body: "hello" } });
   past = record(past, { kind: "data", id: "n", before: { body: "hello" }, after: { body: "hello!" } }, 900 + TYPING_STEP_MS + 1);
   assert.equal(past.length, 2, "after a pause, a new edit");
-  past = record(past, { kind: "data", id: "other", before: {}, after: { body: "x" } }, 900 + TYPING_STEP_MS + 2);
+  past = record(past, { kind: "data", id: "other", before: {}, after: { body: "x" } }, 900 + TYPING_STEP_MS + 200);
   assert.equal(past.length, 3, "another note is another edit");
 });
 
@@ -66,4 +66,15 @@ test("the history keeps the last hundred steps", () => {
   for (let i = 0; i < HISTORY_LIMIT + 20; i += 1) past = record(past, { kind: "stack", id: `i${i}`, before: 0, after: 1 }, i * (SAME_STEP_MS + 1));
   assert.equal(past.length, HISTORY_LIMIT);
   assert.equal((past[0].ops[0] as { id: string }).id, "i20");
+});
+
+test("one thing handed from one piece to another undoes as one step", () => {
+  let past: Step[] = [];
+  past = record(past, { kind: "data", id: "a", before: { bag: [1] }, after: { bag: [] } }, 5000);
+  past = record(past, { kind: "data", id: "b", before: { bag: [] }, after: { bag: [1] } }, 5001);
+  assert.equal(past.length, 1);
+  assert.deepEqual(
+    inverse(past[0]).ops.map((o) => (o as { id: string }).id),
+    ["b", "a"],
+  );
 });

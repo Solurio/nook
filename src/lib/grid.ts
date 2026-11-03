@@ -60,6 +60,8 @@ export interface TokenData {
   color: string;
   shape: TokenShape;
   image?: string;
+  /** What the piece carries (lib/inventory.ts). */
+  bag?: import("./inventory").Carried[];
 }
 
 export const MIN_CELL = 16;

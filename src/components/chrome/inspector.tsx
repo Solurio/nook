@@ -6,6 +6,7 @@ import {
   AlignCenter,
   AlignLeft,
   AlignRight,
+  Backpack,
   BringToFront,
   Check,
   ChevronDown,
@@ -25,7 +26,9 @@ import {
   Trash2,
   Unlink2,
 } from "lucide-react";
-import { useRef } from "react";
+import { useRef, useState } from "react";
+import InventorySheet from "@/components/chrome/inventory-sheet";
+import { readBag, total } from "@/lib/inventory";
 import { prepareImage } from "@/lib/image-upload";
 import { MAX_CELL, MIN_CELL, TOKEN_COLORS, unlink, type GridData, type TokenData } from "@/lib/grid";
 import { useRoom } from "@/realtime/room-provider";
@@ -533,10 +536,23 @@ function PicturePick({ label, onPicked }: { label: string; onPicked: (url: strin
 
 function TokenControls({ item }: { item: Item<"token"> }) {
   const { updateData } = useRoom();
+  const [bagOpen, setBagOpen] = useState(false);
   const data = item.data as TokenData;
+  const carried = total(readBag(data.bag));
   const save = (patch: Partial<TokenData>) => void updateData(item.id, { ...data, ...patch });
   return (
     <>
+      <Action label="what it carries" active={bagOpen} onClick={() => setBagOpen((v) => !v)}>
+        <span className="relative">
+          <Backpack className="size-4" strokeWidth={2.2} />
+          {carried > 0 && (
+            <span className="absolute -top-1.5 -right-2.5 min-w-3.5 rounded-full bg-warm px-0.5 text-center text-[8px] leading-3.5 font-bold text-ink-950 tabular-nums">
+              {carried > 99 ? "99+" : carried}
+            </span>
+          )}
+        </span>
+      </Action>
+      {bagOpen && <InventorySheet id={item.id} onClose={() => setBagOpen(false)} />}
       <input
         key={data.label}
         defaultValue={data.label}
