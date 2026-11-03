@@ -56,8 +56,11 @@ it, and it all stays where you dropped it.
   game: setup round and back, the robber, harbours, trading with the table,
   the longest road, the largest army, and development cards from a hidden
   deck. **Werewolf** for four to sixteen, with the seer, the doctor, the hunter
-  and the witch to pick from, and no narrator: nobody has to sit out. Your hand
-  is yours alone; see [Hidden cards](#hidden-cards) for how.
+  and the witch to pick from, and no narrator: nobody has to sit out.
+  **Detective** for two to six: a sealed envelope, a house of nine rooms with
+  secret passages, six suspects and six weapons written for this project, and a
+  notebook that fills itself in. Your hand is yours alone; see
+  [Hidden cards](#hidden-cards) for how.
 - **Board games.** Chess (with check, mate and castling), checkers, connect four,
   tic-tac-toe, **Quoridor** (Bloqueio here in Brazil) for two or four, with walls
   that can never shut anyone in, **rock paper scissors** for two to six with sealed throws,
@@ -210,6 +213,10 @@ how many cards each pile holds, and whatever has been turned over.
   hears at dawn is written onto the item by the database alone. Everyone does
   something every night, villagers included, so nobody can tell who has a
   power by who is still busy.
+- Detective's envelope is a pile with no owner, so nobody reads it. When you
+  suggest, the database goes round the hands itself and shows you the first
+  card it finds -- or lets that player choose, when they hold more than one --
+  so nobody can claim not to hold a card they do.
 
 The functions are tested against a real Postgres running in WebAssembly
 ([PGlite](https://pglite.dev)), with the same migrations and the same policies.
@@ -243,9 +250,9 @@ create a new project. Pick the region closest to you, it feeds straight into
 realtime latency.
 
 **2. Run the migrations.** Open the project's SQL Editor and run the contents of
-`supabase/migrations/` in order. All of them, including the newest: `0011`
-is Werewolf's narrator, and until it runs that game says so instead of
-dealing. `0010` closes rooms to people who have not joined them and tightens
+`supabase/migrations/` in order. All of them, including the newest: `0012`
+is Detective's and `0011` Werewolf's: the database runs both games, and
+until they are in, those games say so instead of dealing. `0010` closes rooms to people who have not joined them and tightens
 uploads (see [DEPLOY.md](DEPLOY.md)). `0009`
 gives the paint studio a table of its own, so each stroke is one small row
 instead of a rewrite of the whole picture. Without it the studio still works,
@@ -413,9 +420,7 @@ in [COBROWSE.md](COBROWSE.md). Without a key the rest of the app is unaffected.
 
 ## Next
 
-Prepared for, not built yet: **Detective** (Clue-style), which fits the secret
-piles and the chairs as they are. An inventory for pieces, typing shown live
-to the table, and a proper undo.
+An inventory for pieces, typing shown live to the table, and a proper undo.
 
 ## Things left out
 

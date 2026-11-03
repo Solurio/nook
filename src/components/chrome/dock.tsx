@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import {
   Search,
+  SearchCheck,
   Asterisk,
   Club,
   Bomb,
@@ -113,6 +114,7 @@ const GAMES: Array<{
   { kind: "uno", group: "secrets", title: "uno", hint: "match the colour, empty your hand", icon: <Layers /> },
   { kind: "coup", group: "secrets", title: "coup", hint: "lie well, or lose a card", icon: <VenetianMask /> },
   { kind: "spyfall", group: "secrets", title: "spyfall", hint: "everyone knows where but one", icon: <MapPin /> },
+  { kind: "detective", group: "secrets", title: "detective", hint: "who, with what, and where", icon: <SearchCheck /> },
   { kind: "werewolf", group: "secrets", title: "werewolf", hint: "wolves among you, and the night is long", icon: <Moon /> },
   { kind: "resistance", group: "secrets", title: "the resistance", hint: "five missions, spies among you", icon: <Radio /> },
   { kind: "codenames", group: "secrets", title: "codenames", hint: "one word, two spymasters", icon: <MessageSquare /> },

@@ -40,7 +40,14 @@ export type PileFn =
   | "werewolf_deal"
   | "werewolf_night"
   | "werewolf_vote"
-  | "werewolf_shoot";
+  | "werewolf_shoot"
+  // Detective, which answers suggestions itself (0012).
+  | "detective_deal"
+  | "detective_move"
+  | "detective_suggest"
+  | "detective_show"
+  | "detective_end"
+  | "detective_accuse";
 
 /**
  * The functions that can write the table's public state in the same breath as
@@ -112,6 +119,9 @@ export function explainPileError(message: string | undefined | null): string {
   if (/werewolf/i.test(text) && /could not find the function|PGRST202|does not exist/i.test(text)) {
     return "Werewolf needs its database update. Run supabase/migrations/0011_werewolf.sql in the Supabase SQL editor.";
   }
+  if (/detective/i.test(text) && /could not find the function|PGRST202|does not exist/i.test(text)) {
+    return "Detective needs its database update. Run supabase/migrations/0012_detective.sql in the Supabase SQL editor.";
+  }
   if (/could not find the function|PGRST202|does not exist/i.test(text)) {
     return "This table needs the newest database update. Run supabase/migrations/0006_tabletop.sql in the Supabase SQL editor.";
   }
@@ -149,10 +159,11 @@ export function handsOwed(
 
 /**
  * What only the pile functions write, and the shape each has. The database
- * keeps these whatever a browser's save says (0006_tabletop.sql), so a save
+ * keeps these whatever a browser's save says (0006_tabletop.sql; ww and cs
+ * are the werewolf and detective narrators, 0011 and 0012), so a save
  * can neither wipe the pile sizes nor claim a card was turned over.
  */
-export const TABLE_KEYS = { piles: "object", revealed: "object", peeked: "array", tested: "array" } as const;
+export const TABLE_KEYS = { piles: "object", revealed: "object", peeked: "array", tested: "array", ww: "object", cs: "object" } as const;
 
 const shapeOf = (value: unknown) => (Array.isArray(value) ? "array" : value !== null && typeof value === "object" ? "object" : null);
 

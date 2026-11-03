@@ -93,6 +93,8 @@ export async function startingGame(game: GameKind): Promise<ItemDataMap["game"]>
       return { game: "twentyone", state: (await import("./twentyone")).emptyTwentyOne() };
     case "werewolf":
       return { game: "werewolf", state: (await import("./werewolf")).emptyWerewolf() };
+    case "detective":
+      return { game: "detective", state: (await import("./detective")).emptyDetective() };
     case "resistance":
       return {
         game: "resistance",

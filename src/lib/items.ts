@@ -87,6 +87,7 @@ const GAME_SIZE: Record<GameKind, { width: number; height: number }> = {
   chinese: { width: 440, height: 500 },
   twentyone: { width: 460, height: 440 },
   werewolf: { width: 540, height: 600 },
+  detective: { width: 700, height: 600 },
 };
 
 /** A slight tilt on drop makes a wall of items feel arranged rather than gridded. */
