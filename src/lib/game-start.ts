@@ -91,6 +91,8 @@ export async function startingGame(game: GameKind): Promise<ItemDataMap["game"]>
       return { game: "chinese", state: (await import("./chinese")).emptyChinese() };
     case "twentyone":
       return { game: "twentyone", state: (await import("./twentyone")).emptyTwentyOne() };
+    case "werewolf":
+      return { game: "werewolf", state: (await import("./werewolf")).emptyWerewolf() };
     case "resistance":
       return {
         game: "resistance",

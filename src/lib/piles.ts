@@ -35,7 +35,12 @@ export type PileFn =
   | "pile_give"
   | "pile_drop"
   | "pile_test"
-  | "pile_team";
+  | "pile_team"
+  // Werewolf's narrator, which keeps its secrets the same way (0011).
+  | "werewolf_deal"
+  | "werewolf_night"
+  | "werewolf_vote"
+  | "werewolf_shoot";
 
 /**
  * The functions that can write the table's public state in the same breath as
@@ -104,6 +109,9 @@ export function forWriting<T extends { piles?: unknown; revealed?: unknown; peek
 /** Turns what the database said into something a person can act on. */
 export function explainPileError(message: string | undefined | null): string {
   const text = message ?? "";
+  if (/werewolf/i.test(text) && /could not find the function|PGRST202|does not exist/i.test(text)) {
+    return "Werewolf needs its database update. Run supabase/migrations/0011_werewolf.sql in the Supabase SQL editor.";
+  }
   if (/could not find the function|PGRST202|does not exist/i.test(text)) {
     return "This table needs the newest database update. Run supabase/migrations/0006_tabletop.sql in the Supabase SQL editor.";
   }

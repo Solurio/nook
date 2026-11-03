@@ -42,6 +42,7 @@ const Battleship = preloadable(() => import("@/components/games/battleship"), Op
 const Monopoly = preloadable(() => import("@/components/games/monopoly"), Opening);
 const Chinese = preloadable(() => import("@/components/games/chinese"), Opening);
 const TwentyOne = preloadable(() => import("@/components/games/twentyone"), Opening);
+const Werewolf = preloadable(() => import("@/components/games/werewolf"), Opening);
 
 export default function GameItem({ item }: { item: Item<"game"> }) {
   switch (item.data.game) {
@@ -105,6 +106,8 @@ export default function GameItem({ item }: { item: Item<"game"> }) {
       return <Chinese item={item} state={item.data.state} />;
     case "twentyone":
       return <TwentyOne item={item} state={item.data.state} />;
+    case "werewolf":
+      return <Werewolf item={item} state={item.data.state} />;
     default:
       return null;
   }
